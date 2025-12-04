@@ -38,5 +38,24 @@ namespace CareerCracker.Controllers
         
         }
 
+        [Route("update-category/{Id}")]
+        [HttpPost]
+        public async Task<IActionResult> UpdataCategory(int Id, IFormCollection form)
+        {
+            try
+            {
+                if (Id == null && Id == 0)
+                {
+                    return BadRequest(new { success = false, message = "Bad request!" });
+                }
+
+                return await _businessLayer.UpdataCategory(Id, form);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = $"Internal server error!{ex.Message}" });
+            }
+        }
+
     }
 }

@@ -361,3 +361,4 @@ C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\bin\Debug\net9.0\Microso
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\bin\Debug\net9.0\Npgsql.dll
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\bin\Debug\net9.0\Npgsql.EntityFrameworkCore.PostgreSQL.dll
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\bin\Debug\net9.0\Microsoft.EntityFrameworkCore.Design.dll
+C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\obj\Debug\net9.0\CareerCracker.sourcelink.json

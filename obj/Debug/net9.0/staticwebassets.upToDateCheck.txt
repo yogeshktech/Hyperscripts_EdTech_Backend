@@ -63,6 +63,7 @@ wwwroot\lib\jquery\dist\jquery.slim.min.map
 wwwroot\lib\jquery\LICENSE.txt
 wwwroot\uploads\categories\a77e5303-449c-4461-bfd3-5363a57078ca.png
 wwwroot\uploads\categories\4513557e-0c33-4e7d-9ac5-49080c748d34.png
+wwwroot\uploads\categories\6bf315c7-3618-425f-90df-4c5a17695ad2.png
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\wwwroot\css\site.css
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\wwwroot\favicon.ico
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\wwwroot\js\site.js
