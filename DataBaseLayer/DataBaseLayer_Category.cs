@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 namespace CareerCracker.DataBaseLayer
 {
@@ -38,7 +39,7 @@ namespace CareerCracker.DataBaseLayer
                     return BadRequest(new { success = false, message = "Form data is missing" });
 
                 string categoryName = form["categoryName"];
-                string categorySlug = form["categorySlug"];
+                string categorySlug = GenerateSlug(categoryName); 
                 string description = form["description"];
                 bool isActive = form.ContainsKey("isActive") && form["isActive"] == "true";
 
@@ -126,7 +127,7 @@ namespace CareerCracker.DataBaseLayer
                     return BadRequest(new { success = false, message = "Form data is missing" });
 
                 string categoryName = form["categoryName"];
-                string categorySlug = form["categorySlug"];
+                string categorySlug = GenerateSlug(categoryName);
                 string description = form["description"];
                 bool isActive = form.ContainsKey("isActive") && form["isActive"] == "true";
 
@@ -236,8 +237,6 @@ namespace CareerCracker.DataBaseLayer
                 return StatusCode(500, new { success = false, message = $"Internal server error: {ex.Message}" });
             }
         }
-
-
 
 
         public async Task<IActionResult> GetAllCategory()
@@ -626,15 +625,25 @@ namespace CareerCracker.DataBaseLayer
                     await con.OpenAsync();
 
                     string query = @"
-            SELECT s.id, s.sub_category_name, s.sub_category_slug,
-                   s.description, s.sub_category_image,
-                   s.is_active, s.updated_at,
-                   c.category_name,c.category_discription,
-                   c.category_slug,c.category_image,
-                   c.is_active
-            FROM subcategories s
-            LEFT JOIN categories c ON s.id = c.id
-            ORDER BY s.id DESC";
+                SELECT 
+                    s.id,
+                    s.category_id,
+                    s.sub_category_name,
+                    s.sub_category_slug,
+                    s.description,
+                    s.sub_category_image,
+                    s.is_active AS sub_active,
+                    s.updated_at,
+
+                    c.category_name,
+                    c.category_discription,
+                    c.category_slug,
+                    c.category_image,
+                    c.is_active AS category_active
+                FROM subcategories s
+                LEFT JOIN categories c 
+                    ON s.category_id = c.id
+                WHERE s.id = @id";
 
                     using (var cmd = new NpgsqlCommand(query, con))
                     {
@@ -643,7 +652,7 @@ namespace CareerCracker.DataBaseLayer
                         using (var reader = await cmd.ExecuteReaderAsync())
                         {
                             if (!await reader.ReadAsync())
-                                return NotFound(new { success = false, message = "Not Found" });
+                                return NotFound(new { success = false, message = "Sub Category Not Found" });
 
                             return Ok(new
                             {
@@ -653,13 +662,14 @@ namespace CareerCracker.DataBaseLayer
                                 slug = reader["sub_category_slug"],
                                 description = reader["description"],
                                 image = reader["sub_category_image"],
-                                active = reader["is_active"],
+                                active = reader["sub_active"],
                                 updatedAt = reader["updated_at"],
+
                                 categoryName = reader["category_name"],
                                 categoryDescription = reader["category_discription"],
                                 categorySlug = reader["category_slug"],
                                 categoryImage = reader["category_image"],
-                                categoryStatus = reader["is_active"]
+                                categoryStatus = reader["category_active"]
                             });
                         }
                     }
