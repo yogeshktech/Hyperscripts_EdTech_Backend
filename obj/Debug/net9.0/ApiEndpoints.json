@@ -1,6 +1,64 @@
 [
   {
     "ContainingType": "CareerCracker.Controllers.CategoryController",
+    "Method": "Toggle",
+    "RelativePath": "api/admin/category-status/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.CategoryController",
+    "Method": "DeleteCategory",
+    "RelativePath": "api/admin/del-categories/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.CategoryController",
+    "Method": "GetAllCategories",
+    "RelativePath": "api/admin/get-categories",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.CategoryController",
+    "Method": "GetCategory",
+    "RelativePath": "api/admin/get-categories/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.CategoryController",
     "Method": "InserCategory",
     "RelativePath": "api/admin/insert-category",
     "HttpMethod": "POST",

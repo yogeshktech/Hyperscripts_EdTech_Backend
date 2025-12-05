@@ -1,3 +1,8 @@
+wwwroot\categoryImages\28398317-a2aa-4e8c-9bbb-dffe810c8dec.png
+wwwroot\categoryImages\34af4058-11dc-4860-8351-13a4624c2bf9.png
+wwwroot\categoryImages\60bf1602-3190-4caf-acf6-06e49539ef25.png
+wwwroot\categoryImages\6d7a0b44-96dc-43b6-b28b-703b6f724256.avif
+wwwroot\categoryImages\da4a3ca9-819c-4912-91ad-4c1f88077128.avif
 wwwroot\css\site.css
 wwwroot\favicon.ico
 wwwroot\js\site.js
@@ -61,9 +66,9 @@ wwwroot\lib\jquery\dist\jquery.slim.js
 wwwroot\lib\jquery\dist\jquery.slim.min.js
 wwwroot\lib\jquery\dist\jquery.slim.min.map
 wwwroot\lib\jquery\LICENSE.txt
-wwwroot\uploads\categories\a77e5303-449c-4461-bfd3-5363a57078ca.png
 wwwroot\uploads\categories\4513557e-0c33-4e7d-9ac5-49080c748d34.png
 wwwroot\uploads\categories\6bf315c7-3618-425f-90df-4c5a17695ad2.png
+wwwroot\uploads\categories\a77e5303-449c-4461-bfd3-5363a57078ca.png
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\wwwroot\css\site.css
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\wwwroot\favicon.ico
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\wwwroot\js\site.js
