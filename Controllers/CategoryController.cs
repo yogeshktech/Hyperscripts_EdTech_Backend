@@ -129,5 +129,117 @@ namespace CareerCracker.Controllers
             }
         }
 
+        [Route("insert-subcategory")]
+        [HttpPost]
+        public async Task<IActionResult> SubInserCategory(IFormCollection form)
+        {
+            try
+            {
+                var name = form["subCategoryName"];
+
+                if (string.IsNullOrEmpty(name))
+                {
+                    return BadRequest(new { success = false, message = $"Category name is required" });
+                }
+                return await _businessLayer.SubInserCategory(form);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = $"Internal server error!{ex.Message}" });
+            }
+
+        }
+
+        [Route("update-subcategory/{Id}")]
+        [HttpPost]
+        public async Task<IActionResult> SubUpdataCategory(int Id, IFormCollection form)
+        {
+            try
+            {
+                if (Id == null && Id == 0)
+                {
+                    return BadRequest(new { success = false, message = "Bad request!" });
+                }
+
+                return await _businessLayer.SubUpdataCategory(Id, form);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = $"Internal server error!{ex.Message}" });
+            }
+        }
+
+        [Route("get-subcategories")]
+        [HttpGet]
+        public async Task<IActionResult> SubGetAllCategories()
+        {
+            try
+            {
+
+
+                return await _businessLayer.SubGetAllCategory();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = $"Internal server error!{ex.Message}" });
+            }
+        }
+
+        [HttpGet("get-subcategories/{id}")]
+        public async Task<IActionResult> SubGetCategory(int id)
+        {
+            try
+            {
+                if (id == null && id == 0)
+                {
+                    return BadRequest(new { success = false, message = "Bad request!" });
+                }
+
+                return await _businessLayer.SubGetCategoryById(id);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = $"Internal server error!{ex.Message}" });
+            }
+        }
+
+
+        [Route("del-subcategories/{id}")]
+        [HttpDelete]
+        public async Task<IActionResult> SubDeleteCategory(int id)
+        {
+            try
+            {
+                if (id == null && id == 0)
+                {
+                    return BadRequest(new { success = false, message = "Bad request!" });
+                }
+
+                return await _businessLayer.SubDeleteCategoryById(id);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = $"Internal server error!{ex.Message}" });
+            }
+        }
+
+        [HttpPut("subcategory-status/{id}")]
+        public async Task<IActionResult> SubToggle(int id)
+        {
+            try
+            {
+                if (id == null && id == 0)
+                {
+                    return BadRequest(new { success = false, message = "Bad request!" });
+                }
+
+                return await _businessLayer.SubToggleCategoryStatus(id);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = $"Internal server error!{ex.Message}" });
+            }
+        }
+
     }
 }

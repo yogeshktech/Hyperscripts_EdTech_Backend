@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <Folder Include="Service\" />
+    <Folder Include="wwwroot\uploads\" />
   </ItemGroup>
 
 </Project>

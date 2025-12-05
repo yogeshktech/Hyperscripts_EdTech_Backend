@@ -10,6 +10,12 @@ namespace CareerCracker.BusinessLayer
         Task<IActionResult> GetCategoryById(int Id);
         Task<IActionResult> DeleteCategoryById(int Id);
         Task<IActionResult> ToggleCategoryStatus(int Id);
+        Task<IActionResult> SubInserCategory(IFormCollection form);
+        Task<IActionResult> SubUpdataCategory(int Id, IFormCollection form);
+        Task<IActionResult> SubGetAllCategory();
+        Task<IActionResult> SubGetCategoryById(int Id);
+        Task<IActionResult> SubDeleteCategoryById(int Id);
+        Task<IActionResult> SubToggleCategoryStatus(int Id);
 
     }
     public partial interface IBusinessLayer : IBusinessLayer_Category 
@@ -44,6 +50,35 @@ namespace CareerCracker.BusinessLayer
         public async Task<IActionResult> ToggleCategoryStatus(int Id)
         {
             return await _dataBaseLayer.ToggleCategoryStatus(Id);
+        }
+
+        public async Task<IActionResult> SubInserCategory(IFormCollection form)
+        {
+            return await _dataBaseLayer.InsertSubCategory(form);
+        }
+
+        public async Task<IActionResult> SubUpdataCategory(int Id, IFormCollection form)
+        {
+            return await _dataBaseLayer.UpdateSubCategory(Id, form);
+        }
+
+        public async Task<IActionResult> SubGetAllCategory()
+        {
+            return await _dataBaseLayer.GetAllSubCategories();
+        }
+        public async Task<IActionResult> SubGetCategoryById(int Id)
+        {
+            return await _dataBaseLayer.GetSubCategoryById(Id);
+        }
+
+        public async Task<IActionResult> SubDeleteCategoryById(int Id)
+        {
+            return await _dataBaseLayer.DeleteSubCategory(Id);
+        }
+
+        public async Task<IActionResult> SubToggleCategoryStatus(int Id)
+        {
+            return await _dataBaseLayer.ToggleSubCategoryStatus(Id);
         }
     }
 
