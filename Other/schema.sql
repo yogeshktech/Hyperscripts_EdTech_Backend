@@ -77,3 +77,15 @@ CREATE TABLE blogs (
 
 ALTER TABLE blogs
 ADD COLUMN blogs_image VARCHAR(255);
+
+CREATE TABLE testimonial (
+    id SERIAL PRIMARY KEY,
+    test_name VARCHAR(255) NOT NULL,
+    discription TEXT,
+    test_content TEXT,
+    slug VARCHAR(255),
+    image VARCHAR(255),
+    is_active BOOLEAN DEFAULT TRUE,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+

@@ -69,6 +69,22 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.TestimonialController",
+    "Method": "AddTestimonial",
+    "RelativePath": "api/admin/add-testimonial",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.CategoryController",
     "Method": "Toggle",
     "RelativePath": "api/admin/category-status/{id}",
@@ -165,6 +181,22 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.TestimonialController",
+    "Method": "DeleteTestimonial",
+    "RelativePath": "api/admin/del-testimonial/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.BlogsController",
     "Method": "GetAllBlogs",
     "RelativePath": "api/admin/get-all-blogs",
@@ -188,6 +220,16 @@
     "ContainingType": "CareerCracker.Controllers.LanguagesController",
     "Method": "GetAllLanguages",
     "RelativePath": "api/admin/get-all-lang",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.TestimonialController",
+    "Method": "GetAllTestimonials",
+    "RelativePath": "api/admin/get-all-testimonial",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -295,6 +337,22 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.TestimonialController",
+    "Method": "GetTestimonialById",
+    "RelativePath": "api/admin/get-testimonial/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.CategoryController",
     "Method": "InserCategory",
     "RelativePath": "api/admin/insert-category",
@@ -362,6 +420,22 @@
     "ContainingType": "CareerCracker.Controllers.LanguagesController",
     "Method": "ToggleLanguageStatus",
     "RelativePath": "api/admin/status-lang/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.TestimonialController",
+    "Method": "ToggleStatus",
+    "RelativePath": "api/admin/status-testimonial/{id}",
     "HttpMethod": "PUT",
     "IsController": true,
     "Order": 0,
@@ -463,6 +537,27 @@
     "Parameters": [
       {
         "Name": "Id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.TestimonialController",
+    "Method": "UpdateTestimonial",
+    "RelativePath": "api/admin/update-testimonial/{id}",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
         "Type": "System.Int32",
         "IsRequired": true
       },
