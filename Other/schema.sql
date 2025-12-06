@@ -33,15 +33,15 @@ CREATE TABLE courses (
     course_slug VARCHAR(255),
     is_active BOOLEAN DEFAULT TRUE,
     course_image TEXT,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     category_id INT,
     start_class_date TIMESTAMP,
     maximum_lpa VARCHAR(255),
     minimum_lpa VARCHAR(255),
     demo_start_date TIMESTAMP,
     demo_end_date TIMESTAMP,
-    mrp_price ,
-    saling_price,
+    mrp_price NUMERIC,
+    saling_price NUMERIC,
     course_level VARCHAR(255),
     duration VARCHAR(255),
     total_lectures VARCHAR(255),
@@ -51,7 +51,6 @@ CREATE TABLE courses (
     course_details TEXT,
     why_choose_us TEXT,
     Progress INT
-
 );
 ALTER TABLE courses
 ALTER COLUMN course_language TYPE INTEGER USING NULL;
@@ -77,3 +76,31 @@ CREATE TABLE blogs (
 
 ALTER TABLE blogs
 ADD COLUMN blogs_image VARCHAR(255);
+
+
+
+CREATE TABLE faculties (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    course_id INT,
+    position VARCHAR(255),
+    experience VARCHAR(255),
+    specialization VARCHAR(255),
+    profile_image TEXT,
+    status BOOLEAN DEFAULT TRUE,
+    created_by VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE enquires (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    contact VARCHAR(255),
+    message TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

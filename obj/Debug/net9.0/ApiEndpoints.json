@@ -53,6 +53,22 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "FacultiesController",
+    "Method": "InsertFaculty",
+    "RelativePath": "api/admin/add-faculty",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.LanguagesController",
     "Method": "InsertLanguage",
     "RelativePath": "api/admin/add-lang",
@@ -159,6 +175,48 @@
       {
         "Name": "id",
         "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "FacultiesController",
+    "Method": "DeleteFaculty",
+    "RelativePath": "api/admin/delete-faculty/{slug}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "slug",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "FacultiesController",
+    "Method": "GetAllFaculties",
+    "RelativePath": "api/admin/faculties",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "FacultiesController",
+    "Method": "GetFacultyBySlug",
+    "RelativePath": "api/admin/faculty/{slug}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "slug",
+        "Type": "System.String",
         "IsRequired": true
       }
     ],
@@ -391,6 +449,22 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "FacultiesController",
+    "Method": "ToggleFacultyStatus",
+    "RelativePath": "api/admin/toggle-faculty-status/{slug}",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "slug",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.BlogsController",
     "Method": "UpdateBlogs",
     "RelativePath": "api/admin/update-blog/{id}",
@@ -422,6 +496,27 @@
       {
         "Name": "Id",
         "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "FacultiesController",
+    "Method": "UpdateFaculty",
+    "RelativePath": "api/admin/update-faculty/{slug}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "slug",
+        "Type": "System.String",
         "IsRequired": true
       },
       {
