@@ -66,7 +66,11 @@ namespace CareerCracker.DataBaseLayer
                 string courseLevel = form["courseLevel"];
                 string duration = form["duration"];
                 string totalLectures = form["totalLectures"];
-                string courseLanguage = form["courseLanguage"];
+
+                // -----------------------------
+                // COURSE LANGUAGE → INT
+                // -----------------------------
+                int? courseLanguage = ToInt(form["courseLanguage"]);  // <-- Only this changed
 
                 string overview = form["overview"];
                 string courseHighlights = form["courseHighlights"];
@@ -125,23 +129,23 @@ namespace CareerCracker.DataBaseLayer
                     // INSERT QUERY
                     // -----------------------------
                     string insertQuery = @"
-                INSERT INTO courses
-                (
-                    course_name, course_discription, course_slug, is_active, course_image,
-                    category_id, start_class_date, maximum_lpa, minimum_lpa,
-                    demo_start_date, demo_end_date, mrp_price, saling_price,
-                    course_level, duration, total_lectures, course_language,
-                    overview, course_highlights, course_details, why_choose_us,
-                    progress, updated_at
-                )
-                VALUES (
-                    @name, @desc, @slug, @active, @img,
-                    @categoryId, @startClass, @maxLpa, @minLpa,
-                    @demoStart, @demoEnd, @mrp, @sale,
-                    @level, @duration, @lectures, @language,
-                    @overview, @highlights, @details, @why,
-                    @progress, CURRENT_TIMESTAMP
-                )";
+        INSERT INTO courses
+        (
+            course_name, course_discription, course_slug, is_active, course_image,
+            category_id, start_class_date, maximum_lpa, minimum_lpa,
+            demo_start_date, demo_end_date, mrp_price, saling_price,
+            course_level, duration, total_lectures, course_language,
+            overview, course_highlights, course_details, why_choose_us,
+            progress, updated_at
+        )
+        VALUES (
+            @name, @desc, @slug, @active, @img,
+            @categoryId, @startClass, @maxLpa, @minLpa,
+            @demoStart, @demoEnd, @mrp, @sale,
+            @level, @duration, @lectures, @language,
+            @overview, @highlights, @details, @why,
+            @progress, CURRENT_TIMESTAMP
+        )";
 
                     using (var cmd = new NpgsqlCommand(insertQuery, con))
                     {
@@ -166,6 +170,8 @@ namespace CareerCracker.DataBaseLayer
                         cmd.Parameters.AddWithValue("@level", (object?)courseLevel ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@duration", (object?)duration ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@lectures", (object?)totalLectures ?? DBNull.Value);
+
+                        // ✔ CourseLanguage saved as INT
                         cmd.Parameters.AddWithValue("@language", (object?)courseLanguage ?? DBNull.Value);
 
                         cmd.Parameters.AddWithValue("@overview", (object?)overview ?? DBNull.Value);
@@ -186,6 +192,7 @@ namespace CareerCracker.DataBaseLayer
                 return BadRequest(new { success = false, message = $"Internal server error: {ex.Message}" });
             }
         }
+
 
         public async Task<IActionResult> UpdateCourse(int id, IFormCollection form)
         {
@@ -237,7 +244,9 @@ namespace CareerCracker.DataBaseLayer
                 string courseLevel = form["courseLevel"];
                 string duration = form["duration"];
                 string totalLectures = form["totalLectures"];
-                string courseLanguage = form["courseLanguage"];
+
+                // 🔥 UPDATED: courseLanguage saved as INT
+                int? courseLanguageId = ToInt(form["courseLanguage"]);
 
                 string overview = form["overview"];
                 string courseHighlights = form["courseHighlights"];
@@ -289,7 +298,7 @@ namespace CareerCracker.DataBaseLayer
                     }
 
                     // -----------------------------
-                    // Duplicate Name Check (exclude current id)
+                    // Duplicate Name Check
                     // -----------------------------
                     string checkNameQuery = @"SELECT COUNT(*) FROM courses 
                                       WHERE LOWER(course_name) = LOWER(@name) AND id <> @id";
@@ -304,7 +313,7 @@ namespace CareerCracker.DataBaseLayer
                     }
 
                     // -----------------------------
-                    // Duplicate Slug Check (exclude current id)
+                    // Duplicate Slug Check
                     // -----------------------------
                     string checkSlugQuery = @"SELECT COUNT(*) FROM courses 
                                       WHERE LOWER(course_slug) = LOWER(@slug) AND id <> @id";
@@ -318,38 +327,38 @@ namespace CareerCracker.DataBaseLayer
                             return BadRequest(new { success = false, message = "Course slug already exists" });
                     }
 
-                    // If no new image uploaded → keep old one
+                    // Keep old image if new one not uploaded
                     string finalImagePath = newImagePath ?? oldImagePath;
 
                     // -----------------------------
                     // UPDATE QUERY
                     // -----------------------------
                     string updateQuery = @"
-            UPDATE courses SET
-                course_name = @name,
-                course_discription = @desc,
-                course_slug = @slug,
-                is_active = @active,
-                course_image = @img,
-                category_id = @categoryId,
-                start_class_date = @startClass,
-                maximum_lpa = @maxLpa,
-                minimum_lpa = @minLpa,
-                demo_start_date = @demoStart,
-                demo_end_date = @demoEnd,
-                mrp_price = @mrp,
-                saling_price = @sale,
-                course_level = @level,
-                duration = @duration,
-                total_lectures = @lectures,
-                course_language = @language,
-                overview = @overview,
-                course_highlights = @highlights,
-                course_details = @details,
-                why_choose_us = @why,
-                progress = @progress,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = @id";
+                UPDATE courses SET
+                    course_name = @name,
+                    course_discription = @desc,
+                    course_slug = @slug,
+                    is_active = @active,
+                    course_image = @img,
+                    category_id = @categoryId,
+                    start_class_date = @startClass,
+                    maximum_lpa = @maxLpa,
+                    minimum_lpa = @minLpa,
+                    demo_start_date = @demoStart,
+                    demo_end_date = @demoEnd,
+                    mrp_price = @mrp,
+                    saling_price = @sale,
+                    course_level = @level,
+                    duration = @duration,
+                    total_lectures = @lectures,
+                    course_language = @language,
+                    overview = @overview,
+                    course_highlights = @highlights,
+                    course_details = @details,
+                    why_choose_us = @why,
+                    progress = @progress,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = @id";
 
                     using (var cmd = new NpgsqlCommand(updateQuery, con))
                     {
@@ -375,7 +384,9 @@ namespace CareerCracker.DataBaseLayer
                         cmd.Parameters.AddWithValue("@level", (object?)courseLevel ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@duration", (object?)duration ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@lectures", (object?)totalLectures ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@language", (object?)courseLanguage ?? DBNull.Value);
+
+                        // 🔥 Updated to INT
+                        cmd.Parameters.AddWithValue("@language", (object?)courseLanguageId ?? DBNull.Value);
 
                         cmd.Parameters.AddWithValue("@overview", (object?)overview ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@highlights", (object?)courseHighlights ?? DBNull.Value);
@@ -396,6 +407,7 @@ namespace CareerCracker.DataBaseLayer
             }
         }
 
+
         public async Task<IActionResult> GetAllCourses()
         {
             try
@@ -405,25 +417,33 @@ namespace CareerCracker.DataBaseLayer
                     await con.OpenAsync();
 
                     string query = @"
-                SELECT 
-                    c.id, c.course_name, c.course_discription, c.course_slug, c.is_active, c.course_image,
-                    c.category_id, c.start_class_date, c.maximum_lpa, c.minimum_lpa,
-                    c.demo_start_date, c.demo_end_date, c.mrp_price, c.saling_price,
-                    c.course_level, c.duration, c.total_lectures, c.course_language,
-                    c.overview, c.course_highlights, c.course_details, c.why_choose_us,
-                    c.progress, c.updated_at,
+SELECT 
+    c.id, c.course_name, c.course_discription, c.course_slug, c.is_active, c.course_image,
+    c.category_id, c.start_class_date, c.maximum_lpa, c.minimum_lpa,
+    c.demo_start_date, c.demo_end_date, c.mrp_price, c.saling_price,
+    c.course_level, c.duration, c.total_lectures, c.course_language,
+    c.overview, c.course_highlights, c.course_details, c.why_choose_us,
+    c.progress, c.updated_at,
 
-                    -- Category Fields
-                    cat.category_name, 
-                    cat.category_discription,
-                    cat.category_slug,
-                    cat.category_image,
-                    cat.is_active AS category_is_active,
-                    cat.updated_at AS category_updated_at
+    -- Category Fields
+    cat.category_name, 
+    cat.category_discription,
+    cat.category_slug,
+    cat.category_image,
+    cat.is_active AS category_is_active,
+    cat.updated_at AS category_updated_at,
 
-                FROM courses c
-                LEFT JOIN categories cat ON c.category_id = cat.id
-                ORDER BY c.id DESC";
+    -- Language Fields
+    lang.language_name,
+    lang.language_discription,
+    lang.language_slug,
+    lang.is_active AS language_is_active,
+    lang.updated_at AS language_updated_at
+
+FROM courses c
+LEFT JOIN categories cat ON c.category_id = cat.id
+LEFT JOIN languages lang ON c.course_language = lang.id
+ORDER BY c.id DESC";
 
                     using (var cmd = new NpgsqlCommand(query, con))
                     using (var reader = await cmd.ExecuteReaderAsync())
@@ -434,7 +454,6 @@ namespace CareerCracker.DataBaseLayer
                         {
                             list.Add(new
                             {
-                                // Course Fields
                                 id = reader["id"],
                                 course_name = reader["course_name"],
                                 course_discription = reader["course_discription"],
@@ -452,7 +471,7 @@ namespace CareerCracker.DataBaseLayer
                                 course_level = reader["course_level"],
                                 duration = reader["duration"],
                                 total_lectures = reader["total_lectures"],
-                                course_language = reader["course_language"],
+                                course_language_id = reader["course_language"],
                                 overview = reader["overview"],
                                 course_highlights = reader["course_highlights"],
                                 course_details = reader["course_details"],
@@ -460,7 +479,6 @@ namespace CareerCracker.DataBaseLayer
                                 progress = reader["progress"],
                                 updated_at = reader["updated_at"],
 
-                                // Category Details
                                 category = new
                                 {
                                     category_name = reader["category_name"],
@@ -469,6 +487,15 @@ namespace CareerCracker.DataBaseLayer
                                     category_image = reader["category_image"],
                                     is_active = reader["category_is_active"],
                                     updated_at = reader["category_updated_at"]
+                                },
+
+                                courseLanguage = new
+                                {
+                                    language_name = reader["language_name"],
+                                    language_discription = reader["language_discription"],
+                                    language_slug = reader["language_slug"],
+                                    is_active = reader["language_is_active"],
+                                    updated_at = reader["language_updated_at"]
                                 }
                             });
                         }
@@ -483,6 +510,7 @@ namespace CareerCracker.DataBaseLayer
             }
         }
 
+
         public async Task<IActionResult> GetCourseById(int id)
         {
             try
@@ -492,24 +520,33 @@ namespace CareerCracker.DataBaseLayer
                     await con.OpenAsync();
 
                     string query = @"
-                SELECT 
-                    c.id, c.course_name, c.course_discription, c.course_slug, c.is_active, c.course_image,
-                    c.category_id, c.start_class_date, c.maximum_lpa, c.minimum_lpa,
-                    c.demo_start_date, c.demo_end_date, c.mrp_price, c.saling_price,
-                    c.course_level, c.duration, c.total_lectures, c.course_language,
-                    c.overview, c.course_highlights, c.course_details, c.why_choose_us,
-                    c.progress, c.updated_at,
+        SELECT 
+            c.id, c.course_name, c.course_discription, c.course_slug, c.is_active, c.course_image,
+            c.category_id, c.start_class_date, c.maximum_lpa, c.minimum_lpa,
+            c.demo_start_date, c.demo_end_date, c.mrp_price, c.saling_price,
+            c.course_level, c.duration, c.total_lectures, c.course_language,
+            c.overview, c.course_highlights, c.course_details, c.why_choose_us,
+            c.progress, c.updated_at,
 
-                    cat.category_name, 
-                    cat.category_discription,
-                    cat.category_slug,
-                    cat.category_image,
-                    cat.is_active AS category_is_active,
-                    cat.updated_at AS category_updated_at
+            -- Category Info
+            cat.category_name, 
+            cat.category_discription,
+            cat.category_slug,
+            cat.category_image,
+            cat.is_active AS category_is_active,
+            cat.updated_at AS category_updated_at,
 
-                FROM courses c
-                LEFT JOIN categories cat ON c.category_id = cat.id
-                WHERE c.id = @Id";
+            -- Language Info
+            lang.language_name,
+            lang.language_discription,
+            lang.language_slug,
+            lang.is_active AS language_is_active,
+            lang.updated_at AS language_updated_at
+
+        FROM courses c
+        LEFT JOIN categories cat ON c.category_id = cat.id
+        LEFT JOIN languages lang ON c.course_language = lang.id
+        WHERE c.id = @Id";
 
                     using (var cmd = new NpgsqlCommand(query, con))
                     {
@@ -557,6 +594,15 @@ namespace CareerCracker.DataBaseLayer
                                     category_image = reader["category_image"],
                                     is_active = reader["category_is_active"],
                                     updated_at = reader["category_updated_at"]
+                                },
+
+                                courseLanguage = new
+                                {
+                                    language_name = reader["language_name"],
+                                    language_discription = reader["language_discription"],
+                                    language_slug = reader["language_slug"],
+                                    is_active = reader["language_is_active"],
+                                    updated_at = reader["language_updated_at"]
                                 }
                             };
 
@@ -570,6 +616,7 @@ namespace CareerCracker.DataBaseLayer
                 return BadRequest(new { success = false, message = $"Internal server error: {ex.Message}" });
             }
         }
+
 
         public async Task<IActionResult> DeleteCourse(int id)
         {
