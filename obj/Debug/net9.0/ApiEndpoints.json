@@ -1,5 +1,21 @@
 [
   {
+    "ContainingType": "CareerCracker.Controllers.BlogsController",
+    "Method": "AddBlogs",
+    "RelativePath": "api/admin/add-blogs",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.CourseController",
     "Method": "AddCourse",
     "RelativePath": "api/admin/add-course",
@@ -57,6 +73,22 @@
     "Method": "Toggle",
     "RelativePath": "api/admin/category-status/{id}",
     "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.BlogsController",
+    "Method": "DeleteBlog",
+    "RelativePath": "api/admin/del-blog/{id}",
+    "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,
     "Parameters": [
@@ -133,6 +165,16 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.BlogsController",
+    "Method": "GetAllBlogs",
+    "RelativePath": "api/admin/get-all-blogs",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.CourseController",
     "Method": "GetAllCourse",
     "RelativePath": "api/admin/get-all-course",
@@ -150,6 +192,22 @@
     "IsController": true,
     "Order": 0,
     "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.BlogsController",
+    "Method": "GetBlogById",
+    "RelativePath": "api/admin/get-blog/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
     "ReturnTypes": []
   },
   {
@@ -269,6 +327,22 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.BlogsController",
+    "Method": "ToggleBlogStatus",
+    "RelativePath": "api/admin/status-blog/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.CourseController",
     "Method": "StatusCourse",
     "RelativePath": "api/admin/status-course/{id}",
@@ -312,6 +386,27 @@
         "Name": "id",
         "Type": "System.Int32",
         "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.BlogsController",
+    "Method": "UpdateBlogs",
+    "RelativePath": "api/admin/update-blog/{id}",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
+        "IsRequired": false
       }
     ],
     "ReturnTypes": []
