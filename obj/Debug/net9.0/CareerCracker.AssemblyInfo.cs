@@ -15,11 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CareerCracker")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-<<<<<<< HEAD
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1b7ece60e20e31627e64beeaf36fc97c3105ebc1")]
-=======
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+82b384e5b60979096a6d1f495cbe03e327b99ce7")]
->>>>>>> 69530b7ad807d81dd92ca867cfc396fa10d9c0c0
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e56e7a8de1544394d044153087b8c782056297c2")]
 [assembly: System.Reflection.AssemblyProductAttribute("CareerCracker")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CareerCracker")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
