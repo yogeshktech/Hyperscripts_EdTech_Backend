@@ -127,6 +127,22 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.FrontEndController",
+    "Method": "GetByIdCourse",
+    "RelativePath": "api/admin/all-courses/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.CategoryController",
     "Method": "Toggle",
     "RelativePath": "api/admin/category-status/{id}",
@@ -799,6 +815,101 @@
     "IsController": true,
     "Order": 0,
     "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.CouponController",
+    "Method": "AddCoupon",
+    "RelativePath": "api/coupon/add-coupon",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.CouponController",
+    "Method": "DeleteCoupon",
+    "RelativePath": "api/coupon/delete-coupon/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.CouponController",
+    "Method": "GetAllCoupons",
+    "RelativePath": "api/coupon/get-all-coupon",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.CouponController",
+    "Method": "GetCouponById",
+    "RelativePath": "api/coupon/get-coupon/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.CouponController",
+    "Method": "ToggleCoupon",
+    "RelativePath": "api/coupon/status-coupon/{id}",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.CouponController",
+    "Method": "UpdateCoupon",
+    "RelativePath": "api/coupon/update-coupon/{id}",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
+        "IsRequired": false
+      }
+    ],
     "ReturnTypes": []
   },
   {
