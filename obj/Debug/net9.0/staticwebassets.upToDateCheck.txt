@@ -100,8 +100,11 @@ wwwroot\uploads\courseImages\7b58e136-d018-4f75-92b0-920ab95e5a02.png
 wwwroot\uploads\courseImages\b37be229-56ca-4b46-87cb-ba09fcb97902.png
 wwwroot\uploads\courseImages\d86606c2-72c7-4a68-a87f-f7aee006c012.png
 wwwroot\uploads\facultyImages\1241c23a-5bc8-4bda-aaae-ab9f0049fbe8.png
+wwwroot\uploads\facultyImages\27d85eab-4603-42f3-ae66-11b1cf6de99d.png
 wwwroot\uploads\facultyImages\3037af01-e8d1-4774-8c24-5eba4f12b40f.png
+wwwroot\uploads\facultyImages\5954ad35-5f6f-4563-946b-34a03da5419a.png
 wwwroot\uploads\facultyImages\89129d5b-b884-4f89-8d84-92f4b2a47177.png
+wwwroot\uploads\facultyImages\dd801e4b-d629-4d52-9a34-3c3623cb4404.png
 D:\popi\Hyperscripts_EdTech_Backend\wwwroot\favicon.ico
 D:\popi\Hyperscripts_EdTech_Backend\wwwroot\css\site.css
 D:\popi\Hyperscripts_EdTech_Backend\wwwroot\lib\jquery\LICENSE.txt
