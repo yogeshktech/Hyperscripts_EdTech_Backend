@@ -239,24 +239,30 @@
     "ReturnTypes": []
   },
   {
-<<<<<<< HEAD
     "ContainingType": "CareerCracker.Controllers.TestimonialController",
     "Method": "DeleteTestimonial",
     "RelativePath": "api/admin/del-testimonial/{id}",
-=======
-    "ContainingType": "FacultiesController",
-    "Method": "DeleteFaculty",
-    "RelativePath": "api/admin/delete-faculty/{slug}",
->>>>>>> 82b384e5b60979096a6d1f495cbe03e327b99ce7
     "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-<<<<<<< HEAD
         "Name": "id",
         "Type": "System.Int32",
-=======
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "FacultiesController",
+    "Method": "DeleteFaculty",
+    "RelativePath": "api/admin/delete-faculty/{slug}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
         "Name": "slug",
         "Type": "System.String",
         "IsRequired": true
@@ -285,7 +291,6 @@
       {
         "Name": "slug",
         "Type": "System.String",
->>>>>>> 82b384e5b60979096a6d1f495cbe03e327b99ce7
         "IsRequired": true
       }
     ],

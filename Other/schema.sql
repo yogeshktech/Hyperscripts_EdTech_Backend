@@ -77,7 +77,6 @@ CREATE TABLE blogs (
 ALTER TABLE blogs
 ADD COLUMN blogs_image VARCHAR(255);
 
-<<<<<<< HEAD
 CREATE TABLE testimonial (
     id SERIAL PRIMARY KEY,
     test_name VARCHAR(255) NOT NULL,
@@ -108,7 +107,7 @@ CREATE TABLE reviews (
 
     CONSTRAINT fk_review_course
         FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
-=======
+
 
 
 CREATE TABLE faculties (
@@ -135,5 +134,25 @@ CREATE TABLE enquires (
     message TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
->>>>>>> 82b384e5b60979096a6d1f495cbe03e327b99ce7
 );
+
+CREATE TABLE cart_items (
+    id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL,
+    course_id INT NOT NULL,
+    quantity INT NOT NULL DEFAULT 1,
+    price NUMERIC(10,2) NOT NULL,
+    discount NUMERIC(10,2) DEFAULT 0,
+
+    total NUMERIC(10,2) GENERATED ALWAYS AS (discount * quantity) STORED,
+
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+ALTER TABLE cart_items 
+ADD COLUMN ip_address VARCHAR(50);
+
+ALTER TABLE cart_items 
+ALTER COLUMN user_id DROP NOT NULL;
