@@ -19,62 +19,104 @@ namespace CareerCracker.DataBaseLayer
 
     public partial class DataBaseLayer
     {
-            public async Task<IActionResult> AddTestimonial(IFormCollection form)
+        [HttpPost("add")]
+        public async Task<IActionResult> AddTestimonial(IFormCollection form)
+        {
+            try
             {
-                try
+                string name = form["test_name"];
+                string description = form["discription"];
+                string content = form["test_content"];
+                string slug = GenerateSlug(name);
+
+                if (string.IsNullOrEmpty(name))
+                    return BadRequest(new { success = false, message = "Name is required" });
+
+                // --------------------------------------------
+                // 1️⃣ CHECK SLUG UNIQUE & MAKE IT UNIQUE
+                // --------------------------------------------
+                using (var con = new NpgsqlConnection(DbConnection))
                 {
-                    string name = form["test_name"];
-                    string description = form["discription"];
-                    string content = form["test_content"];
-                    string slug = GenerateSlug(name);
+                    await con.OpenAsync();
 
-                    if (string.IsNullOrEmpty(name))
-                        return BadRequest(new { success = false, message = "Name is required" });
+                    string checkSlugQuery = @"SELECT COUNT(*) FROM testimonial WHERE slug LIKE @slugPattern";
 
-                    // Image Upload
-                    string imagePath = null;
-                    if (form.Files.Count > 0)
+                    using (var checkCmd = new NpgsqlCommand(checkSlugQuery, con))
                     {
-                        var file = form.Files[0];
-                        string fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
-                        string savePath = Path.Combine("wwwroot/uploads/testimonials", fileName);
+                        checkCmd.Parameters.AddWithValue("@slugPattern", slug + "%");
 
-                        using (var stream = new FileStream(savePath, FileMode.Create))
+                        var count = Convert.ToInt32(await checkCmd.ExecuteScalarAsync());
+
+                        if (count > 0)
                         {
-                            await file.CopyToAsync(stream);
-                        }
-
-                        imagePath = "/uploads/testimonials/" + fileName;
-                    }
-
-                    using (var con = new NpgsqlConnection(DbConnection))
-                    {
-                        await con.OpenAsync();
-                        string query = @"
-                        INSERT INTO testimonial(test_name, discription, test_content, slug, image, is_active)
-                        VALUES(@name, @desc, @content, @slug, @image, TRUE)
-                        RETURNING id";
-
-                        using (var cmd = new NpgsqlCommand(query, con))
-                        {
-                            cmd.Parameters.AddWithValue("@name", name);
-                            cmd.Parameters.AddWithValue("@desc", (object)description ?? DBNull.Value);
-                            cmd.Parameters.AddWithValue("@content", (object)content ?? DBNull.Value);
-                            cmd.Parameters.AddWithValue("@slug", slug);
-                            cmd.Parameters.AddWithValue("@image", (object)imagePath ?? DBNull.Value);
-
-                            var insertedId = await cmd.ExecuteScalarAsync();
-                            return Ok(new { success = true, id = insertedId, message = "Testimonial added successfully" });
+                            // If slug exists, append number
+                            slug = $"{slug}-{count + 1}";
                         }
                     }
                 }
-                catch (Exception ex)
+
+                // --------------------------------------------
+                // IMAGE UPLOAD
+                // --------------------------------------------
+                string imagePath = null;
+                if (form.Files.Count > 0)
                 {
-                    return StatusCode(500, new { success = false, message = ex.Message });
+                    var file = form.Files[0];
+                    string fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
+
+                    string folderPath = Path.Combine("wwwroot", "uploads", "testimonials");
+
+                    if (!Directory.Exists(folderPath))
+                        Directory.CreateDirectory(folderPath);
+
+                    string savePath = Path.Combine(folderPath, fileName);
+
+                    using (var stream = new FileStream(savePath, FileMode.Create))
+                    {
+                        await file.CopyToAsync(stream);
+                    }
+
+                    imagePath = "/uploads/testimonials/" + fileName;
+                }
+
+                // --------------------------------------------
+                // 2️⃣ INSERT DATA
+                // --------------------------------------------
+                using (var con = new NpgsqlConnection(DbConnection))
+                {
+                    await con.OpenAsync();
+                    string query = @"
+                INSERT INTO testimonial(test_name, discription, test_content, slug, image, is_active)
+                VALUES(@name, @desc, @content, @slug, @image, TRUE)
+                RETURNING id";
+
+                    using (var cmd = new NpgsqlCommand(query, con))
+                    {
+                        cmd.Parameters.AddWithValue("@name", name);
+                        cmd.Parameters.AddWithValue("@desc", (object)description ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@content", (object)content ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@slug", slug);
+                        cmd.Parameters.AddWithValue("@image", (object)imagePath ?? DBNull.Value);
+
+                        var insertedId = await cmd.ExecuteScalarAsync();
+                        return Ok(new
+                        {
+                            success = true,
+                            id = insertedId,
+                            slug = slug,
+                            message = "Testimonial added successfully"
+                        });
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
 
-            public async Task<IActionResult> GetAllTestimonials()
+
+        public async Task<IActionResult> GetAllTestimonials()
             {
                 try
                 {
@@ -156,23 +198,56 @@ namespace CareerCracker.DataBaseLayer
                 }
             }
 
-            public async Task<IActionResult> UpdateTestimonial(int id, IFormCollection form)
+        public async Task<IActionResult> UpdateTestimonial(int id, IFormCollection form)
+        {
+            try
             {
-                try
-                {
-                    string name = form["test_name"];
-                    string description = form["discription"];
-                    string content = form["test_content"];
-                    string slug = GenerateSlug(name);
+                string name = form["test_name"];
+                string description = form["discription"];
+                string content = form["test_content"];
+                string newSlug = GenerateSlug(name);
 
+                if (string.IsNullOrEmpty(name))
+                    return BadRequest(new { success = false, message = "Name is required" });
+
+                using (var con = new NpgsqlConnection(DbConnection))
+                {
+                    await con.OpenAsync();
+
+                    // -------------------------------------------------
+                    // 🔍 1️⃣ CHECK IF SLUG ALREADY EXISTS (EXCEPT CURRENT ID)
+                    // -------------------------------------------------
+                    string checkSlugQuery = @"SELECT COUNT(*) FROM testimonial 
+                                      WHERE slug=@slug AND id<>@id";
+
+                    using (var checkCmd = new NpgsqlCommand(checkSlugQuery, con))
+                    {
+                        checkCmd.Parameters.AddWithValue("@slug", newSlug);
+                        checkCmd.Parameters.AddWithValue("@id", id);
+
+                        long exists = (long)await checkCmd.ExecuteScalarAsync();
+                        if (exists > 0)
+                        {
+                            newSlug += "-" + Guid.NewGuid().ToString().Substring(0, 8);
+                        }
+                    }
+
+                    // -------------------------------------------------
+                    // 2️⃣ Image Upload (optional)
+                    // -------------------------------------------------
                     string imagePath = null;
 
-                    // Image Upload if present
                     if (form.Files.Count > 0)
                     {
                         var file = form.Files[0];
                         string fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
-                        string savePath = Path.Combine("wwwroot/uploads/testimonials", fileName);
+
+                        string folderPath = Path.Combine("wwwroot", "uploads", "testimonials");
+
+                        if (!Directory.Exists(folderPath))
+                            Directory.CreateDirectory(folderPath);
+
+                        string savePath = Path.Combine(folderPath, fileName);
 
                         using (var stream = new FileStream(savePath, FileMode.Create))
                         {
@@ -182,36 +257,41 @@ namespace CareerCracker.DataBaseLayer
                         imagePath = "/uploads/testimonials/" + fileName;
                     }
 
-                    using (var con = new NpgsqlConnection(DbConnection))
+                    // -------------------------------------------------
+                    // 3️⃣ Update Testimonial
+                    // -------------------------------------------------
+
+                    string query = @"
+            UPDATE testimonial
+            SET test_name=@name,
+                discription=@desc,
+                test_content=@content,
+                slug=@slug,
+                image = COALESCE(@image, image), 
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id=@id";
+
+                    using (var cmd = new NpgsqlCommand(query, con))
                     {
-                        await con.OpenAsync();
+                        cmd.Parameters.AddWithValue("@id", id);
+                        cmd.Parameters.AddWithValue("@name", name);
+                        cmd.Parameters.AddWithValue("@desc", (object)description ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@content", (object)content ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@slug", newSlug);
+                        cmd.Parameters.AddWithValue("@image", (object)imagePath ?? DBNull.Value);
 
-                        string query = @"
-                        UPDATE testimonial
-                        SET test_name=@name, discription=@desc, test_content=@content,
-                            slug=@slug, image=COALESCE(@image, image), updated_at=CURRENT_TIMESTAMP
-                        WHERE id=@id";
-
-                        using (var cmd = new NpgsqlCommand(query, con))
-                        {
-                            cmd.Parameters.AddWithValue("@id", id);
-                            cmd.Parameters.AddWithValue("@name", name);
-                            cmd.Parameters.AddWithValue("@desc", (object)description ?? DBNull.Value);
-                            cmd.Parameters.AddWithValue("@content", (object)content ?? DBNull.Value);
-                            cmd.Parameters.AddWithValue("@slug", slug);
-                            cmd.Parameters.AddWithValue("@image", (object)imagePath ?? DBNull.Value);
-
-                            await cmd.ExecuteNonQueryAsync();
-
-                            return Ok(new { success = true, message = "Testimonial updated successfully!" });
-                        }
+                        await cmd.ExecuteNonQueryAsync();
                     }
-                }
-                catch (Exception ex)
-                {
-                    return StatusCode(500, new { success = false, message = ex.Message });
+
+                    return Ok(new { success = true, message = "Testimonial updated successfully!" });
                 }
             }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
 
         public async Task<IActionResult> DeleteTestimonial(int id)
         {

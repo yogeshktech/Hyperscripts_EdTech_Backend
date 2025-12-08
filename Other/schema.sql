@@ -89,3 +89,23 @@ CREATE TABLE testimonial (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE reviews (
+    id SERIAL PRIMARY KEY,
+    
+    user_id TEXT NOT NULL,
+    course_id INT NOT NULL,
+    
+    rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    title VARCHAR(255),
+    review_text TEXT,
+
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_review_user
+        FOREIGN KEY (user_id) REFERENCES "AspNetUsers"("Id") ON DELETE CASCADE,
+
+    CONSTRAINT fk_review_course
+        FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
+);

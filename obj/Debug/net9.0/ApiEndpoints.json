@@ -69,6 +69,22 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.ReviewsController",
+    "Method": "AddReview",
+    "RelativePath": "api/admin/add-review",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.TestimonialController",
     "Method": "AddTestimonial",
     "RelativePath": "api/admin/add-testimonial",
@@ -82,6 +98,16 @@
         "IsRequired": false
       }
     ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.FrontEndController",
+    "Method": "GetAllCourse",
+    "RelativePath": "api/admin/all-courses",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
     "ReturnTypes": []
   },
   {
@@ -165,6 +191,22 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.ReviewsController",
+    "Method": "DeleteReview",
+    "RelativePath": "api/admin/del-review/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.CategoryController",
     "Method": "SubDeleteCategory",
     "RelativePath": "api/admin/del-subcategories/{id}",
@@ -224,6 +266,22 @@
     "IsController": true,
     "Order": 0,
     "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.ReviewsController",
+    "Method": "GetReviews",
+    "RelativePath": "api/admin/get-all-review/{courseId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "courseId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
     "ReturnTypes": []
   },
   {
@@ -433,6 +491,22 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.ReviewsController",
+    "Method": "ToggleReview",
+    "RelativePath": "api/admin/status-review/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.TestimonialController",
     "Method": "ToggleStatus",
     "RelativePath": "api/admin/status-testimonial/{id}",
@@ -528,6 +602,27 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.ReviewsController",
+    "Method": "UpdateReview",
+    "RelativePath": "api/admin/update-review/{id}",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.CategoryController",
     "Method": "SubUpdataCategory",
     "RelativePath": "api/admin/update-subcategory/{Id}",
@@ -565,6 +660,22 @@
         "Name": "form",
         "Type": "Microsoft.AspNetCore.Http.IFormCollection",
         "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CartController",
+    "Method": "AddToCart",
+    "RelativePath": "api/cart/add-cart/{courseId}",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "courseId",
+        "Type": "System.Int32",
+        "IsRequired": true
       }
     ],
     "ReturnTypes": []
