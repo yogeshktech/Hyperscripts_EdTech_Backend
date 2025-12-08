@@ -776,6 +776,32 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CartController",
+    "Method": "DeleteCarts",
+    "RelativePath": "api/cart/del-cart/{cartId}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "cartId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CartController",
+    "Method": "GetCart",
+    "RelativePath": "api/cart/get-cart",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.AuthController",
     "Method": "ForgotPassword",
     "RelativePath": "api/forgotpassword",
