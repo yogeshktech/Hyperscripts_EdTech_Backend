@@ -192,5 +192,34 @@ namespace CareerCracker.Controllers
                 });
             }
         }
+
+        [Route("apply-coupon")]
+        [HttpPost]
+        public async Task<IActionResult> ApplyCoupon(IFormCollection form)
+        {
+            try
+            {
+                var couponCode = form["couponName"];
+
+                if (string.IsNullOrWhiteSpace(couponCode))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Coupon name is required"
+                    });
+                }
+
+                return await _businessLayer.ApplyCoupon(form);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
     }
 }

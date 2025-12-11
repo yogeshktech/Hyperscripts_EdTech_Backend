@@ -75,6 +75,7 @@ namespace CareerCracker.Controllers
             }
         }
 
+        [AllowAnonymous]
         [Route("get-all-blogs")]
         [HttpGet]
         public async Task<IActionResult> GetAllBlogs()
@@ -91,6 +92,7 @@ namespace CareerCracker.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpGet("get-blog/{id}")]
         public async Task<IActionResult> GetBlogById(int id)
         {

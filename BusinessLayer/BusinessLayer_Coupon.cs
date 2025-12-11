@@ -10,6 +10,7 @@ namespace CareerCracker.BusinessLayer
         Task<IActionResult> UpdateCoupon(int id, IFormCollection form);
         Task<IActionResult> DeleteCoupon(int id);
         Task<IActionResult> ToggleCoupon(int id);
+        Task<IActionResult> ApplyCoupon(IFormCollection form);
     }
 
     public partial interface IBusinessLayer : IBusinessLayer_Coupon { }
@@ -44,6 +45,11 @@ namespace CareerCracker.BusinessLayer
         public async Task<IActionResult> ToggleCoupon(int id)
         {
             return await _dataBaseLayer.ToggleCoupon(id);
+        }
+
+        public async Task<IActionResult> ApplyCoupon(IFormCollection form)
+        {
+            return await _dataBaseLayer.ApplyCoupon(form);
         }
     }
 }

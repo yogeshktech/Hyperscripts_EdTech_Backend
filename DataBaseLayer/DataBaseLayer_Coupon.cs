@@ -11,6 +11,7 @@ namespace CareerCracker.DataBaseLayer
         Task<IActionResult> UpdateCoupon(int id, IFormCollection form);
         Task<IActionResult> DeleteCoupon(int id);
         Task<IActionResult> ToggleCoupon(int id);
+        Task<IActionResult> ApplyCoupon(IFormCollection form);
     }
     public partial interface IDataBaseLayer : IDataBaseLayer_Coupon { }
 
@@ -423,6 +424,79 @@ namespace CareerCracker.DataBaseLayer
                 return BadRequest(new { success = false, message = ex.Message });
             }
         }
+
+        public async Task<IActionResult> ApplyCoupon(IFormCollection form)
+        {
+            try
+            {
+                using var con = new NpgsqlConnection(DbConnection);
+                await con.OpenAsync();
+
+                string couponName = form["couponName"];
+                decimal subtotal = decimal.Parse(form["subtotal"]);
+
+                // 1. Check coupon exists
+                string query = @"SELECT * FROM coupons WHERE code = @code AND is_active = TRUE";
+                var cmd = new NpgsqlCommand(query, con);
+                cmd.Parameters.AddWithValue("@code", couponName);
+
+                var reader = await cmd.ExecuteReaderAsync();
+                if (!reader.Read())
+                {
+                    return new OkObjectResult(new
+                    {
+                        success = false,
+                        message = "Invalid or expired coupon"
+                    });
+                }
+
+                string discountType = reader["discount_type"].ToString();
+                decimal discountValue = Convert.ToDecimal(reader["discount_value"]);
+                decimal minOrder = Convert.ToDecimal(reader["min_order_value"]);
+                decimal maxDiscount = Convert.ToDecimal(reader["max_discount"]);
+
+                reader.Close();
+
+                // 2. Check min order
+                if (subtotal < minOrder)
+                {
+                    return new OkObjectResult(new
+                    {
+                        success = false,
+                        message = $"Minimum order value should be ₹{minOrder}"
+                    });
+                }
+
+                // 3. Calculate Discount
+                decimal discount = 0;
+
+                if (discountType == "percentage")
+                {
+                    discount = subtotal * (discountValue / 100);
+
+                    if (discount > maxDiscount)
+                        discount = maxDiscount;
+                }
+                else if (discountType == "fixed")
+                {
+                    discount = discountValue;
+                }
+
+                decimal total = subtotal - discount;
+
+                return new OkObjectResult(new
+                {
+                    success = true,
+                    discount,
+                    total
+                });
+            }
+            catch (Exception ex)
+            {
+                return new ObjectResult(new { success = false, message = ex.Message }) { StatusCode = 500 };
+            }
+        }
+
 
     }
 }
