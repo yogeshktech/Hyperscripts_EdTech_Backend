@@ -1,7 +1,7 @@
 name: Build and Push CareerCracker Backend Docker Image
 on:
   push:
-    branches: [ "master", "main", "dev" ]
+    branches: [ "master", "main" ]
   pull_request:
     branches: [ "master", "main" ]
 env:
