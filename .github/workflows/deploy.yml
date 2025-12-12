@@ -2,11 +2,7 @@ name: Build and Push edtech_backend Backend Docker Image
 
 on:
   push:
-<<<<<<< HEAD
-    branches: [ "master", "main" ]
-=======
     branches: [ "master", "main", "dev" ]  # Triggers on push to master, main, or dev branch
->>>>>>> d273e3ba154bf7e6f367a91a9eb458533e81b74a
   pull_request:
     branches: [ "master", "main" ]
 
