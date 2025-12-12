@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "GMRbVZ6CZDU=",
+  "dgSpecHash": "z3zOFEibeTM=",
   "success": true,
   "projectFilePath": "C:\\Users\\abhi_\\source\\repos\\CareerCracker\\CareerCracker\\CareerCracker.csproj",
   "expectedPackageFiles": [
@@ -79,8 +79,9 @@
     "C:\\Users\\abhi_\\.nuget\\packages\\microsoft.entityframeworkcore\\8.0.10\\microsoft.entityframeworkcore.8.0.10.nupkg.sha512",
     "C:\\Users\\abhi_\\.nuget\\packages\\microsoft.entityframeworkcore.abstractions\\8.0.10\\microsoft.entityframeworkcore.abstractions.8.0.10.nupkg.sha512",
     "C:\\Users\\abhi_\\.nuget\\packages\\microsoft.entityframeworkcore.analyzers\\8.0.10\\microsoft.entityframeworkcore.analyzers.8.0.10.nupkg.sha512",
-    "C:\\Users\\abhi_\\.nuget\\packages\\microsoft.entityframeworkcore.design\\8.0.10\\microsoft.entityframeworkcore.design.8.0.10.nupkg.sha512",
+    "C:\\Users\\abhi_\\.nuget\\packages\\microsoft.entityframeworkcore.design\\8.0.8\\microsoft.entityframeworkcore.design.8.0.8.nupkg.sha512",
     "C:\\Users\\abhi_\\.nuget\\packages\\microsoft.entityframeworkcore.relational\\8.0.10\\microsoft.entityframeworkcore.relational.8.0.10.nupkg.sha512",
+    "C:\\Users\\abhi_\\.nuget\\packages\\microsoft.entityframeworkcore.tools\\8.0.8\\microsoft.entityframeworkcore.tools.8.0.8.nupkg.sha512",
     "C:\\Users\\abhi_\\.nuget\\packages\\microsoft.extensions.caching.abstractions\\9.0.0\\microsoft.extensions.caching.abstractions.9.0.0.nupkg.sha512",
     "C:\\Users\\abhi_\\.nuget\\packages\\microsoft.extensions.caching.memory\\8.0.1\\microsoft.extensions.caching.memory.8.0.1.nupkg.sha512",
     "C:\\Users\\abhi_\\.nuget\\packages\\microsoft.extensions.configuration.abstractions\\8.0.0\\microsoft.extensions.configuration.abstractions.8.0.0.nupkg.sha512",
@@ -147,18 +148,5 @@
     "C:\\Users\\abhi_\\.nuget\\packages\\system.threading.channels\\7.0.0\\system.threading.channels.7.0.0.nupkg.sha512",
     "C:\\Users\\abhi_\\.nuget\\packages\\system.threading.tasks.dataflow\\8.0.0\\system.threading.tasks.dataflow.8.0.0.nupkg.sha512"
   ],
-  "logs": [
-    {
-      "code": "NU1603",
-      "level": "Warning",
-      "message": "CareerCracker depends on Npgsql.EntityFrameworkCore.PostgreSQL (>= 8.0.7) but Npgsql.EntityFrameworkCore.PostgreSQL 8.0.7 was not found. Npgsql.EntityFrameworkCore.PostgreSQL 8.0.8 was resolved instead.",
-      "projectPath": "C:\\Users\\abhi_\\source\\repos\\CareerCracker\\CareerCracker\\CareerCracker.csproj",
-      "warningLevel": 1,
-      "filePath": "C:\\Users\\abhi_\\source\\repos\\CareerCracker\\CareerCracker\\CareerCracker.csproj",
-      "libraryId": "Npgsql.EntityFrameworkCore.PostgreSQL",
-      "targetGraphs": [
-        "net9.0"
-      ]
-    }
-  ]
+  "logs": []
 }

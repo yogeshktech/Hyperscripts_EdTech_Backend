@@ -355,10 +355,10 @@ C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\obj\Debug\net9.0\staticw
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\obj\Debug\net9.0\staticwebassets.build.json.cache
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\obj\Debug\net9.0\staticwebassets.development.json
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\obj\Debug\net9.0\staticwebassets.build.endpoints.json
-C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\obj\Debug\net9.0\CareerCr.6B504C6F.Up2Date
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\obj\Debug\net9.0\CareerCracker.dll
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\obj\Debug\net9.0\refint\CareerCracker.dll
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\obj\Debug\net9.0\CareerCracker.pdb
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\obj\Debug\net9.0\CareerCracker.genruntimeconfig.cache
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\obj\Debug\net9.0\ref\CareerCracker.dll
+C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
