@@ -1,13 +1,20 @@
-name: Build and Push CareerCracker Backend Docker Image
+name: Build and Push edtech_backend Backend Docker Image
+
 on:
   push:
+<<<<<<< HEAD
     branches: [ "master", "main" ]
+=======
+    branches: [ "master", "main", "dev" ]  # Triggers on push to master, main, or dev branch
+>>>>>>> d273e3ba154bf7e6f367a91a9eb458533e81b74a
   pull_request:
     branches: [ "master", "main" ]
+
 env:
   DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
   DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-  IMAGE_NAME: career_cracker_backend
+  IMAGE_NAME: edtech_backend
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -15,20 +22,24 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: abhishekanand0586/career_cracker_backend
+          images: abhishekanand0586/edtech_backend
           tags: |
             type=raw,value=latest
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -40,14 +51,17 @@ jobs:
           platforms: linux/amd64
           build-args: |
             BUILD_CONFIGURATION=Release
+
       - name: Image digest
         run: echo ${{ steps.meta.outputs.digest }}
+
       - name: Build summary
         run: |
           echo "✅ Docker image built and pushed successfully!"
-          echo "📦 Image: abhishekanand0586/career_cracker_backend"
+          echo "📦 Image: abhishekanand0586/edtech_backend"
           echo "🏷️ Tags: ${{ steps.meta.outputs.tags }}"
           echo "🆔 Digest: ${{ steps.meta.outputs.digest }}"
+
   # AUTO-DEPLOYMENT JOB WITH PASSWORD AUTHENTICATION
   deploy:
     needs: build-and-push
@@ -64,26 +78,26 @@ jobs:
           port: ${{ secrets.SERVER_PORT || 22 }}
           script: |
             # Define upload path
-            UPLOAD_PATH="/var/www/career_cracker_backend/uploads"
+            UPLOAD_PATH="/var/www/edtech_backend/uploads"
             
             # Create upload directory if not exists
             mkdir -p $UPLOAD_PATH
             
             # Pull latest image
-            docker pull abhishekanand0586/career_cracker_backend:latest
+            docker pull abhishekanand0586/edtech_backend:latest
             
             # Stop and remove old container
-            docker stop career_cracker_backend 2>/dev/null || true
-            docker rm career_cracker_backend 2>/dev/null || true
+            docker stop edtech_backend 2>/dev/null || true
+            docker rm edtech_backend 2>/dev/null || true
             
             # Run new container (matching your manual process)
             docker run -d \
               -v $UPLOAD_PATH:/app/wwwroot/tempdata/uploads \
-              -p 8082:8080 \
-              -p 8083:8081 \
-              --name career_cracker_backend \
+              -p 8080:8080 \
+              -p 8081:8081 \
+              --name edtech_backend \
               --restart unless-stopped \
-              abhishekanand0586/career_cracker_backend:latest
+              abhishekanand0586/edtech_backend:latest
             
             # Set permissions for Apache (matching your manual process)
             sudo chown -R www-data:www-data $UPLOAD_PATH
@@ -91,8 +105,8 @@ jobs:
             
             # Verify deployment
             echo "Deployment completed successfully!"
-            echo "Container: career_cracker_backend"
+            echo "Container: edtech_backend"
             echo "Upload path: $UPLOAD_PATH"
-            docker ps | grep career_cracker_backend || echo "Container starting..."
+            docker ps | grep edtech_backend || echo "Container starting..."
             sleep 5
-            docker logs career_cracker_backend --tail 10
+            docker logs edtech_backend --tail 10
