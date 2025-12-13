@@ -29,7 +29,7 @@ namespace CareerCracker.Controllers
             _logger = logger;
         }
 
-        [Route("add")]
+        [Route("add-user")]
         [HttpPost]
         public async Task<IActionResult> AddUser(IFormCollection form)
         {
