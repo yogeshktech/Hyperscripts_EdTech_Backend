@@ -362,3 +362,6 @@ C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\obj\Debug\net9.0\CareerC
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\obj\Debug\net9.0\CareerCracker.genruntimeconfig.cache
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\obj\Debug\net9.0\ref\CareerCracker.dll
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
+C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\bin\Debug\net9.0\BouncyCastle.Crypto.dll
+C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\bin\Debug\net9.0\Razorpay.dll
+C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\bin\Debug\net9.0\Dapper.dll

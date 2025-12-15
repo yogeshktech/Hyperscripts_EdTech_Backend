@@ -976,6 +976,16 @@
   },
   {
     "ContainingType": "CareerCracker.Controllers.OrdersController",
+    "Method": "CheckOut",
+    "RelativePath": "api/order/checkout",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.OrdersController",
     "Method": "CreateOrder",
     "RelativePath": "api/order/create-order",
     "HttpMethod": "POST",
@@ -985,22 +995,6 @@
       {
         "Name": "form",
         "Type": "Microsoft.AspNetCore.Http.IFormCollection",
-        "IsRequired": false
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "CareerCracker.Controllers.OrdersController",
-    "Method": "DeleteOrder",
-    "RelativePath": "api/order/delete",
-    "HttpMethod": "DELETE",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "id",
-        "Type": "System.Int32",
         "IsRequired": false
       }
     ],
@@ -1024,8 +1018,8 @@
   },
   {
     "ContainingType": "CareerCracker.Controllers.OrdersController",
-    "Method": "UpdatePaymentStatus",
-    "RelativePath": "api/order/update-payment",
+    "Method": "CreateRazorpay",
+    "RelativePath": "api/order/razorpay/create",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
@@ -1040,8 +1034,8 @@
   },
   {
     "ContainingType": "CareerCracker.Controllers.OrdersController",
-    "Method": "UpdateOrderStatus",
-    "RelativePath": "api/order/update-status",
+    "Method": "Verify",
+    "RelativePath": "api/order/razorpay/verify",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,

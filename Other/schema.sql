@@ -115,7 +115,7 @@ CREATE TABLE faculties (
     name VARCHAR(255) NOT NULL,
     slug VARCHAR(255) NOT NULL,
     email VARCHAR(255),
-    course_id INT,
+    course_id INT(50) USING NULL,
     position VARCHAR(255),
     experience VARCHAR(255),
     specialization VARCHAR(255),

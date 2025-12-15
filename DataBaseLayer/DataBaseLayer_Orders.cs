@@ -6,13 +6,12 @@ namespace CareerCracker.DataBaseLayer
 {
     public interface IDataBaseLayer_Orders
     {
+        Task<IActionResult> CheckOut(string userEmail);
         Task<IActionResult> CreateOrder(string userEmail, IFormCollection form);
         Task<IActionResult> AddOrderItem(IFormCollection form);
+        Task<IActionResult> MarkPaymentPaid(int orderId);
         Task<IActionResult> GetOrder(int orderId);
         Task<IActionResult> GetAllOrders();
-        Task<IActionResult> UpdateOrderStatus(IFormCollection form);
-        Task<IActionResult> UpdatePaymentStatus(IFormCollection form);
-        Task<IActionResult> DeleteOrder(int id);
     }
 
     public partial interface IDataBaseLayer : IDataBaseLayer_Orders
@@ -22,6 +21,141 @@ namespace CareerCracker.DataBaseLayer
 
     public partial class DataBaseLayer
     {
+        public async Task<IActionResult> CheckOut(string userEmail)
+        {
+            using var con = new NpgsqlConnection(DbConnection);
+            await con.OpenAsync();
+            using var tran = await con.BeginTransactionAsync();
+
+            try
+            {
+                // 1️⃣ Get UserId from AspNetUsers
+                Guid userId;
+                using (var userCmd = new NpgsqlCommand(
+                    @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email""=@Email", con))
+                {
+                    userCmd.Parameters.AddWithValue("@Email", userEmail);
+                    var result = await userCmd.ExecuteScalarAsync();
+
+                    if (result == null)
+                        return new BadRequestObjectResult(new
+                        {
+                            success = false,
+                            message = "User not found"
+                        });
+
+                    userId = Guid.Parse(result.ToString());
+                }
+
+                // 2️⃣ Get Cart Items
+                var cartItems = new List<dynamic>();
+                using (var cartCmd = new NpgsqlCommand(@"
+                    SELECT course_id, price, discount, quantity
+                    FROM cart_items
+                    WHERE user_id=@UserId AND is_active=true", con))
+                {
+                    cartCmd.Parameters.AddWithValue("@UserId", userId);
+
+                    using var reader = await cartCmd.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        cartItems.Add(new
+                        {
+                            course_id = reader.GetInt32(0),
+                            price = reader.GetDecimal(1),
+                            discount = reader.GetDecimal(2),
+                            quantity = reader.GetInt32(3)
+                        });
+                    }
+                }
+
+                if (!cartItems.Any())
+                {
+                    return new OkObjectResult(new
+                    {
+                        success = false,
+                        message = "Cart is empty"
+                    });
+                }
+
+                // 3️⃣ Calculate totals
+                decimal subtotal = 0;
+                decimal discountTotal = 0;
+
+                foreach (var item in cartItems)
+                {
+                    subtotal += item.price * item.quantity;
+                    discountTotal += item.discount * item.quantity;
+                }
+
+                decimal totalAmount = subtotal - discountTotal;
+
+                // 4️⃣ Create Order
+                int orderId;
+                using (var orderCmd = new NpgsqlCommand(@"
+                    INSERT INTO orders
+                    (user_id, subtotal, discount_amount, total_amount, payment_status)
+                    VALUES
+                    (@UserId, @Subtotal, @Discount, @Total, 'pending')
+                    RETURNING id", con))
+                {
+                    orderCmd.Parameters.AddWithValue("@UserId", userId);
+                    orderCmd.Parameters.AddWithValue("@Subtotal", subtotal);
+                    orderCmd.Parameters.AddWithValue("@Discount", discountTotal);
+                    orderCmd.Parameters.AddWithValue("@Total", totalAmount);
+
+                    orderId = Convert.ToInt32(await orderCmd.ExecuteScalarAsync());
+                }
+
+                // 5️⃣ Insert Order Items
+                foreach (var item in cartItems)
+                {
+                    using var itemCmd = new NpgsqlCommand(@"
+                        INSERT INTO order_items
+                        (order_id, course_id, price, discount, quantity)
+                        VALUES
+                        (@OrderId, @CourseId, @Price, @Discount, @Qty)", con);
+
+                    itemCmd.Parameters.AddWithValue("@OrderId", orderId);
+                    itemCmd.Parameters.AddWithValue("@CourseId", item.course_id);
+                    itemCmd.Parameters.AddWithValue("@Price", item.price);
+                    itemCmd.Parameters.AddWithValue("@Discount", item.discount);
+                    itemCmd.Parameters.AddWithValue("@Qty", item.quantity);
+
+                    await itemCmd.ExecuteNonQueryAsync();
+                }
+
+                // 6️⃣ Clear Cart
+                using (var clearCmd = new NpgsqlCommand(
+                    "DELETE FROM cart_items WHERE user_id=@UserId", con))
+                {
+                    clearCmd.Parameters.AddWithValue("@UserId", userId);
+                    await clearCmd.ExecuteNonQueryAsync();
+                }
+
+                await tran.CommitAsync();
+
+                // 7️⃣ Response
+                return new OkObjectResult(new
+                {
+                    success = true,
+                    order_id = orderId,
+                    subtotal,
+                    discount = discountTotal,
+                    total_amount = totalAmount
+                });
+            }
+            catch (Exception ex)
+            {
+                await tran.RollbackAsync();
+                return new BadRequestObjectResult(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
         public async Task<IActionResult> CreateOrder(string userEmail, IFormCollection form)
         {
             try
@@ -91,7 +225,7 @@ namespace CareerCracker.DataBaseLayer
 
                 using var cmd = new NpgsqlCommand(insertQuery, con);
 
-                cmd.Parameters.AddWithValue("@user_id", userId.ToString());
+                cmd.Parameters.AddWithValue("@user_id", userId.Value);
                 cmd.Parameters.Add("@coupon_id", NpgsqlTypes.NpgsqlDbType.Integer)
                               .Value = (object?)couponId ?? DBNull.Value;
                 cmd.Parameters.AddWithValue("@subtotal", subtotal);
@@ -157,6 +291,30 @@ namespace CareerCracker.DataBaseLayer
                 return new BadRequestObjectResult(new { success = false, message = ex.Message });
             }
         }
+
+        public async Task<IActionResult> MarkPaymentPaid(int orderId)
+        {
+            using var con = new NpgsqlConnection(DbConnection);
+            await con.OpenAsync();
+
+            string query = @"
+        UPDATE orders
+        SET payment_status='PAID', order_status='CONFIRMED'
+        WHERE id=@id
+    ";
+
+            using var cmd = new NpgsqlCommand(query, con);
+            cmd.Parameters.AddWithValue("@id", orderId);
+
+            await cmd.ExecuteNonQueryAsync();
+
+            return new OkObjectResult(new
+            {
+                success = true,
+                message = "Payment successful & order confirmed"
+            });
+        }
+
 
         public async Task<IActionResult> GetOrder(int orderId)
         {
@@ -246,82 +404,6 @@ namespace CareerCracker.DataBaseLayer
                 }
 
                 return new OkObjectResult(new { success = true, data = list });
-            }
-            catch (Exception ex)
-            {
-                return new BadRequestObjectResult(new { success = false, message = ex.Message });
-            }
-        }
-
-        public async Task<IActionResult> UpdateOrderStatus(IFormCollection form)
-        {
-            try
-            {
-                using var con = new NpgsqlConnection(DbConnection);
-                await con.OpenAsync();
-
-                int orderId = int.Parse(form["order_id"]);
-                string status = form["order_status"];
-
-                string query = @"UPDATE orders SET order_status=@status, updated_at=NOW() WHERE id=@id";
-
-                using var cmd = new NpgsqlCommand(query, con);
-
-                cmd.Parameters.AddWithValue("@id", orderId);
-                cmd.Parameters.AddWithValue("@status", status);
-
-                await cmd.ExecuteNonQueryAsync();
-
-                return new OkObjectResult(new { success = true, message = "Order status updated!" });
-            }
-            catch (Exception ex)
-            {
-                return new BadRequestObjectResult(new { success = false, message = ex.Message });
-            }
-        }
-
-        public async Task<IActionResult> UpdatePaymentStatus(IFormCollection form)
-        {
-            try
-            {
-                using var con = new NpgsqlConnection(DbConnection);
-                await con.OpenAsync();
-
-                int orderId = int.Parse(form["order_id"]);
-                string status = form["payment_status"];
-
-                string query = @"UPDATE orders SET payment_status=@status, updated_at=NOW() WHERE id=@id";
-
-                using var cmd = new NpgsqlCommand(query, con);
-
-                cmd.Parameters.AddWithValue("@id", orderId);
-                cmd.Parameters.AddWithValue("@status", status);
-
-                await cmd.ExecuteNonQueryAsync();
-
-                return new OkObjectResult(new { success = true, message = "Payment status updated!" });
-            }
-            catch (Exception ex)
-            {
-                return new BadRequestObjectResult(new { success = false, message = ex.Message });
-            }
-        }
-
-        public async Task<IActionResult> DeleteOrder(int id)
-        {
-            try
-            {
-                using var con = new NpgsqlConnection(DbConnection);
-                await con.OpenAsync();
-
-                string query = "DELETE FROM orders WHERE id=@id";
-
-                using var cmd = new NpgsqlCommand(query, con);
-                cmd.Parameters.AddWithValue("@id", id);
-
-                await cmd.ExecuteNonQueryAsync();
-
-                return new OkObjectResult(new { success = true, message = "Order deleted successfully!" });
             }
             catch (Exception ex)
             {

@@ -43,4 +43,12 @@
         public bool IsActive { get; set; }
     }
 
+    public class RazorpaySettings
+    {
+        public string KeyId { get; set; }
+        public string KeySecret { get; set; }
+        public string Currency { get; set; }
+    }
+
+
 }
