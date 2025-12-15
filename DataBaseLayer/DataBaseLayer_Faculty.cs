@@ -32,21 +32,21 @@ namespace CareerCracker.DataBaseLayer
                 string specialization = form["specialization"];
                 string createdBy = form["created_by"];
 
-                string slug = GenerateSlug(name);
-
-                if (!int.TryParse(form["course_id"], out int courseId))
-                    return BadRequest(new { success = false, message = "Invalid course_id" });
-
                 if (string.IsNullOrWhiteSpace(name))
                     return BadRequest(new { success = false, message = "Faculty name is required" });
 
+                string slug = GenerateSlug(name);
+
                 // ------------ Image Upload ------------
                 IFormFile imageFile = form.Files["profile_image"];
-                string savedImagePath = null;
+                string? savedImagePath = null;
 
                 if (imageFile != null && imageFile.Length > 0)
                 {
-                    string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/facultyImages");
+                    string uploadsFolder = Path.Combine(
+                        Directory.GetCurrentDirectory(),
+                        "wwwroot/uploads/facultyImages"
+                    );
 
                     if (!Directory.Exists(uploadsFolder))
                         Directory.CreateDirectory(uploadsFolder);
@@ -60,7 +60,6 @@ namespace CareerCracker.DataBaseLayer
                     savedImagePath = $"/uploads/facultyImages/{uniqueFileName}";
                 }
 
-                // ------------ Database Insert ------------
                 using (var con = new NpgsqlConnection(DbConnection))
                 {
                     await con.OpenAsync();
@@ -84,20 +83,19 @@ namespace CareerCracker.DataBaseLayer
                     }
 
                     string insertQuery = @"
-                INSERT INTO faculties 
-                (name, slug, email, course_id, position, experience, specialization,
-                 profile_image, status, created_by, created_at, updated_at)
-                VALUES
-                (@name, @slug, @email, @course_id, @position, @experience, @special,
-                 @image, TRUE, @created_by, NOW(), NOW());
-            ";
+          INSERT INTO faculties 
+          (name, slug, email, position, experience, specialization,
+           profile_image, status, created_by, created_at, updated_at)
+          VALUES
+          (@name, @slug, @email, @position, @experience, @special,
+           @image, TRUE, @created_by, NOW(), NOW());
+      ";
 
                     using (var cmd = new NpgsqlCommand(insertQuery, con))
                     {
                         cmd.Parameters.AddWithValue("@name", name);
                         cmd.Parameters.AddWithValue("@slug", slug);
                         cmd.Parameters.AddWithValue("@email", (object?)email ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@course_id", courseId);
                         cmd.Parameters.AddWithValue("@position", (object?)position ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@experience", (object?)experience ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@special", (object?)specialization ?? DBNull.Value);
@@ -112,11 +110,9 @@ namespace CareerCracker.DataBaseLayer
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = $"Internal server error: {ex.Message}" });
+                return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
-
-
         public async Task<IActionResult> UpdateFacultyBySlug(string slug, IFormCollection form)
         {
             try
@@ -124,10 +120,6 @@ namespace CareerCracker.DataBaseLayer
                 string name = form["name"];
                 string newSlug = GenerateSlug(name);
                 string email = form["email"];
-
-                if (!int.TryParse(form["course_id"], out int courseId))
-                    return BadRequest(new { success = false, message = "Invalid course_id" });
-
                 string position = form["position"];
                 string experience = form["experience"];
                 string specialization = form["specialization"];
@@ -144,7 +136,6 @@ namespace CareerCracker.DataBaseLayer
                 {
                     await con.OpenAsync();
 
-                    // Fetch existing data
                     string fetchQuery = "SELECT profile_image FROM faculties WHERE slug=@slug";
 
                     using (var cmd = new NpgsqlCommand(fetchQuery, con))
@@ -157,14 +148,15 @@ namespace CareerCracker.DataBaseLayer
 
                         await reader.ReadAsync();
                         oldImagePath = reader["profile_image"]?.ToString();
-
                         reader.Close();
                     }
 
-                    // Upload new image
                     if (imageFile != null && imageFile.Length > 0)
                     {
-                        string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/facultyImages");
+                        string uploadsFolder = Path.Combine(
+                            Directory.GetCurrentDirectory(),
+                            "wwwroot/uploads/facultyImages"
+                        );
 
                         if (!Directory.Exists(uploadsFolder))
                             Directory.CreateDirectory(uploadsFolder);
@@ -182,14 +174,18 @@ namespace CareerCracker.DataBaseLayer
                         newImagePath = oldImagePath;
                     }
 
-                    // Update by slug
                     string updateQuery = @"
-                UPDATE faculties SET
-                    name=@name, slug=@newSlug, email=@email, course_id=@course_id,
-                    position=@position, experience=@experience, specialization=@special,
-                    profile_image=@image, updated_at=NOW()
-                WHERE slug=@slug;
-            ";
+          UPDATE faculties SET
+              name=@name,
+              slug=@newSlug,
+              email=@email,
+              position=@position,
+              experience=@experience,
+              specialization=@special,
+              profile_image=@image,
+              updated_at=NOW()
+          WHERE slug=@slug;
+      ";
 
                     using (var cmd = new NpgsqlCommand(updateQuery, con))
                     {
@@ -197,7 +193,6 @@ namespace CareerCracker.DataBaseLayer
                         cmd.Parameters.AddWithValue("@name", name);
                         cmd.Parameters.AddWithValue("@newSlug", newSlug);
                         cmd.Parameters.AddWithValue("@email", (object?)email ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@course_id", courseId);
                         cmd.Parameters.AddWithValue("@position", (object?)position ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@experience", (object?)experience ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@special", (object?)specialization ?? DBNull.Value);
@@ -211,7 +206,7 @@ namespace CareerCracker.DataBaseLayer
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = $"Internal server error: {ex.Message}" });
+                return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
 
