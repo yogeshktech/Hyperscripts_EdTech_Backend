@@ -22,8 +22,10 @@ public class ApplicationUser : IdentityUser
     public string? signupsource { get; set; }
     public string? sourcetype { get; set; }
     public string? address { get; set; }
-    public string? email { get; set; } = null;
+    public string? Email { get; set; } = null;
     public string? PhoneNumber { get; set; }
+    public DateTime created_at { get; set; }
+    public DateTime updated_at { get; set; }
 
 }
 

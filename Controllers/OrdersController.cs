@@ -31,7 +31,7 @@ namespace CareerCracker.Controllers
         [Authorize]
         [Route("checkout")]
         [HttpGet]
-        public async Task<IActionResult> CheckOut()
+        public async Task<IActionResult> CheckOut(IFormCollection form)
         {
             try
             {
@@ -43,7 +43,7 @@ namespace CareerCracker.Controllers
                 if (string.IsNullOrEmpty(userEmail))
                     return Unauthorized();
 
-                return await _businessLayer.CheckOut(userEmail);
+                return await _businessLayer.CheckOut(userEmail, form);
             }
             catch (Exception ex)
             {
@@ -89,58 +89,83 @@ namespace CareerCracker.Controllers
             }
         }
 
+        //    [HttpPost("razorpay/create")]
+        //    public IActionResult CreateRazorpay(IFormCollection form)
+        //    {
+        //        decimal amount = decimal.Parse(form["amount"]);
+        //        int orderId = int.Parse(form["order_id"]);
+
+        //        var client = new RazorpayClient(_rz.KeyId, _rz.KeySecret);
+
+        //        var options = new Dictionary<string, object>
+        //{
+        //    { "amount", amount * 100 }, // in paise
+        //    { "currency", _rz.Currency },
+        //    { "receipt", $"order_{orderId}" },
+        //    { "payment_capture", 1 }
+        //};
+
+        //        Razorpay.Api.Order razorpayOrder = client.Order.Create(options);
+
+        //        return Ok(new
+        //        {
+        //            success = true,
+        //            razorpay_order_id = razorpayOrder["id"].ToString(),
+        //            key = _rz.KeyId
+        //        });
+        //    }
+
+
+        //    [HttpPost("razorpay/verify")]
+        //    public async Task<IActionResult> Verify(IFormCollection form)
+        //    {
+        //        string razorpayOrderId = form["razorpay_order_id"];
+        //        string razorpayPaymentId = form["razorpay_payment_id"];
+        //        string razorpaySignature = form["razorpay_signature"];
+        //        int orderId = int.Parse(form["order_id"]);
+
+        //        string payload = razorpayOrderId + "|" + razorpayPaymentId;
+
+        //        using var hmac = new HMACSHA256(
+        //            Encoding.UTF8.GetBytes(_rz.KeySecret)
+        //        );
+
+        //        string generatedSignature = BitConverter
+        //            .ToString(hmac.ComputeHash(Encoding.UTF8.GetBytes(payload)))
+        //            .Replace("-", "")
+        //            .ToLower();
+
+        //        if (generatedSignature != razorpaySignature)
+        //            return BadRequest(new { success = false, message = "Payment verification failed" });
+
+        //        return await _businessLayer.MarkPaymentPaid(orderId);
+        //    }
+
         [HttpPost("razorpay/create")]
-        public IActionResult CreateRazorpay(IFormCollection form)
+        public async Task<IActionResult> CreateRazorpay(IFormCollection form)
         {
-            decimal amount = decimal.Parse(form["amount"]);
-            int orderId = int.Parse(form["order_id"]);
-
-            var client = new RazorpayClient(_rz.KeyId, _rz.KeySecret);
-
-            var options = new Dictionary<string, object>
-    {
-        { "amount", amount * 100 }, // in paise
-        { "currency", _rz.Currency },
-        { "receipt", $"order_{orderId}" },
-        { "payment_capture", 1 }
-    };
-
-            Razorpay.Api.Order razorpayOrder = client.Order.Create(options);
-
-            return Ok(new
+            try
             {
-                success = true,
-                razorpay_order_id = razorpayOrder["id"].ToString(),
-                key = _rz.KeyId
-            });
+                return await _businessLayer.CreateRazorpay(form);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
         }
-
 
         [HttpPost("razorpay/verify")]
         public async Task<IActionResult> Verify(IFormCollection form)
         {
-            string razorpayOrderId = form["razorpay_order_id"];
-            string razorpayPaymentId = form["razorpay_payment_id"];
-            string razorpaySignature = form["razorpay_signature"];
-            int orderId = int.Parse(form["order_id"]);
-
-            string payload = razorpayOrderId + "|" + razorpayPaymentId;
-
-            using var hmac = new HMACSHA256(
-                Encoding.UTF8.GetBytes(_rz.KeySecret)
-            );
-
-            string generatedSignature = BitConverter
-                .ToString(hmac.ComputeHash(Encoding.UTF8.GetBytes(payload)))
-                .Replace("-", "")
-                .ToLower();
-
-            if (generatedSignature != razorpaySignature)
-                return BadRequest(new { success = false, message = "Payment verification failed" });
-
-            return await _businessLayer.MarkPaymentPaid(orderId);
+            try
+            {
+                return await _businessLayer.Verify(form);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
         }
-
 
 
         [Route("get-order")]

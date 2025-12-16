@@ -4,10 +4,13 @@ namespace CareerCracker.BusinessLayer
 {
     public interface IBusinessLayer_Orders
     {
-        Task<IActionResult> CheckOut(string userEmail);
+        Task<IActionResult> CheckOut(string userEmail, IFormCollection form);
+        Task<IActionResult> CreateRazorpay(IFormCollection form);
+        Task<IActionResult> Verify(IFormCollection form);
+        Task<IActionResult> MarkPaymentPaid(int orderId);
         Task<IActionResult> CreateOrder(string userEmail,IFormCollection form);
         Task<IActionResult> AddOrderItem(IFormCollection form);
-        Task<IActionResult> MarkPaymentPaid(int orderId);
+        
 
         Task<IActionResult> GetOrder(int orderId);
         Task<IActionResult> GetAllOrders();
@@ -17,9 +20,24 @@ namespace CareerCracker.BusinessLayer
 
     public partial class BusinessLayer
     {
-        public async Task<IActionResult> CheckOut(string userEmail)
+        public async Task<IActionResult> CheckOut(string userEmail, IFormCollection form)
         {
-            return await _dataBaseLayer.CheckOut(userEmail);
+            return await _dataBaseLayer.CheckOut(userEmail,form);
+        }
+
+        public async Task<IActionResult> CreateRazorpay(IFormCollection form)
+        {
+            return await _dataBaseLayer.CreateRazorpay(form);
+        }
+
+        public async Task<IActionResult> Verify(IFormCollection form)
+        {
+            return await _dataBaseLayer.Verify(form);
+        }
+
+        public async Task<IActionResult> MarkPaymentPaid(int orderId)
+        {
+            return await _dataBaseLayer.MarkPaymentPaid(orderId);
         }
         public async Task<IActionResult> CreateOrder(string userEmail, IFormCollection form)
         {
@@ -31,10 +49,6 @@ namespace CareerCracker.BusinessLayer
             return await _dataBaseLayer.AddOrderItem(form);
         }
 
-        public async Task<IActionResult> MarkPaymentPaid(int orderId)
-        {
-            return await _dataBaseLayer.MarkPaymentPaid(orderId);
-        }
 
         public async Task<IActionResult> GetOrder(int orderId)
         {

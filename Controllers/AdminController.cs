@@ -170,7 +170,7 @@ namespace CareerCracker.Controllers
 
         [Route("user-update")]
         [HttpPost]
-        [Authorize(Roles = "ADMIN,SUPERADMIN")]
+        [Authorize(Roles = "ADMIN,SUPERADMIN,USER")]
         public async Task<IActionResult> UpdateUser(IFormCollection form)
         {
             try
@@ -379,6 +379,73 @@ namespace CareerCracker.Controllers
             }
         }
 
+        [Route("user-get/{id}")]
+        [HttpGet]
+        [Authorize(Roles = "ADMIN,SUPERADMIN")]
+        public async Task<IActionResult> GetUserById(string id)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(id))
+                {
+                    return BadRequest(new { success = false, message = "User ID is required" });
+                }
+
+                var user = await _userManager.Users
+                    .Where(u => u.Id == id)
+                    .Select(u => new
+                    {
+                        // Identity fields
+                        u.Id,
+                        u.UserName,
+                        u.Email,
+                        u.EmailConfirmed,
+                        u.PhoneNumber,
+                        u.PhoneNumberConfirmed,
+                        u.TwoFactorEnabled,
+                        u.LockoutEnabled,
+                        u.LockoutEnd,
+                        u.AccessFailedCount,
+
+                        // Custom fields (your added columns)
+                        u.FirstName,
+                        u.LastName,
+                        u.OrgId,
+                        u.AccessKey,
+                        u.IsActive,
+
+                        // Audit fields (if added)
+                        u.created_at,
+                        u.updated_at
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (user == null)
+                {
+                    return NotFound(new { success = false, message = "User not found" });
+                }
+
+                var roles = await _userManager.GetRolesAsync(
+                    await _userManager.FindByIdAsync(id)
+                );
+
+                return Ok(new
+                {
+                    success = true,
+                    user,
+                    roles
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching user by ID");
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = $"Error fetching user: {ex.Message}"
+                });
+            }
+        }
 
     }
 }
