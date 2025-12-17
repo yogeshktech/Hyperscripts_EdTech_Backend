@@ -568,7 +568,6 @@ namespace CareerCracker.DataBaseLayer
                 // 3️⃣ GET COURSES FROM ORDER
                 // ===============================
                 var courseIds = new List<int>();
-
                 using (var cmd = new NpgsqlCommand(@"
             SELECT course_id
             FROM order_items
@@ -582,26 +581,17 @@ namespace CareerCracker.DataBaseLayer
                 }
 
                 // ===============================
-                // 4️⃣ PROCESS EACH COURSE
+                // 4️⃣ ASSIGN EXISTING BATCH ONLY
                 // ===============================
                 foreach (var courseId in courseIds)
                 {
-                    // 🔹 4.1 GET COURSE NAME
-                    string courseName;
-                    using (var cmd = new NpgsqlCommand(
-                        "SELECT course_name FROM courses WHERE id=@id",
-                        con, tran))
-                    {
-                        cmd.Parameters.AddWithValue("@id", courseId);
-                        courseName = (await cmd.ExecuteScalarAsync())?.ToString();
-                    }
-
-                    // 🔹 4.2 CHECK ACTIVE BATCH
+                    // 🔹 FIND ACTIVE BATCH
                     int batchId;
                     using (var cmd = new NpgsqlCommand(@"
                 SELECT id
                 FROM batches
-                WHERE course_id=@courseId AND is_active=TRUE
+                WHERE course_id = @courseId
+                  AND is_active = TRUE
                 LIMIT 1
             ", con, tran))
                     {
@@ -610,27 +600,18 @@ namespace CareerCracker.DataBaseLayer
 
                         if (result == null)
                         {
-                            // 🔹 CREATE NEW BATCH
-                            using var createBatch = new NpgsqlCommand(@"
-                        INSERT INTO batches
-                        (course_id, batch_name, start_date)
-                        VALUES
-                        (@courseId, @batchName, CURRENT_DATE)
-                        RETURNING id
-                    ", con, tran);
-
-                            createBatch.Parameters.AddWithValue("@courseId", courseId);
-                            createBatch.Parameters.AddWithValue("@batchName", courseName);
-
-                            batchId = Convert.ToInt32(await createBatch.ExecuteScalarAsync());
+                            await tran.RollbackAsync();
+                            return new BadRequestObjectResult(new
+                            {
+                                success = false,
+                                message = $"No active batch found for course_id = {courseId}"
+                            });
                         }
-                        else
-                        {
-                            batchId = Convert.ToInt32(result);
-                        }
+
+                        batchId = Convert.ToInt32(result);
                     }
 
-                    // 🔹 4.3 ASSIGN USER TO BATCH
+                    // 🔹 ASSIGN USER TO BATCH
                     using (var cmd = new NpgsqlCommand(@"
                 INSERT INTO user_batches
                 (user_id, course_id, batch_id)
@@ -645,7 +626,7 @@ namespace CareerCracker.DataBaseLayer
                         await cmd.ExecuteNonQueryAsync();
                     }
 
-                    // 🔹 4.4 ENROLL USER IN COURSE
+                    // 🔹 ENROLL USER INTO COURSE
                     using (var cmd = new NpgsqlCommand(@"
                 INSERT INTO user_courses
                 (user_id, course_id, order_id, access_type)
@@ -666,7 +647,7 @@ namespace CareerCracker.DataBaseLayer
                 return new OkObjectResult(new
                 {
                     success = true,
-                    message = "Payment successful, batch assigned, course unlocked"
+                    message = "Payment successful, user assigned to existing batch"
                 });
             }
             catch (Exception ex)
@@ -679,6 +660,7 @@ namespace CareerCracker.DataBaseLayer
                 });
             }
         }
+
 
 
         public async Task<IActionResult> GetOrder(int orderId)

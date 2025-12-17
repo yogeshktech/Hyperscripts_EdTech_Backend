@@ -1,0 +1,37 @@
+﻿using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+
+namespace CareerCracker.BusinessLayer
+{
+    public interface IBusinessLayer_Batch
+    {
+        Task<IActionResult> NewBatch(IFormCollection form);
+        Task<IActionResult> GetAllBatchs();
+        Task<IActionResult> GetByIdBatchs(int courseId);
+        Task<IActionResult> UpdateBatch(int batchId ,IFormCollection form);
+    }
+
+    public partial interface IBusinessLayer : IBusinessLayer_Batch { }
+
+    public partial class BusinessLayer
+    {
+        public async Task<IActionResult> NewBatch(IFormCollection form)
+        {
+            return await _dataBaseLayer.NewBatch(form);
+        }
+        public async Task<IActionResult> GetAllBatchs()
+        {
+            return await _dataBaseLayer.GetAllBatchs();
+        }
+
+        public async Task<IActionResult> GetByIdBatchs(int courseId)
+        {
+            return await _dataBaseLayer.GetByIdBatchs(courseId);
+        }
+
+        public async Task<IActionResult> UpdateBatch(int batchId, IFormCollection form)
+        {
+            return await _dataBaseLayer.UpdateBatch(batchId, form);
+        }
+    }
+}

@@ -95,6 +95,7 @@ wwwroot\uploads\courseImages\04e2a7c4-42f4-429b-b6a9-6fec1b9ebb9d.png
 wwwroot\uploads\courseImages\098310fa-d0b0-4d36-b7ac-aece15910dd6.png
 wwwroot\uploads\courseImages\0dd9b168-51c6-462b-88c6-52c276525459.png
 wwwroot\uploads\courseImages\12afe4ba-3e04-44c9-bdac-95e5c167587c.png
+wwwroot\uploads\courseImages\1b4cae8b-2198-4090-af71-dbf5a6a98dab.png
 wwwroot\uploads\courseImages\66021dc0-623f-41cb-afc6-546118441522.png
 wwwroot\uploads\courseImages\7b58e136-d018-4f75-92b0-920ab95e5a02.png
 wwwroot\uploads\courseImages\b37be229-56ca-4b46-87cb-ba09fcb97902.png

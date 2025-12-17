@@ -432,6 +432,32 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.BatchController",
+    "Method": "GetAllBatchs",
+    "RelativePath": "api/admin/get-batch",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.BatchController",
+    "Method": "GetByIdBatchs",
+    "RelativePath": "api/admin/get-batch/{courseId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "courseId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.BlogsController",
     "Method": "GetBlogById",
     "RelativePath": "api/admin/get-blog/{id}",
@@ -580,6 +606,22 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.BatchController",
+    "Method": "NewBatch",
+    "RelativePath": "api/admin/new-batch",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.BlogsController",
     "Method": "ToggleBlogStatus",
     "RelativePath": "api/admin/status-blog/{id}",
@@ -687,6 +729,27 @@
         "Name": "slug",
         "Type": "System.String",
         "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.BatchController",
+    "Method": "UpdateBatch",
+    "RelativePath": "api/admin/update-batch/{batchId}",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "batchId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
+        "IsRequired": false
       }
     ],
     "ReturnTypes": []
