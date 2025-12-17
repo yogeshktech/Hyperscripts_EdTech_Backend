@@ -444,6 +444,92 @@ namespace CareerCracker.DataBaseLayer
             }
         }
 
+        //public async Task<IActionResult> MarkPaymentPaid(int orderId)
+        //{
+        //    using var con = new NpgsqlConnection(DbConnection);
+        //    await con.OpenAsync();
+        //    using var tran = await con.BeginTransactionAsync();
+
+        //    try
+        //    {
+        //        // ===============================
+        //        // 1️⃣ MARK ORDER AS PAID
+        //        // ===============================
+        //        using (var cmd = new NpgsqlCommand(@"
+        //    UPDATE orders
+        //    SET payment_status='PAID',
+        //        order_status='CONFIRMED'
+        //    WHERE id=@id
+        //", con, tran))
+        //        {
+        //            cmd.Parameters.AddWithValue("@id", orderId);
+        //            await cmd.ExecuteNonQueryAsync();
+        //        }
+
+        //        // ===============================
+        //        // 2️⃣ GET USER ID FROM ORDER
+        //        // ===============================
+        //        Guid userId;
+
+        //        using (var cmd = new NpgsqlCommand(
+        //            "SELECT user_id FROM orders WHERE id=@id", con, tran))
+        //        {
+        //            cmd.Parameters.AddWithValue("@id", orderId);
+        //            userId = Guid.Parse((await cmd.ExecuteScalarAsync()).ToString());
+        //        }
+
+        //        // ===============================
+        //        // 3️⃣ GET COURSES FROM ORDER
+        //        // ===============================
+        //        var courseIds = new List<int>();
+
+        //        using (var cmd = new NpgsqlCommand(@"
+        //    SELECT course_id
+        //    FROM order_items
+        //    WHERE order_id=@orderId
+        //", con, tran))
+        //        {
+        //            cmd.Parameters.AddWithValue("@orderId", orderId);
+        //            using var reader = await cmd.ExecuteReaderAsync();
+        //            while (await reader.ReadAsync())
+        //                courseIds.Add(reader.GetInt32(0));
+        //        }
+
+        //        // ===============================
+        //        // 4️⃣ ENROLL USER INTO COURSES
+        //        // ===============================
+        //        foreach (var courseId in courseIds)
+        //        {
+        //            using var enrollCmd = new NpgsqlCommand(@"
+        //        INSERT INTO user_courses
+        //        (user_id, course_id, order_id, access_type)
+        //        VALUES
+        //        (@UserId, @CourseId, @OrderId, 'FULL')
+        //        ON CONFLICT (user_id, course_id) DO NOTHING
+        //    ", con, tran);
+
+        //            enrollCmd.Parameters.AddWithValue("@UserId", userId);
+        //            enrollCmd.Parameters.AddWithValue("@CourseId", courseId);
+        //            enrollCmd.Parameters.AddWithValue("@OrderId", orderId);
+
+        //            await enrollCmd.ExecuteNonQueryAsync();
+        //        }
+
+        //        await tran.CommitAsync();
+
+        //        return Ok(new
+        //        {
+        //            success = true,
+        //            message = "Payment successful & course access granted"
+        //        });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        await tran.RollbackAsync();
+        //        return BadRequest(new { success = false, message = ex.Message });
+        //    }
+        //}
+
         public async Task<IActionResult> MarkPaymentPaid(int orderId)
         {
             using var con = new NpgsqlConnection(DbConnection);
@@ -457,9 +543,9 @@ namespace CareerCracker.DataBaseLayer
                 // ===============================
                 using (var cmd = new NpgsqlCommand(@"
             UPDATE orders
-            SET payment_status='PAID',
-                order_status='CONFIRMED'
-            WHERE id=@id
+            SET payment_status = 'PAID',
+                order_status = 'CONFIRMED'
+            WHERE id = @id
         ", con, tran))
                 {
                     cmd.Parameters.AddWithValue("@id", orderId);
@@ -467,12 +553,12 @@ namespace CareerCracker.DataBaseLayer
                 }
 
                 // ===============================
-                // 2️⃣ GET USER ID FROM ORDER
+                // 2️⃣ GET USER ID
                 // ===============================
                 Guid userId;
-
                 using (var cmd = new NpgsqlCommand(
-                    "SELECT user_id FROM orders WHERE id=@id", con, tran))
+                    "SELECT user_id FROM orders WHERE id = @id",
+                    con, tran))
                 {
                     cmd.Parameters.AddWithValue("@id", orderId);
                     userId = Guid.Parse((await cmd.ExecuteScalarAsync()).ToString());
@@ -486,7 +572,7 @@ namespace CareerCracker.DataBaseLayer
                 using (var cmd = new NpgsqlCommand(@"
             SELECT course_id
             FROM order_items
-            WHERE order_id=@orderId
+            WHERE order_id = @orderId
         ", con, tran))
                 {
                     cmd.Parameters.AddWithValue("@orderId", orderId);
@@ -496,39 +582,104 @@ namespace CareerCracker.DataBaseLayer
                 }
 
                 // ===============================
-                // 4️⃣ ENROLL USER INTO COURSES
+                // 4️⃣ PROCESS EACH COURSE
                 // ===============================
                 foreach (var courseId in courseIds)
                 {
-                    using var enrollCmd = new NpgsqlCommand(@"
+                    // 🔹 4.1 GET COURSE NAME
+                    string courseName;
+                    using (var cmd = new NpgsqlCommand(
+                        "SELECT course_name FROM courses WHERE id=@id",
+                        con, tran))
+                    {
+                        cmd.Parameters.AddWithValue("@id", courseId);
+                        courseName = (await cmd.ExecuteScalarAsync())?.ToString();
+                    }
+
+                    // 🔹 4.2 CHECK ACTIVE BATCH
+                    int batchId;
+                    using (var cmd = new NpgsqlCommand(@"
+                SELECT id
+                FROM batches
+                WHERE course_id=@courseId AND is_active=TRUE
+                LIMIT 1
+            ", con, tran))
+                    {
+                        cmd.Parameters.AddWithValue("@courseId", courseId);
+                        var result = await cmd.ExecuteScalarAsync();
+
+                        if (result == null)
+                        {
+                            // 🔹 CREATE NEW BATCH
+                            using var createBatch = new NpgsqlCommand(@"
+                        INSERT INTO batches
+                        (course_id, batch_name, start_date)
+                        VALUES
+                        (@courseId, @batchName, CURRENT_DATE)
+                        RETURNING id
+                    ", con, tran);
+
+                            createBatch.Parameters.AddWithValue("@courseId", courseId);
+                            createBatch.Parameters.AddWithValue("@batchName", courseName);
+
+                            batchId = Convert.ToInt32(await createBatch.ExecuteScalarAsync());
+                        }
+                        else
+                        {
+                            batchId = Convert.ToInt32(result);
+                        }
+                    }
+
+                    // 🔹 4.3 ASSIGN USER TO BATCH
+                    using (var cmd = new NpgsqlCommand(@"
+                INSERT INTO user_batches
+                (user_id, course_id, batch_id)
+                VALUES
+                (@userId, @courseId, @batchId)
+                ON CONFLICT (user_id, batch_id) DO NOTHING
+            ", con, tran))
+                    {
+                        cmd.Parameters.AddWithValue("@userId", userId);
+                        cmd.Parameters.AddWithValue("@courseId", courseId);
+                        cmd.Parameters.AddWithValue("@batchId", batchId);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+
+                    // 🔹 4.4 ENROLL USER IN COURSE
+                    using (var cmd = new NpgsqlCommand(@"
                 INSERT INTO user_courses
                 (user_id, course_id, order_id, access_type)
                 VALUES
-                (@UserId, @CourseId, @OrderId, 'FULL')
+                (@userId, @courseId, @orderId, 'FULL')
                 ON CONFLICT (user_id, course_id) DO NOTHING
-            ", con, tran);
-
-                    enrollCmd.Parameters.AddWithValue("@UserId", userId);
-                    enrollCmd.Parameters.AddWithValue("@CourseId", courseId);
-                    enrollCmd.Parameters.AddWithValue("@OrderId", orderId);
-
-                    await enrollCmd.ExecuteNonQueryAsync();
+            ", con, tran))
+                    {
+                        cmd.Parameters.AddWithValue("@userId", userId);
+                        cmd.Parameters.AddWithValue("@courseId", courseId);
+                        cmd.Parameters.AddWithValue("@orderId", orderId);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
                 }
 
                 await tran.CommitAsync();
 
-                return Ok(new
+                return new OkObjectResult(new
                 {
                     success = true,
-                    message = "Payment successful & course access granted"
+                    message = "Payment successful, batch assigned, course unlocked"
                 });
             }
             catch (Exception ex)
             {
                 await tran.RollbackAsync();
-                return BadRequest(new { success = false, message = ex.Message });
+                return new BadRequestObjectResult(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }
+
 
         public async Task<IActionResult> GetOrder(int orderId)
         {
