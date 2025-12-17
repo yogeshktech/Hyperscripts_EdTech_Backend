@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\abhi_\\source\\repos\\CareerCracker\\CareerCracker\\CareerCracker.csproj": {}
+    "D:\\Hyperscripts_EdTech_Backend\\CareerCracker.csproj": {}
   },
   "projects": {
-    "C:\\Users\\abhi_\\source\\repos\\CareerCracker\\CareerCracker\\CareerCracker.csproj": {
+    "D:\\Hyperscripts_EdTech_Backend\\CareerCracker.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\abhi_\\source\\repos\\CareerCracker\\CareerCracker\\CareerCracker.csproj",
+        "projectUniqueName": "D:\\Hyperscripts_EdTech_Backend\\CareerCracker.csproj",
         "projectName": "CareerCracker",
-        "projectPath": "C:\\Users\\abhi_\\source\\repos\\CareerCracker\\CareerCracker\\CareerCracker.csproj",
-        "packagesPath": "C:\\Users\\abhi_\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\abhi_\\source\\repos\\CareerCracker\\CareerCracker\\obj\\",
+        "projectPath": "D:\\Hyperscripts_EdTech_Backend\\CareerCracker.csproj",
+        "packagesPath": "C:\\Users\\yoges\\.nuget\\packages\\",
+        "outputPath": "D:\\Hyperscripts_EdTech_Backend\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\abhi_\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\yoges\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -26,7 +26,6 @@
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -127,7 +126,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.304/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.301/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

@@ -1,7 +1,11 @@
 .vs/
-/storage/*
-/public/uploads/*
 /wwwroot/uploads/*
+!/wwwroot/uploads/.gitkeep
 /wwwroot/categoryImages/*
+!/wwwroot/categoryImages/.gitkeep
 /wwwroot/facultyImages/*
+!/wwwroot/facultyImages/.gitkeep
 /wwwroot/subCategoryImages/*
+!/wwwroot/subCategoryImages/.gitkeep
+/wwwroot/courseImages/*
+!/wwwroot/courseImages/.gitkeep
