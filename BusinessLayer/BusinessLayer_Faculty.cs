@@ -7,7 +7,8 @@ namespace CareerCracker.BusinessLayer
     public interface IBusinessLayer_Faculty
     {
         Task<IActionResult> InsertFaculty(IFormCollection form);
-        Task<IActionResult> UpdateFacultyBySlug(string slug, IFormCollection form);
+        //Task<IActionResult> UpdateFacultyBySlug(string slug, IFormCollection form);
+        Task<IActionResult> UpdateFaculty(string id, IFormCollection form);
         Task<IActionResult> GetAllFaculties();
         Task<IActionResult> GetFacultyBySlug(string slug);
         Task<IActionResult> DeleteFacultyBySlug(string slug);
@@ -27,9 +28,9 @@ namespace CareerCracker.BusinessLayer
         }
 
         // ✅ Update by slug
-        public async Task<IActionResult> UpdateFacultyBySlug(string slug, IFormCollection form)
+        public async Task<IActionResult> UpdateFaculty(string id, IFormCollection form)
         {
-            return await _dataBaseLayer.UpdateFacultyBySlug(slug, form);
+            return await _dataBaseLayer.UpdateFaculty(id, form);
         }
 
         // Get All

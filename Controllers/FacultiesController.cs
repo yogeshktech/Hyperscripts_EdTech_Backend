@@ -22,8 +22,12 @@ public class FacultiesController : ControllerBase
     {
         try
         {
-            if (string.IsNullOrEmpty(form["name"]))
-                return BadRequest(new { success = false, message = "Faculty name is required" });
+            if (string.IsNullOrWhiteSpace(form["FirstName"]))
+                return BadRequest(new { success = false, message = "First name is required" });
+
+            // Optional: Last name validation
+            // if (string.IsNullOrWhiteSpace(form["LastName"]))
+            //     return BadRequest(new { success = false, message = "Last name is required" });
 
             return await _businessLayer.InsertFaculty(form);
         }
@@ -33,13 +37,14 @@ public class FacultiesController : ControllerBase
         }
     }
 
-    // ✅ UPDATE using slug
-    [Route("update-faculty/{slug}")]
+
+    [Route("update-faculty/{id}")]
     [HttpPut]
-    public async Task<IActionResult> UpdateFaculty(string slug, IFormCollection form)
+    public async Task<IActionResult> UpdateFaculty(string id, IFormCollection form)
     {
-        return await _businessLayer.UpdateFacultyBySlug(slug, form);
+        return await _businessLayer.UpdateFaculty(id, form);
     }
+
 
     [Route("faculties")]
     [HttpGet]
