@@ -287,6 +287,90 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "EnquiryAdminController",
+    "Method": "GetById",
+    "RelativePath": "api/admin/enquiry/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "EnquiryAdminController",
+    "Method": "GetAll",
+    "RelativePath": "api/admin/enquiry/all",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "EnquiryAdminController",
+    "Method": "AllResume",
+    "RelativePath": "api/admin/enquiry/all-career",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "EnquiryAdminController",
+    "Method": "GetResumeById",
+    "RelativePath": "api/admin/enquiry/career/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "EnquiryAdminController",
+    "Method": "DeleteResume",
+    "RelativePath": "api/admin/enquiry/career/delete/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "EnquiryAdminController",
+    "Method": "Delete",
+    "RelativePath": "api/admin/enquiry/delete/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "FacultiesController",
     "Method": "GetAllFaculties",
     "RelativePath": "api/admin/faculties",
@@ -673,13 +757,13 @@
   {
     "ContainingType": "FacultiesController",
     "Method": "UpdateFaculty",
-    "RelativePath": "api/admin/update-faculty/{slug}",
+    "RelativePath": "api/admin/update-faculty/{id}",
     "HttpMethod": "PUT",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "slug",
+        "Name": "id",
         "Type": "System.String",
         "IsRequired": true
       },
@@ -815,6 +899,38 @@
     "IsController": true,
     "Order": 0,
     "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.EnquiryController",
+    "Method": "Careerjob",
+    "RelativePath": "api/contact/career",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.EnquiryController",
+    "Method": "ContactEnquiry",
+    "RelativePath": "api/contact/create",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
+        "IsRequired": false
+      }
+    ],
     "ReturnTypes": []
   },
   {
