@@ -8,19 +8,30 @@
     ".NETCoreApp,Version=v9.0": {
       "CareerCracker/1.0.0": {
         "dependencies": {
+          "Dapper": "2.1.66",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "9.0.0",
           "Microsoft.AspNetCore.Identity.EntityFrameworkCore": "8.0.10",
           "Microsoft.AspNetCore.Identity.UI": "9.0.0",
           "Microsoft.EntityFrameworkCore": "8.0.10",
-          "Microsoft.EntityFrameworkCore.Design": "8.0.10",
+          "Microsoft.EntityFrameworkCore.Design": "8.0.8",
+          "Microsoft.EntityFrameworkCore.Tools": "8.0.8",
           "Microsoft.IdentityModel.Tokens": "8.15.0",
           "Microsoft.VisualStudio.Web.CodeGeneration.Design": "9.0.0",
           "Npgsql": "8.0.4",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "8.0.8",
+          "Razorpay": "3.3.2",
           "System.IdentityModel.Tokens.Jwt": "8.15.0"
         },
         "runtime": {
           "CareerCracker.dll": {}
+        }
+      },
+      "Dapper/2.1.66": {
+        "runtime": {
+          "lib/net8.0/Dapper.dll": {
+            "assemblyVersion": "2.0.0.0",
+            "fileVersion": "2.1.66.48463"
+          }
         }
       },
       "Humanizer/2.14.1": {
@@ -1121,7 +1132,7 @@
         }
       },
       "Microsoft.EntityFrameworkCore.Analyzers/8.0.10": {},
-      "Microsoft.EntityFrameworkCore.Design/8.0.10": {
+      "Microsoft.EntityFrameworkCore.Design/8.0.8": {
         "dependencies": {
           "Humanizer.Core": "2.14.1",
           "Microsoft.CodeAnalysis.CSharp.Workspaces": "4.8.0",
@@ -1131,8 +1142,8 @@
         },
         "runtime": {
           "lib/net8.0/Microsoft.EntityFrameworkCore.Design.dll": {
-            "assemblyVersion": "8.0.10.0",
-            "fileVersion": "8.0.1024.46708"
+            "assemblyVersion": "8.0.8.0",
+            "fileVersion": "8.0.824.36704"
           }
         }
       },
@@ -1146,6 +1157,11 @@
             "assemblyVersion": "8.0.10.0",
             "fileVersion": "8.0.1024.46708"
           }
+        }
+      },
+      "Microsoft.EntityFrameworkCore.Tools/8.0.8": {
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore.Design": "8.0.8"
         }
       },
       "Microsoft.Extensions.Caching.Abstractions/9.0.0": {
@@ -1643,6 +1659,26 @@
           }
         }
       },
+      "Portable.BouncyCastle/1.9.0": {
+        "runtime": {
+          "lib/netstandard2.0/BouncyCastle.Crypto.dll": {
+            "assemblyVersion": "1.9.0.0",
+            "fileVersion": "1.9.0.1"
+          }
+        }
+      },
+      "Razorpay/3.3.2": {
+        "dependencies": {
+          "Newtonsoft.Json": "13.0.3",
+          "Portable.BouncyCastle": "1.9.0"
+        },
+        "runtime": {
+          "lib/net8.0/Razorpay.dll": {
+            "assemblyVersion": "3.3.2.0",
+            "fileVersion": "3.3.2.0"
+          }
+        }
+      },
       "System.CodeDom/6.0.0": {
         "runtime": {
           "lib/net6.0/System.CodeDom.dll": {
@@ -1787,6 +1823,13 @@
       "type": "project",
       "serviceable": false,
       "sha512": ""
+    },
+    "Dapper/2.1.66": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-/q77jUgDOS+bzkmk3Vy9SiWMaetTw+NOoPAV0xPBsGVAyljd5S6P+4RUW7R3ZUGGr9lDRyPKgAMj2UAOwvqZYw==",
+      "path": "dapper/2.1.66",
+      "hashPath": "dapper.2.1.66.nupkg.sha512"
     },
     "Humanizer/2.14.1": {
       "type": "package",
@@ -2313,12 +2356,12 @@
       "path": "microsoft.entityframeworkcore.analyzers/8.0.10",
       "hashPath": "microsoft.entityframeworkcore.analyzers.8.0.10.nupkg.sha512"
     },
-    "Microsoft.EntityFrameworkCore.Design/8.0.10": {
+    "Microsoft.EntityFrameworkCore.Design/8.0.8": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-uGNjfKvAsql2KHRqxlK5wHo8mMC60G/FecrFKEjJgeIxtUAbSXGOgKGw/gD9flO5Fzzt1C7uxfIcr6ZsMmFkeg==",
-      "path": "microsoft.entityframeworkcore.design/8.0.10",
-      "hashPath": "microsoft.entityframeworkcore.design.8.0.10.nupkg.sha512"
+      "sha512": "sha512-MmQAMHdjZR8Iyn/FVQrh9weJQTn0HqtKa3vELS9ffQJat/qXgnTam9M9jqvePphjkYp5Scee+Hy+EJR4nmWmOA==",
+      "path": "microsoft.entityframeworkcore.design/8.0.8",
+      "hashPath": "microsoft.entityframeworkcore.design.8.0.8.nupkg.sha512"
     },
     "Microsoft.EntityFrameworkCore.Relational/8.0.10": {
       "type": "package",
@@ -2326,6 +2369,13 @@
       "sha512": "sha512-OefBEE47kGKPRPV3OT+FAW6o5BFgLk2D9EoeWVy7NbOepzUneayLQxbVE098FfedTyMwxvZQoDD9LrvZc3MadA==",
       "path": "microsoft.entityframeworkcore.relational/8.0.10",
       "hashPath": "microsoft.entityframeworkcore.relational.8.0.10.nupkg.sha512"
+    },
+    "Microsoft.EntityFrameworkCore.Tools/8.0.8": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-wjDNbLJk86QpZt2JxJuNVzpBKIbEQsgcJYHGeIFTBuK6NEgvJvyxgneg059HfSJmTVdInZ61lTO4sJGCfFr7+w==",
+      "path": "microsoft.entityframeworkcore.tools/8.0.8",
+      "hashPath": "microsoft.entityframeworkcore.tools.8.0.8.nupkg.sha512"
     },
     "Microsoft.Extensions.Caching.Abstractions/9.0.0": {
       "type": "package",
@@ -2613,6 +2663,20 @@
       "sha512": "sha512-v/GGlIj2dd7svplFmASWEueu62veKW0MrMtBaZ7QG8aJTSGv2yE+pgUGhXRcQ4nxNOEq/wLBrz1vkth/1SND7A==",
       "path": "nuget.versioning/6.11.0",
       "hashPath": "nuget.versioning.6.11.0.nupkg.sha512"
+    },
+    "Portable.BouncyCastle/1.9.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-eZZBCABzVOek+id9Xy04HhmgykF0wZg9wpByzrWN7q8qEI0Qen9b7tfd7w8VA3dOeesumMG7C5ZPy0jk7PSRHw==",
+      "path": "portable.bouncycastle/1.9.0",
+      "hashPath": "portable.bouncycastle.1.9.0.nupkg.sha512"
+    },
+    "Razorpay/3.3.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-t/BFZKYuCZI/if927DrG122ARokL3lAlRhf0PVUjhNFGqjbXc0o32zTOUPF+1Fz9izBoTMdoYn8wVL91Z76Mjg==",
+      "path": "razorpay/3.3.2",
+      "hashPath": "razorpay.3.3.2.nupkg.sha512"
     },
     "System.CodeDom/6.0.0": {
       "type": "package",

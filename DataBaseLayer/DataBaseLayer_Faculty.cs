@@ -473,42 +473,40 @@ namespace CareerCracker.DataBaseLayer
         {
             try
             {
-                using (var con = new NpgsqlConnection(DbConnection))
+                using var con = new NpgsqlConnection(DbConnection);
+                await con.OpenAsync();
+
+                string query = @"
+            UPDATE faculties
+            SET status = NOT status,
+                updated_at = NOW()
+            WHERE slug = @slug
+            RETURNING status;
+        ";
+
+                using var cmd = new NpgsqlCommand(query, con);
+                cmd.Parameters.AddWithValue("@slug", slug);
+
+                var result = await cmd.ExecuteScalarAsync();
+
+                if (result == null)
+                    return NotFound(new { success = false, message = "Faculty not found" });
+
+                bool newStatus = Convert.ToBoolean(result);
+
+                return Ok(new
                 {
-                    await con.OpenAsync();
-
-                    string query = @"
-                UPDATE faculties 
-                SET status = NOT status, updated_at = NOW()
-                WHERE slug=@slug
-                RETURNING status;
-            ";
-
-                    using (var cmd = new NpgsqlCommand(query, con))
-                    {
-                        cmd.Parameters.AddWithValue("@slug", slug);
-
-                        var result = await cmd.ExecuteScalarAsync();
-
-                        if (result == null)
-                            return NotFound(new { success = false, message = "Faculty not found" });
-
-                        bool newStatus = (bool)result;
-
-                        return Ok(new
-                        {
-                            success = true,
-                            message = newStatus ? "Faculty Activated" : "Faculty Deactivated",
-                            status = newStatus
-                        });
-                    }
-                }
+                    success = true,
+                    message = newStatus ? "Faculty Activated" : "Faculty Deactivated",
+                    status = newStatus
+                });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
+
 
 
     }

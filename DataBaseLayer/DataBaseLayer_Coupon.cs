@@ -24,7 +24,9 @@ namespace CareerCracker.DataBaseLayer
                 using var con = new NpgsqlConnection(DbConnection);
                 await con.OpenAsync();
 
-                // 1️⃣ Read form values
+                // -------------------------------
+                // 1️⃣ Read Form Values
+                // -------------------------------
                 string code = form["couponName"];
                 string discountType = form["discount_type"];
                 string discountValueStr = form["discount_value"];
@@ -37,90 +39,133 @@ namespace CareerCracker.DataBaseLayer
                 string endDateStr = form["end_date"];
                 string isActiveStr = form["is_active"];
 
-                // 2️⃣ VALIDATION
-                if (string.IsNullOrEmpty(code))
-                    return BadRequest(new { success = false, message = "Coupon code is required!" });
+                // -------------------------------
+                // 2️⃣ Validations
+                // -------------------------------
+                if (string.IsNullOrWhiteSpace(code))
+                    return BadRequest(new { success = false, message = "Coupon code is required" });
 
                 if (!decimal.TryParse(discountValueStr, out decimal discountValue))
                     return BadRequest(new { success = false, message = "Invalid discount value" });
 
-                decimal.TryParse(minOrderValueStr, out decimal minOrderValue);
+                if (!decimal.TryParse(minOrderValueStr, out decimal minOrderValue))
+                    minOrderValue = 0;
 
-                // Handle nullable decimal (max_discount)
                 decimal? maxDiscount = null;
-                if (!string.IsNullOrEmpty(maxDiscountStr))
+                if (!string.IsNullOrWhiteSpace(maxDiscountStr) &&
+                    decimal.TryParse(maxDiscountStr, out decimal parsedMax))
                 {
-                    if (decimal.TryParse(maxDiscountStr, out decimal parsedValue))
-                        maxDiscount = parsedValue;
+                    maxDiscount = parsedMax;
                 }
 
-                // Handle nullable int (course_id)
                 int? courseId = null;
-                if (!string.IsNullOrEmpty(courseIdStr))
+                if (!string.IsNullOrWhiteSpace(courseIdStr))
                 {
-                    if (int.TryParse(courseIdStr, out int parsedCourseId))
-                        courseId = parsedCourseId;
+                    if (!int.TryParse(courseIdStr, out int parsedCourseId))
+                        return BadRequest(new { success = false, message = "Invalid course_id" });
+
+                    courseId = parsedCourseId;
                 }
 
-                int.TryParse(usageLimitUserStr, out int usageLimitUser);
-                int.TryParse(totalUsageLimitStr, out int totalUsageLimit);
+                int usageLimitUser = int.TryParse(usageLimitUserStr, out int ul) ? ul : 1;
+                int totalUsageLimit = int.TryParse(totalUsageLimitStr, out int tl) ? tl : 1000;
 
-                DateTime startDate = DateTime.Parse(startDateStr);
-                DateTime endDate = DateTime.Parse(endDateStr);
+                if (!DateTime.TryParse(startDateStr, out DateTime startDate))
+                    return BadRequest(new { success = false, message = "Invalid start date" });
+
+                if (!DateTime.TryParse(endDateStr, out DateTime endDate))
+                    return BadRequest(new { success = false, message = "Invalid end date" });
+
+                if (endDate < startDate)
+                    return BadRequest(new { success = false, message = "End date must be after start date" });
 
                 bool isActive = isActiveStr == "true";
 
-                // 3️⃣ Insert Query
-                string query = @"
-            INSERT INTO coupons 
-            (code, discount_type, discount_value, min_order_value, max_discount, course_id, 
+                // -------------------------------
+                // 3️⃣ Validate course_id (FK safety)
+                // -------------------------------
+                if (courseId.HasValue)
+                {
+                    string checkCourseQuery = "SELECT 1 FROM courses WHERE id = @id";
+                    using var checkCmd = new NpgsqlCommand(checkCourseQuery, con);
+                    checkCmd.Parameters.AddWithValue("@id", courseId.Value);
+
+                    var exists = await checkCmd.ExecuteScalarAsync();
+                    if (exists == null)
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Invalid course_id. Course does not exist."
+                        });
+                    }
+                }
+
+                // -------------------------------
+                // 4️⃣ Insert Coupon
+                // -------------------------------
+                string insertQuery = @"
+            INSERT INTO coupons
+            (code, discount_type, discount_value, min_order_value, max_discount, course_id,
              usage_limit_per_user, total_usage_limit, start_date, end_date, is_active)
             VALUES
             (@code, @discount_type, @discount_value, @min_order_value, @max_discount, @course_id,
-             @usage_limit_per_user, @total_usage_limit, @start_date, @end_date, @is_active)
-        ";
+             @usage_limit_per_user, @total_usage_limit, @start_date, @end_date, @is_active)";
 
-                using var cmd = new NpgsqlCommand(query, con);
+                using var cmd = new NpgsqlCommand(insertQuery, con);
 
                 cmd.Parameters.AddWithValue("@code", code);
                 cmd.Parameters.AddWithValue("@discount_type", discountType);
                 cmd.Parameters.AddWithValue("@discount_value", discountValue);
                 cmd.Parameters.AddWithValue("@min_order_value", minOrderValue);
 
-                // FIXED nullable decimal
                 cmd.Parameters.Add("@max_discount", NpgsqlTypes.NpgsqlDbType.Numeric)
-                              .Value = (object?)maxDiscount ?? DBNull.Value;
+                    .Value = (object?)maxDiscount ?? DBNull.Value;
 
-                // FIXED nullable int
                 cmd.Parameters.Add("@course_id", NpgsqlTypes.NpgsqlDbType.Integer)
-                              .Value = (object?)courseId ?? DBNull.Value;
+                    .Value = (object?)courseId ?? DBNull.Value;
 
-                cmd.Parameters.AddWithValue("@usage_limit_per_user",
-                    usageLimitUser == 0 ? 1 : usageLimitUser);
-
-                cmd.Parameters.AddWithValue("@total_usage_limit",
-                    totalUsageLimit == 0 ? 1000 : totalUsageLimit);
-
+                cmd.Parameters.AddWithValue("@usage_limit_per_user", usageLimitUser);
+                cmd.Parameters.AddWithValue("@total_usage_limit", totalUsageLimit);
                 cmd.Parameters.AddWithValue("@start_date", startDate);
                 cmd.Parameters.AddWithValue("@end_date", endDate);
                 cmd.Parameters.AddWithValue("@is_active", isActive);
 
                 await cmd.ExecuteNonQueryAsync();
 
-                return Ok(new { success = true, message = "Coupon added successfully!" });
+                return Ok(new
+                {
+                    success = true,
+                    message = "Coupon added successfully"
+                });
             }
             catch (PostgresException ex)
             {
                 if (ex.SqlState == "23505")
-                    return BadRequest(new { success = false, message = "Coupon code already exists!" });
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Coupon code already exists"
+                    });
+                }
 
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }
+
 
         public async Task<IActionResult> GetAllCoupons()
         {
@@ -426,76 +471,91 @@ namespace CareerCracker.DataBaseLayer
         }
 
         public async Task<IActionResult> ApplyCoupon(IFormCollection form)
+{
+    try
+    {
+        using var con = new NpgsqlConnection(DbConnection);
+        await con.OpenAsync();
+
+        string couponName = form["couponName"];
+        decimal subtotal = decimal.Parse(form["subtotal"]);
+
+        // 1️⃣ Validate coupon
+        string query = @"
+            SELECT id, discount_type, discount_value, min_order_value, max_discount
+            FROM coupons
+            WHERE code = @code
+              AND is_active = TRUE
+              AND start_date <= NOW()
+              AND end_date >= NOW()";
+
+        using var cmd = new NpgsqlCommand(query, con);
+        cmd.Parameters.AddWithValue("@code", couponName);
+
+        using var reader = await cmd.ExecuteReaderAsync();
+
+        if (!reader.Read())
         {
-            try
+            return Ok(new
             {
-                using var con = new NpgsqlConnection(DbConnection);
-                await con.OpenAsync();
-
-                string couponName = form["couponName"];
-                decimal subtotal = decimal.Parse(form["subtotal"]);
-
-                // 1. Check coupon exists
-                string query = @"SELECT * FROM coupons WHERE code = @code AND is_active = TRUE";
-                var cmd = new NpgsqlCommand(query, con);
-                cmd.Parameters.AddWithValue("@code", couponName);
-
-                var reader = await cmd.ExecuteReaderAsync();
-                if (!reader.Read())
-                {
-                    return new OkObjectResult(new
-                    {
-                        success = false,
-                        message = "Invalid or expired coupon"
-                    });
-                }
-
-                string discountType = reader["discount_type"].ToString();
-                decimal discountValue = Convert.ToDecimal(reader["discount_value"]);
-                decimal minOrder = Convert.ToDecimal(reader["min_order_value"]);
-                decimal maxDiscount = Convert.ToDecimal(reader["max_discount"]);
-
-                reader.Close();
-
-                // 2. Check min order
-                if (subtotal < minOrder)
-                {
-                    return new OkObjectResult(new
-                    {
-                        success = false,
-                        message = $"Minimum order value should be ₹{minOrder}"
-                    });
-                }
-
-                // 3. Calculate Discount
-                decimal discount = 0;
-
-                if (discountType == "percentage")
-                {
-                    discount = subtotal * (discountValue / 100);
-
-                    if (discount > maxDiscount)
-                        discount = maxDiscount;
-                }
-                else if (discountType == "fixed")
-                {
-                    discount = discountValue;
-                }
-
-                decimal total = subtotal - discount;
-
-                return new OkObjectResult(new
-                {
-                    success = true,
-                    discount,
-                    total
-                });
-            }
-            catch (Exception ex)
-            {
-                return new ObjectResult(new { success = false, message = ex.Message }) { StatusCode = 500 };
-            }
+                success = false,
+                message = "Invalid or expired coupon"
+            });
         }
+
+        int couponId = Convert.ToInt32(reader["id"]);
+        string discountType = reader["discount_type"].ToString();
+        decimal discountValue = Convert.ToDecimal(reader["discount_value"]);
+        decimal minOrder = Convert.ToDecimal(reader["min_order_value"]);
+        decimal maxDiscount = Convert.ToDecimal(reader["max_discount"]);
+
+        // 2️⃣ Minimum order check
+        if (subtotal < minOrder)
+        {
+            return Ok(new
+            {
+                success = false,
+                message = $"Minimum order value should be ₹{minOrder}"
+            });
+        }
+
+        // 3️⃣ Calculate discount
+        decimal discount = 0;
+
+        if (discountType == "percentage")
+        {
+            discount = subtotal * (discountValue / 100);
+            if (discount > maxDiscount)
+                discount = maxDiscount;
+        }
+        else if (discountType == "fixed")
+        {
+            discount = discountValue;
+        }
+
+        decimal total = subtotal - discount;
+
+        // ✅ DO NOT SAVE ANYTHING HERE
+        // Coupon is saved ONLY when order is placed
+
+        return Ok(new
+        {
+            success = true,
+            message = "Coupon apply successfully.",
+            coupon_id = couponId,   // frontend stores this temporarily
+            discount,
+            total
+        });
+    }
+    catch (Exception ex)
+    {
+        return StatusCode(500, new
+        {
+            success = false,
+            message = ex.Message
+        });
+    }
+}
 
 
     }

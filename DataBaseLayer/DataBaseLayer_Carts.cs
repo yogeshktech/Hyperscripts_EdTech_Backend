@@ -43,6 +43,7 @@ namespace CareerCracker.DataBaseLayer
                 // -------------------------------------------------------
                 string courseQuery = @"SELECT mrp_price, saling_price FROM courses WHERE id=@id";
                 decimal mrp = 0, sale = 0;
+                
 
                 using (var getCourse = new NpgsqlCommand(courseQuery, con))
                 {
@@ -55,6 +56,7 @@ namespace CareerCracker.DataBaseLayer
                     mrp = rd.GetDecimal(0);
                     sale = rd.GetDecimal(1);
                 }
+                decimal dis = mrp - sale;
 
                 // -------------------------------------------------------
                 // 3️⃣ Merge guest cart → logged-in cart
@@ -115,9 +117,9 @@ namespace CareerCracker.DataBaseLayer
                 // -------------------------------------------------------
                 string insert = @"
             INSERT INTO cart_items 
-            (user_id, ip_address, course_id, quantity, price, discount, is_active)
+            (user_id, ip_address, course_id, quantity, price, discount, is_active, saling_price)
             VALUES 
-            (@uid, @ip, @pid, 1, @price, @discount, TRUE)";
+            (@uid, @ip, @pid, 1, @price, @discount, TRUE,@saling_price)";
 
                 using var ins = new NpgsqlCommand(insert, con);
 
@@ -136,7 +138,8 @@ namespace CareerCracker.DataBaseLayer
 
                 ins.Parameters.AddWithValue("@pid", courseId);
                 ins.Parameters.AddWithValue("@price", mrp);
-                ins.Parameters.AddWithValue("@discount", sale);
+                ins.Parameters.AddWithValue("@discount", dis);
+                ins.Parameters.AddWithValue("@saling_price", sale);
 
                 await ins.ExecuteNonQueryAsync();
 

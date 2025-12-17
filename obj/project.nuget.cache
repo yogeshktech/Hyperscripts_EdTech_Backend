@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "nlxdXxrn5NA=",
+  "dgSpecHash": "eMxMBLOdIsA=",
   "success": true,
   "projectFilePath": "D:\\Hyperscripts_EdTech_Backend\\CareerCracker.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\yoges\\.nuget\\packages\\dapper\\2.1.66\\dapper.2.1.66.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\humanizer\\2.14.1\\humanizer.2.14.1.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\humanizer.core.af\\2.14.1\\humanizer.core.af.2.14.1.nupkg.sha512",
@@ -79,8 +80,9 @@
     "C:\\Users\\yoges\\.nuget\\packages\\microsoft.entityframeworkcore\\8.0.10\\microsoft.entityframeworkcore.8.0.10.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\microsoft.entityframeworkcore.abstractions\\8.0.10\\microsoft.entityframeworkcore.abstractions.8.0.10.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\microsoft.entityframeworkcore.analyzers\\8.0.10\\microsoft.entityframeworkcore.analyzers.8.0.10.nupkg.sha512",
-    "C:\\Users\\yoges\\.nuget\\packages\\microsoft.entityframeworkcore.design\\8.0.10\\microsoft.entityframeworkcore.design.8.0.10.nupkg.sha512",
+    "C:\\Users\\yoges\\.nuget\\packages\\microsoft.entityframeworkcore.design\\8.0.8\\microsoft.entityframeworkcore.design.8.0.8.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\microsoft.entityframeworkcore.relational\\8.0.10\\microsoft.entityframeworkcore.relational.8.0.10.nupkg.sha512",
+    "C:\\Users\\yoges\\.nuget\\packages\\microsoft.entityframeworkcore.tools\\8.0.8\\microsoft.entityframeworkcore.tools.8.0.8.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\microsoft.extensions.caching.abstractions\\9.0.0\\microsoft.extensions.caching.abstractions.9.0.0.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\microsoft.extensions.caching.memory\\8.0.1\\microsoft.extensions.caching.memory.8.0.1.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\microsoft.extensions.configuration.abstractions\\8.0.0\\microsoft.extensions.configuration.abstractions.8.0.0.nupkg.sha512",
@@ -122,6 +124,8 @@
     "C:\\Users\\yoges\\.nuget\\packages\\nuget.projectmodel\\6.11.0\\nuget.projectmodel.6.11.0.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\nuget.protocol\\6.11.0\\nuget.protocol.6.11.0.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\nuget.versioning\\6.11.0\\nuget.versioning.6.11.0.nupkg.sha512",
+    "C:\\Users\\yoges\\.nuget\\packages\\portable.bouncycastle\\1.9.0\\portable.bouncycastle.1.9.0.nupkg.sha512",
+    "C:\\Users\\yoges\\.nuget\\packages\\razorpay\\3.3.2\\razorpay.3.3.2.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\system.codedom\\6.0.0\\system.codedom.6.0.0.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\system.collections.immutable\\8.0.0\\system.collections.immutable.8.0.0.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\system.composition\\7.0.0\\system.composition.7.0.0.nupkg.sha512",
@@ -147,18 +151,5 @@
     "C:\\Users\\yoges\\.nuget\\packages\\system.threading.channels\\7.0.0\\system.threading.channels.7.0.0.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\system.threading.tasks.dataflow\\8.0.0\\system.threading.tasks.dataflow.8.0.0.nupkg.sha512"
   ],
-  "logs": [
-    {
-      "code": "NU1603",
-      "level": "Warning",
-      "message": "CareerCracker depends on Npgsql.EntityFrameworkCore.PostgreSQL (>= 8.0.7) but Npgsql.EntityFrameworkCore.PostgreSQL 8.0.7 was not found. Npgsql.EntityFrameworkCore.PostgreSQL 8.0.8 was resolved instead.",
-      "projectPath": "D:\\Hyperscripts_EdTech_Backend\\CareerCracker.csproj",
-      "warningLevel": 1,
-      "filePath": "D:\\Hyperscripts_EdTech_Backend\\CareerCracker.csproj",
-      "libraryId": "Npgsql.EntityFrameworkCore.PostgreSQL",
-      "targetGraphs": [
-        "net9.0"
-      ]
-    }
-  ]
+  "logs": []
 }

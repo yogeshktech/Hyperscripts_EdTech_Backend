@@ -1,18 +1,23 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Npgsql;
+using Razorpay.Api;
+using System.Security.Cryptography;
+using System.Text;
+
 
 namespace CareerCracker.DataBaseLayer
 {
     public interface IDataBaseLayer_Orders
     {
+        Task<IActionResult> CheckOut(string userEmail, IFormCollection form);
+        Task<IActionResult> CreateRazorpay(IFormCollection form);
+        Task<IActionResult> Verify(IFormCollection form);
         Task<IActionResult> CreateOrder(string userEmail, IFormCollection form);
         Task<IActionResult> AddOrderItem(IFormCollection form);
+        Task<IActionResult> MarkPaymentPaid(int orderId);
         Task<IActionResult> GetOrder(int orderId);
         Task<IActionResult> GetAllOrders();
-        Task<IActionResult> UpdateOrderStatus(IFormCollection form);
-        Task<IActionResult> UpdatePaymentStatus(IFormCollection form);
-        Task<IActionResult> DeleteOrder(int id);
     }
 
     public partial interface IDataBaseLayer : IDataBaseLayer_Orders
@@ -22,6 +27,287 @@ namespace CareerCracker.DataBaseLayer
 
     public partial class DataBaseLayer
     {
+        public async Task<IActionResult> CheckOut(string userEmail, IFormCollection form)
+        {
+            using var con = new NpgsqlConnection(DbConnection);
+            await con.OpenAsync();
+            using var tran = await con.BeginTransactionAsync();
+
+            try
+            {
+                // ===============================
+                // 1️⃣ GET USER ID
+                // ===============================
+                Guid userId;
+
+                using (var userCmd = new NpgsqlCommand(
+                    @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email""=@Email", con, tran))
+                {
+                    userCmd.Parameters.AddWithValue("@Email", userEmail);
+                    var result = await userCmd.ExecuteScalarAsync();
+
+                    if (result == null)
+                        return BadRequest(new { success = false, message = "User not found" });
+
+                    userId = Guid.Parse(result.ToString());
+                }
+
+                // ===============================
+                // 2️⃣ GET CART ITEMS
+                // ===============================
+                var cartItems = new List<(int courseId, decimal price, decimal discount, int qty)>();
+
+                using (var cartCmd = new NpgsqlCommand(@"
+            SELECT course_id, saling_price, discount, quantity
+            FROM cart_items
+            WHERE user_id=@UserId AND is_active=true", con, tran))
+                {
+                    cartCmd.Parameters.AddWithValue("@UserId", userId);
+
+                    using var reader = await cartCmd.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        cartItems.Add((
+                            reader.GetInt32(0),
+                            reader.GetDecimal(1),
+                            reader.GetDecimal(2),
+                            reader.GetInt32(3)
+                        ));
+                    }
+                }
+
+                if (!cartItems.Any())
+                    return Ok(new { success = false, message = "Cart is empty" });
+
+                // ===============================
+                // 3️⃣ CALCULATE SUBTOTAL
+                // ===============================
+                decimal subtotal = 0;
+
+                foreach (var item in cartItems)
+                    subtotal += item.price * item.qty;
+
+                // ===============================
+                // 4️⃣ APPLY COUPON (OPTIONAL)
+                // ===============================
+                string couponCode = form["couponCode"];
+                int? couponId = null;
+                decimal couponDiscount = 0;
+
+                if (!string.IsNullOrWhiteSpace(couponCode))
+                {
+                    using var couponCmd = new NpgsqlCommand(@"
+                SELECT id, discount_type, discount_value, min_order_value, max_discount
+                FROM coupons
+                WHERE code=@Code
+                  AND is_active=true
+                  AND start_date<=NOW()
+                  AND end_date>=NOW()", con, tran);
+
+                    couponCmd.Parameters.AddWithValue("@Code", couponCode);
+
+                    using var reader = await couponCmd.ExecuteReaderAsync();
+                    if (!reader.Read())
+                        return Ok(new { success = false, message = "Invalid or expired coupon" });
+
+                    couponId = reader.GetInt32(0);
+                    string type = reader.GetString(1);
+                    decimal value = reader.GetDecimal(2);
+                    decimal minOrder = reader.GetDecimal(3);
+                    decimal maxDiscount = reader.GetDecimal(4);
+
+                    if (subtotal < minOrder)
+                        return Ok(new
+                        {
+                            success = false,
+                            message = $"Minimum order value should be ₹{minOrder}"
+                        });
+
+                    if (type == "percentage")
+                    {
+                        couponDiscount = subtotal * (value / 100);
+                        if (couponDiscount > maxDiscount)
+                            couponDiscount = maxDiscount;
+                    }
+                    else // fixed
+                    {
+                        couponDiscount = value;
+                    }
+                }
+
+                // ===============================
+                // 5️⃣ FINAL TOTAL
+                // ===============================
+                decimal totalAmount = subtotal - couponDiscount;
+                if (totalAmount < 0) totalAmount = 0;
+
+                // ===============================
+                // 6️⃣ CREATE ORDER
+                // ===============================
+                int orderId;
+
+                using (var orderCmd = new NpgsqlCommand(@"
+            INSERT INTO orders
+            (user_id, coupon_id, subtotal, discount_amount, total_amount)
+            VALUES
+            (@UserId, @CouponId, @Subtotal, @Discount, @Total)
+            RETURNING id", con, tran))
+                {
+                    orderCmd.Parameters.AddWithValue("@UserId", userId);
+                    orderCmd.Parameters.AddWithValue("@CouponId",
+                        (object?)couponId ?? DBNull.Value);
+                    orderCmd.Parameters.AddWithValue("@Subtotal", subtotal);
+                    orderCmd.Parameters.AddWithValue("@Discount", couponDiscount);
+                    orderCmd.Parameters.AddWithValue("@Total", totalAmount);
+
+                    orderId = Convert.ToInt32(await orderCmd.ExecuteScalarAsync());
+                }
+
+                // ===============================
+                // 7️⃣ INSERT ORDER ITEMS
+                // ===============================
+                foreach (var item in cartItems)
+                {
+                    using var itemCmd = new NpgsqlCommand(@"
+                INSERT INTO order_items
+                (order_id, course_id, price, discount, quantity)
+                VALUES
+                (@OrderId, @CourseId, @Price, @Discount, @Qty)", con, tran);
+
+                    itemCmd.Parameters.AddWithValue("@OrderId", orderId);
+                    itemCmd.Parameters.AddWithValue("@CourseId", item.courseId);
+                    itemCmd.Parameters.AddWithValue("@Price", item.price);
+                    itemCmd.Parameters.AddWithValue("@Discount", item.discount);
+                    itemCmd.Parameters.AddWithValue("@Qty", item.qty);
+
+                    await itemCmd.ExecuteNonQueryAsync();
+                }
+
+                // ===============================
+                // 8️⃣ CLEAR CART
+                // ===============================
+                using (var clearCmd = new NpgsqlCommand(
+                    "DELETE FROM cart_items WHERE user_id=@UserId", con, tran))
+                {
+                    clearCmd.Parameters.AddWithValue("@UserId", userId);
+                    await clearCmd.ExecuteNonQueryAsync();
+                }
+
+                await tran.CommitAsync();
+
+                // ===============================
+                // 9️⃣ RESPONSE
+                // ===============================
+                return Ok(new
+                {
+                    success = true,
+                    order_id = orderId,
+                    subtotal,
+                    coupon_discount = couponDiscount,
+                    total_amount = totalAmount
+                });
+            }
+            catch (Exception ex)
+            {
+                await tran.RollbackAsync();
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        public async Task<IActionResult> CreateRazorpay(IFormCollection form)
+        {
+            decimal amount = decimal.Parse(form["amount"]);
+            int orderId = int.Parse(form["order_id"]);
+
+            var client = new RazorpayClient(_rz.KeyId, _rz.KeySecret);
+
+            var options = new Dictionary<string, object>
+    {
+        { "amount", amount * 100 }, // paise
+        { "currency", _rz.Currency },
+        { "receipt", $"order_{orderId}" },
+        { "payment_capture", 1 }
+    };
+
+            Razorpay.Api.Order razorpayOrder = client.Order.Create(options);
+
+            // 🔥 SAVE RAZORPAY ORDER ID IN DB
+            using var con = new NpgsqlConnection(DbConnection);
+            await con.OpenAsync();
+
+            using var cmd = new NpgsqlCommand(@"
+        UPDATE orders
+        SET razorpay_order_id = @rpOrderId
+        WHERE id = @orderId
+    ", con);
+
+            cmd.Parameters.AddWithValue("@rpOrderId", razorpayOrder["id"].ToString());
+            cmd.Parameters.AddWithValue("@orderId", orderId);
+
+            await cmd.ExecuteNonQueryAsync();
+
+            return Ok(new
+            {
+                success = true,
+                razorpay_order_id = razorpayOrder["id"].ToString(),
+                key = _rz.KeyId
+            });
+        }
+
+        public async Task<IActionResult> Verify(IFormCollection form)
+        {
+        string razorpayOrderId = form["razorpay_order_id"];
+        string razorpayPaymentId = form["razorpay_payment_id"];
+        string razorpaySignature = form["razorpay_signature"];
+        int orderId = int.Parse(form["order_id"]);
+
+        // ===============================
+        // 1️⃣ VERIFY SIGNATURE
+        // ===============================
+        string payload = razorpayOrderId + "|" + razorpayPaymentId;
+
+        using var hmac = new HMACSHA256(
+        Encoding.UTF8.GetBytes(_rz.KeySecret)
+        );
+
+        string generatedSignature = BitConverter
+        .ToString(hmac.ComputeHash(Encoding.UTF8.GetBytes(payload)))
+        .Replace("-", "")
+        .ToLower();
+
+        if (generatedSignature != razorpaySignature)
+        return BadRequest(new
+        {
+            success = false,
+            message = "Payment verification failed"
+        });
+
+        // ===============================
+        // 2️⃣ SAVE PAYMENT DETAILS
+        // ===============================
+        using var con = new NpgsqlConnection(DbConnection);
+        await con.OpenAsync();
+
+        using var cmd = new NpgsqlCommand(@"
+        UPDATE orders
+        SET
+            razorpay_payment_id = @paymentId,
+            razorpay_signature = @signature
+        WHERE id = @orderId
+        ", con);
+
+        cmd.Parameters.AddWithValue("@paymentId", razorpayPaymentId);
+        cmd.Parameters.AddWithValue("@signature", razorpaySignature);
+        cmd.Parameters.AddWithValue("@orderId", orderId);
+
+        await cmd.ExecuteNonQueryAsync();
+
+        // ===============================
+        // 3️⃣ MARK PAYMENT PAID + ENROLL USER
+        // ===============================
+        return await MarkPaymentPaid(orderId);
+        }
+
         public async Task<IActionResult> CreateOrder(string userEmail, IFormCollection form)
         {
             try
@@ -91,7 +377,7 @@ namespace CareerCracker.DataBaseLayer
 
                 using var cmd = new NpgsqlCommand(insertQuery, con);
 
-                cmd.Parameters.AddWithValue("@user_id", userId.ToString());
+                cmd.Parameters.AddWithValue("@user_id", userId.Value);
                 cmd.Parameters.Add("@coupon_id", NpgsqlTypes.NpgsqlDbType.Integer)
                               .Value = (object?)couponId ?? DBNull.Value;
                 cmd.Parameters.AddWithValue("@subtotal", subtotal);
@@ -155,6 +441,92 @@ namespace CareerCracker.DataBaseLayer
             catch (Exception ex)
             {
                 return new BadRequestObjectResult(new { success = false, message = ex.Message });
+            }
+        }
+
+        public async Task<IActionResult> MarkPaymentPaid(int orderId)
+        {
+            using var con = new NpgsqlConnection(DbConnection);
+            await con.OpenAsync();
+            using var tran = await con.BeginTransactionAsync();
+
+            try
+            {
+                // ===============================
+                // 1️⃣ MARK ORDER AS PAID
+                // ===============================
+                using (var cmd = new NpgsqlCommand(@"
+            UPDATE orders
+            SET payment_status='PAID',
+                order_status='CONFIRMED'
+            WHERE id=@id
+        ", con, tran))
+                {
+                    cmd.Parameters.AddWithValue("@id", orderId);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+
+                // ===============================
+                // 2️⃣ GET USER ID FROM ORDER
+                // ===============================
+                Guid userId;
+
+                using (var cmd = new NpgsqlCommand(
+                    "SELECT user_id FROM orders WHERE id=@id", con, tran))
+                {
+                    cmd.Parameters.AddWithValue("@id", orderId);
+                    userId = Guid.Parse((await cmd.ExecuteScalarAsync()).ToString());
+                }
+
+                // ===============================
+                // 3️⃣ GET COURSES FROM ORDER
+                // ===============================
+                var courseIds = new List<int>();
+
+                using (var cmd = new NpgsqlCommand(@"
+            SELECT course_id
+            FROM order_items
+            WHERE order_id=@orderId
+        ", con, tran))
+                {
+                    cmd.Parameters.AddWithValue("@orderId", orderId);
+                    using var reader = await cmd.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                        courseIds.Add(reader.GetInt32(0));
+                }
+
+                // ===============================
+                // 4️⃣ ENROLL USER INTO COURSES
+                // ===============================
+                foreach (var courseId in courseIds)
+                {
+                    using var enrollCmd = new NpgsqlCommand(@"
+                INSERT INTO user_courses
+                (user_id, course_id, order_id, access_type)
+                VALUES
+                (@UserId, @CourseId, @OrderId, 'FULL')
+                ON CONFLICT (user_id, course_id) DO NOTHING
+            ", con, tran);
+
+                    enrollCmd.Parameters.AddWithValue("@UserId", userId);
+                    enrollCmd.Parameters.AddWithValue("@CourseId", courseId);
+                    enrollCmd.Parameters.AddWithValue("@OrderId", orderId);
+
+                    await enrollCmd.ExecuteNonQueryAsync();
+                }
+
+                await tran.CommitAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Payment successful & course access granted"
+                });
+            }
+            catch (Exception ex)
+            {
+                await tran.RollbackAsync();
+                return BadRequest(new { success = false, message = ex.Message });
             }
         }
 
@@ -246,82 +618,6 @@ namespace CareerCracker.DataBaseLayer
                 }
 
                 return new OkObjectResult(new { success = true, data = list });
-            }
-            catch (Exception ex)
-            {
-                return new BadRequestObjectResult(new { success = false, message = ex.Message });
-            }
-        }
-
-        public async Task<IActionResult> UpdateOrderStatus(IFormCollection form)
-        {
-            try
-            {
-                using var con = new NpgsqlConnection(DbConnection);
-                await con.OpenAsync();
-
-                int orderId = int.Parse(form["order_id"]);
-                string status = form["order_status"];
-
-                string query = @"UPDATE orders SET order_status=@status, updated_at=NOW() WHERE id=@id";
-
-                using var cmd = new NpgsqlCommand(query, con);
-
-                cmd.Parameters.AddWithValue("@id", orderId);
-                cmd.Parameters.AddWithValue("@status", status);
-
-                await cmd.ExecuteNonQueryAsync();
-
-                return new OkObjectResult(new { success = true, message = "Order status updated!" });
-            }
-            catch (Exception ex)
-            {
-                return new BadRequestObjectResult(new { success = false, message = ex.Message });
-            }
-        }
-
-        public async Task<IActionResult> UpdatePaymentStatus(IFormCollection form)
-        {
-            try
-            {
-                using var con = new NpgsqlConnection(DbConnection);
-                await con.OpenAsync();
-
-                int orderId = int.Parse(form["order_id"]);
-                string status = form["payment_status"];
-
-                string query = @"UPDATE orders SET payment_status=@status, updated_at=NOW() WHERE id=@id";
-
-                using var cmd = new NpgsqlCommand(query, con);
-
-                cmd.Parameters.AddWithValue("@id", orderId);
-                cmd.Parameters.AddWithValue("@status", status);
-
-                await cmd.ExecuteNonQueryAsync();
-
-                return new OkObjectResult(new { success = true, message = "Payment status updated!" });
-            }
-            catch (Exception ex)
-            {
-                return new BadRequestObjectResult(new { success = false, message = ex.Message });
-            }
-        }
-
-        public async Task<IActionResult> DeleteOrder(int id)
-        {
-            try
-            {
-                using var con = new NpgsqlConnection(DbConnection);
-                await con.OpenAsync();
-
-                string query = "DELETE FROM orders WHERE id=@id";
-
-                using var cmd = new NpgsqlCommand(query, con);
-                cmd.Parameters.AddWithValue("@id", id);
-
-                await cmd.ExecuteNonQueryAsync();
-
-                return new OkObjectResult(new { success = true, message = "Order deleted successfully!" });
             }
             catch (Exception ex)
             {

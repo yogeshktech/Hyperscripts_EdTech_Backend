@@ -1092,9 +1092,9 @@
   },
   {
     "ContainingType": "CareerCracker.Controllers.OrdersController",
-    "Method": "CreateOrder",
-    "RelativePath": "api/order/create-order",
-    "HttpMethod": "POST",
+    "Method": "CheckOut",
+    "RelativePath": "api/order/checkout",
+    "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
     "Parameters": [
@@ -1108,15 +1108,15 @@
   },
   {
     "ContainingType": "CareerCracker.Controllers.OrdersController",
-    "Method": "DeleteOrder",
-    "RelativePath": "api/order/delete",
-    "HttpMethod": "DELETE",
+    "Method": "CreateOrder",
+    "RelativePath": "api/order/create-order",
+    "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "id",
-        "Type": "System.Int32",
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
         "IsRequired": false
       }
     ],
@@ -1140,8 +1140,8 @@
   },
   {
     "ContainingType": "CareerCracker.Controllers.OrdersController",
-    "Method": "UpdatePaymentStatus",
-    "RelativePath": "api/order/update-payment",
+    "Method": "CreateRazorpay",
+    "RelativePath": "api/order/razorpay/create",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
@@ -1156,8 +1156,8 @@
   },
   {
     "ContainingType": "CareerCracker.Controllers.OrdersController",
-    "Method": "UpdateOrderStatus",
-    "RelativePath": "api/order/update-status",
+    "Method": "Verify",
+    "RelativePath": "api/order/razorpay/verify",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
@@ -1185,6 +1185,16 @@
     "Method": "ResetPasswordAdmin",
     "RelativePath": "api/resetpasswordadmin",
     "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.UserController",
+    "Method": "MyCourses",
+    "RelativePath": "api/user/my-course",
+    "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
     "Parameters": [],

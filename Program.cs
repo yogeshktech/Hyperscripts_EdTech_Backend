@@ -2,11 +2,12 @@ using CareerCracker.Areas.Identity.Data;
 using CareerCracker.BusinessLayer;
 using CareerCracker.Data;
 using CareerCracker.DataBaseLayer;
+using CareerCracker.Models;
 using CareerCracker.UserManagement;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +36,10 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 // ======================================================
 var jwt = builder.Configuration.GetSection("Jwt");
 var jwtKey = Encoding.UTF8.GetBytes(jwt["Key"]);
+
+builder.Services.Configure<RazorpaySettings>(
+    builder.Configuration.GetSection("Razorpay"));
+
 
 builder.Services.AddAuthentication(options =>
 {
