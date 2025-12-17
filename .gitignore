@@ -1,1 +1,7 @@
 .vs/
+/storage/*
+/public/uploads/*
+/wwwroot/uploads/*
+/wwwroot/categoryImages/*
+/wwwroot/facultyImages/*
+/wwwroot/subCategoryImages/*
