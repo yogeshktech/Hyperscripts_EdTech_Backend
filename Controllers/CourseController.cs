@@ -45,7 +45,7 @@ namespace CareerCracker.Controllers
                 });
             }
         }
-        [HttpPost("add-course/{id}")]
+        [HttpPost("update-course/{id}")]
         public async Task<IActionResult> UpdateCourse(int id, IFormCollection form)
         {
             try

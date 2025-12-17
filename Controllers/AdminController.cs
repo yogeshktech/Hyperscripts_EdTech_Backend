@@ -296,88 +296,94 @@ namespace CareerCracker.Controllers
         {
             try
             {
-                if (!string.IsNullOrEmpty(email))
+                // ================= GET BY EMAIL =================
+                if (!string.IsNullOrWhiteSpace(email))
                 {
                     var user = await _userManager.FindByEmailAsync(email);
                     if (user == null)
                         return NotFound(new { success = false, message = "User not found" });
 
                     var roles = await _userManager.GetRolesAsync(user);
+
+                    if (!roles.Contains("USER"))
+                        return NotFound(new { success = false, message = "User is not USER role" });
+
                     return Ok(new
                     {
                         success = true,
-                        user = new
-                        {
-                            user.Id,
-                            user.FirstName,
-                            user.LastName,
-                            user.Email,
-                            user.UserName,
-                            user.PhoneNumber,
-                            user.OrgId,
-                            user.AccessKey,
-                            user.IsActive,
-                            Roles = roles
-                        }
+                        user = MapUser(user, roles)
                     });
                 }
-                else if (!string.IsNullOrEmpty(id))
+
+                // ================= GET BY ID =================
+                if (!string.IsNullOrWhiteSpace(id))
                 {
                     var user = await _userManager.FindByIdAsync(id);
                     if (user == null)
                         return NotFound(new { success = false, message = "User not found" });
 
                     var roles = await _userManager.GetRolesAsync(user);
+
+                    if (!roles.Contains("USER"))
+                        return NotFound(new { success = false, message = "User is not USER role" });
+
                     return Ok(new
                     {
                         success = true,
-                        user = new
-                        {
-                            user.Id,
-                            user.FirstName,
-                            user.LastName,
-                            user.Email,
-                            user.UserName,
-                            user.PhoneNumber,
-                            user.OrgId,
-                            user.AccessKey,
-                            user.IsActive,
-                            Roles = roles
-                        }
+                        user = MapUser(user, roles)
                     });
                 }
-                else
-                {
-                    // Get all users
-                    var users = _userManager.Users.ToList();
-                    var userList = new List<object>();
-                    foreach (var u in users)
-                    {
-                        var userRoles = await _userManager.GetRolesAsync(u);
-                        userList.Add(new
-                        {
-                            u.Id,
-                            u.FirstName,
-                            u.LastName,
-                            u.Email,
-                            u.UserName,
-                            u.PhoneNumber,
-                            u.OrgId,
-                            u.AccessKey,
-                            u.IsActive,
-                            Roles = userRoles
-                        });
-                    }
 
-                    return Ok(new { success = true, users = userList });
-                }
+                // ================= GET ALL USERS WITH ROLE = USER =================
+                var usersInRole = await _userManager.GetUsersInRoleAsync("USER");
+
+                var userList = usersInRole.Select(u => new
+                {
+                    u.Id,
+                    u.FirstName,
+                    u.LastName,
+                    u.Email,
+                    u.UserName,
+                    u.PhoneNumber,
+                    u.OrgId,
+                    u.AccessKey,
+                    u.IsActive,
+                    Roles = new[] { "USER" }
+                }).ToList();
+
+                return Ok(new
+                {
+                    success = true,
+                    users = userList
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Exception while fetching user(s)");
-                return StatusCode(500, new { success = false, message = $"Error fetching user(s): {ex.Message}" });
+                _logger.LogError(ex, "Exception while fetching users");
+                return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
+
+        // ================= HELPER =================
+        private object MapUser(ApplicationUser user, IList<string> roles)
+        {
+            return new
+            {
+                user.Id,
+                user.FirstName,
+                user.LastName,
+                user.Email,
+                user.UserName,
+                user.PhoneNumber,
+                user.OrgId,
+                user.AccessKey,
+                user.IsActive,
+                Roles = roles
+            };
+        }
+
+
+
 
         [Route("user-get/{id}")]
         [HttpGet]
