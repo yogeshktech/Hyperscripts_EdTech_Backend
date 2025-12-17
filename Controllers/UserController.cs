@@ -44,5 +44,31 @@ namespace CareerCracker.Controllers
                 });
             }
         }
+
+        [Route("my-batch/{courseId}")]
+        [HttpGet]
+        public async Task<IActionResult> MyBatch(int courseId)
+        {
+            try
+            {
+                string userEmail =
+                    User.FindFirst(ClaimTypes.Email)?.Value ??
+                    User.FindFirst("email")?.Value ??
+                    User.FindFirst("UserEmail")?.Value;
+
+                if (string.IsNullOrEmpty(userEmail))
+                    return Unauthorized();
+
+                return await _businessLayer.MyBatch(courseId,userEmail);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
     }
 }

@@ -115,6 +115,24 @@ namespace CareerCracker.Controllers
                 });
             }
         }
+
+        [Route("delete-batch/{batchId}")]
+        [HttpDelete]
+        public async Task<IActionResult> DeleteBatchs(int batchId)
+        {
+            try
+            {
+                return await _businessLayer.DeleteBatchs(batchId);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
     }
 
 }

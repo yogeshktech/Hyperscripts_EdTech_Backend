@@ -250,6 +250,22 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.BatchController",
+    "Method": "DeleteBatchs",
+    "RelativePath": "api/admin/delete-batch/{batchId}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "batchId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "FacultiesController",
     "Method": "DeleteFaculty",
     "RelativePath": "api/admin/delete-faculty/{slug}",
@@ -1251,6 +1267,22 @@
     "IsController": true,
     "Order": 0,
     "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.UserController",
+    "Method": "MyBatch",
+    "RelativePath": "api/user/my-batch/{courseId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "courseId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
     "ReturnTypes": []
   },
   {

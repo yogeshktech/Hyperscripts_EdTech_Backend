@@ -10,6 +10,7 @@ namespace CareerCracker.DataBaseLayer
         Task<IActionResult> GetAllBatchs();
         Task<IActionResult> GetByIdBatchs(int courseId);
         Task<IActionResult> UpdateBatch(int batchId, IFormCollection form);
+        Task<IActionResult> DeleteBatchs(int batchId);
     }
 
     public partial interface IDataBaseLayer : IDataBaseLayer_Batch { }
@@ -321,5 +322,57 @@ namespace CareerCracker.DataBaseLayer
             }
         }
 
+        public async Task<IActionResult> DeleteBatchs(int batchId)
+        {
+            try
+            {
+                await using var con = new NpgsqlConnection(DbConnection);
+                await con.OpenAsync();
+
+                // 1️⃣ Check if batch exists
+                await using var checkCmd = new NpgsqlCommand(@"
+            SELECT COUNT(*) 
+            FROM batches 
+            WHERE id = @batchId
+        ", con);
+                checkCmd.Parameters.AddWithValue("@batchId", batchId);
+
+                var count = (long)await checkCmd.ExecuteScalarAsync();
+                if (count == 0)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = "Batch not found"
+                    });
+                }
+
+                // 2️⃣ Delete the batch
+                await using var deleteCmd = new NpgsqlCommand(@"
+            DELETE FROM batches
+            WHERE id = @batchId
+        ", con);
+                deleteCmd.Parameters.AddWithValue("@batchId", batchId);
+
+                var rowsAffected = await deleteCmd.ExecuteNonQueryAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Batch deleted successfully",
+                    deletedRows = rowsAffected
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
     }
+
 }

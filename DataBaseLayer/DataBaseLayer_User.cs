@@ -6,6 +6,7 @@ namespace CareerCracker.DataBaseLayer
     public interface IDataBaseLayer_User
     {
         Task<IActionResult> MyCourses(string userEmail);
+        Task<IActionResult> MyBatch(int courseId, string userEmail);
     }
 
     public partial interface IDataBaseLayer : IDataBaseLayer_User { }
@@ -112,6 +113,71 @@ namespace CareerCracker.DataBaseLayer
                 });
             }
         }
+
+        public async Task<IActionResult> MyBatch(int courseId, string userEmail)
+        {
+            try
+            {
+                using var con = new NpgsqlConnection(DbConnection);
+                await con.OpenAsync();
+                using var tran = await con.BeginTransactionAsync();
+
+                // Step 1: Get user_id from email
+                // ===============================
+                Guid userId;
+
+                using (var userCmd = new NpgsqlCommand(
+                    @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email""=@Email", con, tran))
+                {
+                    userCmd.Parameters.AddWithValue("@Email", userEmail);
+                    var result = await userCmd.ExecuteScalarAsync();
+
+                    if (result == null)
+                        return BadRequest(new { success = false, message = "User not found" });
+
+                    userId = Guid.Parse(result.ToString());
+                }
+
+                // Step 2: Get batches for this user and course
+                using var cmdBatches = new NpgsqlCommand(@"
+            SELECT b.id, b.batch_name, b.start_date, b.end_date, b.start_time, b.end_time, b.max_students, b.is_active
+            FROM batches b
+            INNER JOIN user_batches ub ON b.id = ub.batch_id
+            WHERE ub.user_id = @userId
+              AND ub.course_id = @courseId
+              AND ub.is_active = TRUE
+        ", con);
+
+                cmdBatches.Parameters.AddWithValue("@userId", userId);
+                cmdBatches.Parameters.AddWithValue("@courseId", courseId);
+
+                var reader = await cmdBatches.ExecuteReaderAsync();
+                var batchList = new List<object>();
+
+                while (await reader.ReadAsync())
+                {
+                    batchList.Add(new
+                    {
+                        id = reader.GetInt32(0),
+                        batch_name = reader.GetString(1),
+                        start_date = reader.GetDateTime(2),
+                        end_date = reader.IsDBNull(3) ? (DateTime?)null : reader.GetDateTime(3),
+                        start_time = reader.IsDBNull(4) ? (TimeSpan?)null : reader.GetTimeSpan(4),
+                        end_time = reader.IsDBNull(5) ? (TimeSpan?)null : reader.GetTimeSpan(5),
+                        max_students = reader.IsDBNull(6) ? (int?)null : reader.GetInt32(6),
+                        is_active = reader.GetBoolean(7)
+                    });
+                }
+
+
+                return Ok(new { success = true, data = batchList });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
 
     }
 }
