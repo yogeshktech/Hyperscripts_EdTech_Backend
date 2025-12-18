@@ -64,6 +64,27 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.LiveClassesController",
+    "Method": "CreateLiveClass",
+    "RelativePath": "api/admin/add-live-class/{batchId}",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "batchId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.ReviewsController",
     "Method": "AddReview",
     "RelativePath": "api/admin/add-review",
@@ -266,6 +287,22 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.LiveClassesController",
+    "Method": "DeleteLiveClassAttendance",
+    "RelativePath": "api/admin/delete-class-attendance/{attendanceId}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "attendanceId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "FacultiesController",
     "Method": "DeleteFaculty",
     "RelativePath": "api/admin/delete-faculty/{slug}",
@@ -276,6 +313,22 @@
       {
         "Name": "slug",
         "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.LiveClassesController",
+    "Method": "HardDeleteLiveClass",
+    "RelativePath": "api/admin/delete-live-class/{liveClassId}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "liveClassId",
+        "Type": "System.Int32",
         "IsRequired": true
       }
     ],
@@ -422,6 +475,32 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.LiveClassesController",
+    "Method": "GetAllLiveClasses",
+    "RelativePath": "api/admin/get-all-live-class",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.LiveClassesController",
+    "Method": "GetLiveClassesByBatch",
+    "RelativePath": "api/admin/get-all-live-class/{batchId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "batchId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.ReviewsController",
     "Method": "GetReviews",
     "RelativePath": "api/admin/get-all-review/{courseId}",
@@ -490,6 +569,22 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.LiveClassesController",
+    "Method": "GetAttendanceByUser",
+    "RelativePath": "api/admin/get-by-user-class-attendance/{userId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "userId",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.CategoryController",
     "Method": "GetAllCategories",
     "RelativePath": "api/admin/get-categories",
@@ -509,6 +604,22 @@
     "Parameters": [
       {
         "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.LiveClassesController",
+    "Method": "GetAttendanceByLiveClass",
+    "RelativePath": "api/admin/get-class-attendance/{liveClassId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "liveClassId",
         "Type": "System.Int32",
         "IsRequired": true
       }
@@ -864,6 +975,27 @@
     "Parameters": [
       {
         "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.LiveClassesController",
+    "Method": "UpdateLiveClass",
+    "RelativePath": "api/admin/update-live-class/{liveClassId}",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "liveClassId",
         "Type": "System.Int32",
         "IsRequired": true
       },
@@ -1271,6 +1403,22 @@
   },
   {
     "ContainingType": "CareerCracker.Controllers.UserController",
+    "Method": "CreateLiveClassAttendance",
+    "RelativePath": "api/user/live-class-attendance/{liveClassId}",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "liveClassId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.UserController",
     "Method": "MyBatch",
     "RelativePath": "api/user/my-batch/{courseId}",
     "HttpMethod": "GET",
@@ -1293,6 +1441,22 @@
     "IsController": true,
     "Order": 0,
     "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.UserController",
+    "Method": "UpdateLiveClassAttendance",
+    "RelativePath": "api/user/update-class-attendance/{attendanceId}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "attendanceId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
     "ReturnTypes": []
   }
 ]
