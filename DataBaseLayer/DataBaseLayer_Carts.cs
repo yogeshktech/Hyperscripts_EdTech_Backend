@@ -8,6 +8,7 @@ namespace CareerCracker.DataBaseLayer
         Task<IActionResult> AddToCart(int courseId, string userEmail, string clientIp);
         Task<IActionResult> GetToCart(string userEmail, string ip);
         Task<IActionResult> DeleteCart(int cartId);
+        Task<IActionResult> ClearCart(string userEmail, string clientIp);
     }
 
     public partial interface IDataBaseLayer : IDataBaseLayer_Carts { }
@@ -269,5 +270,86 @@ namespace CareerCracker.DataBaseLayer
                 return StatusCode(500, new { message = ex.Message });
             }
         }
+
+        public async Task<IActionResult> ClearCart(string userEmail, string clientIp)
+        {
+            try
+            {
+                using var con = new NpgsqlConnection(DbConnection);
+                await con.OpenAsync();
+                using var tran = await con.BeginTransactionAsync();
+
+                Guid? userId = null;
+
+                // -------------------------------------------------------
+                // 1️⃣ Logged-in user → get userId
+                // -------------------------------------------------------
+                if (!string.IsNullOrWhiteSpace(userEmail))
+                {
+                    using var userCmd = new NpgsqlCommand(
+                        @"SELECT ""Id"" 
+                  FROM ""AspNetUsers"" 
+                  WHERE ""Email"" = @Email 
+                  LIMIT 1", con, tran);
+
+                    userCmd.Parameters.AddWithValue("@Email", userEmail);
+
+                    var result = await userCmd.ExecuteScalarAsync();
+
+                    if (result != null)
+                        userId = Guid.Parse(result.ToString());
+                }
+
+                // -------------------------------------------------------
+                // 2️⃣ Clear cart
+                // -------------------------------------------------------
+                int rowsAffected;
+
+                if (userId.HasValue)
+                {
+                    // Logged-in user cart
+                    using var clearCmd = new NpgsqlCommand(
+                        @"DELETE FROM cart_items WHERE user_id = @UserId", con, tran);
+
+                    clearCmd.Parameters.AddWithValue("@UserId", userId.Value);
+                    rowsAffected = await clearCmd.ExecuteNonQueryAsync();
+                }
+                else if (!string.IsNullOrWhiteSpace(clientIp))
+                {
+                    // Guest cart
+                    using var clearCmd = new NpgsqlCommand(
+                        @"DELETE FROM cart_items WHERE client_ip = @ClientIp", con, tran);
+
+                    clearCmd.Parameters.AddWithValue("@ClientIp", clientIp);
+                    rowsAffected = await clearCmd.ExecuteNonQueryAsync();
+                }
+                else
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "User email or client IP is required"
+                    });
+                }
+
+                await tran.CommitAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Cart cleared successfully",
+                    removedItems = rowsAffected
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
     }
 }

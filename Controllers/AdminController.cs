@@ -250,52 +250,62 @@ namespace CareerCracker.Controllers
         }
 
 
-        [Route("user-status")]
+        [Route("user-status/{userId}")]
         [HttpPost]
         [Authorize(Roles = "ADMIN,SUPERADMIN")]
-        public async Task<IActionResult> SetUserStatus(IFormCollection form)
+        public async Task<IActionResult> ToggleUserStatus(Guid userId)
         {
             try
             {
-                string email = form["email"];
-                string status = form["isActive"]; // "true" or "false"
+                var user = await _userManager.FindByIdAsync(userId.ToString());
 
-                if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(status))
-                {
-                    _logger.LogWarning("Email and isActive status are required");
-                    return BadRequest(new { success = false, message = "Email and isActive are required" });
-                }
-
-                var user = await _userManager.FindByEmailAsync(email);
                 if (user == null)
                 {
-                    _logger.LogWarning("User not found with email: {Email}", email);
+                    _logger.LogWarning("User not found with ID: {UserId}", userId);
                     return NotFound(new { success = false, message = "User not found" });
                 }
 
-                // Update IsActive
-                bool isActive = status.ToLower() == "true";
-                user.IsActive = isActive;
+                // 🔁 TOGGLE STATUS
+                user.IsActive = !user.IsActive;
 
                 var result = await _userManager.UpdateAsync(user);
-                if (result.Succeeded)
+
+                if (!result.Succeeded)
                 {
-                    string action = isActive ? "activated" : "deactivated";
-                    _logger.LogInformation("User {Action} successfully: {Email}", action, email);
-                    return Ok(new { success = true, message = $"User {action} successfully" });
+                    _logger.LogError("Error toggling status for userId: {UserId}", userId);
+                    return StatusCode(500, new
+                    {
+                        success = false,
+                        message = "Failed to update user status",
+                        errors = result.Errors
+                    });
                 }
-                else
+
+                string action = user.IsActive ? "activated" : "deactivated";
+
+                _logger.LogInformation(
+                    "User {Action} successfully. UserId: {UserId}",
+                    action, userId
+                );
+
+                return Ok(new
                 {
-                    _logger.LogError("Error updating user status: {Email}", email);
-                    return StatusCode(500, new { success = false, message = "Error updating user status", errors = result.Errors });
-                }
+                    success = true,
+                    message = $"User {action} successfully",
+                    isActive = user.IsActive
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Exception while updating user status");
-                return StatusCode(500, new { success = false, message = $"Error during status update: {ex.Message}" });
+                _logger.LogError(ex, "Exception while toggling user status");
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Error while toggling user status"
+                });
             }
         }
+
 
 
         [Route("user-get")]
