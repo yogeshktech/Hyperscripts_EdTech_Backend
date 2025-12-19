@@ -113,5 +113,24 @@ namespace CareerCracker.Controllers
                 });
             }
         }
+
+        [Route("get-recording-class/{batchId}")]
+        [HttpGet]
+        public async Task<IActionResult> GetRecordingClass(int batchId)
+        {
+            try
+            {
+
+                return await _businessLayer.GetRecordingClass(batchId);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
     }
 }

@@ -67,6 +67,30 @@ namespace CareerCracker.Controllers
             }
         }
 
+        [Route("update-recording/{liveClassId}")]
+        [HttpPut]
+        public async Task<IActionResult> UpdateRecordingClass(int liveClassId, IFormCollection form)
+        {
+            try
+            {
+                //var name = form["topic_name"];
+
+                //if (string.IsNullOrEmpty(name))
+                //{
+                //    return BadRequest(new { success = false, message = "Topic name is required!" });
+                //}
+                return await _businessLayer.UpdateRecordingClass(liveClassId, form);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
         [Route("get-all-live-class")]
         [HttpGet]
         public async Task<IActionResult> GetAllLiveClasses()

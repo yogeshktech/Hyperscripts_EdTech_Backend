@@ -8,6 +8,8 @@ namespace CareerCracker.DataBaseLayer
     {
         Task<IActionResult> CreateLiveClass(int batchId, IFormCollection form);
         Task<IActionResult> UpdateLiveClass(int liveClassId, IFormCollection form);
+        Task<IActionResult> UpdateRecordingClass(int liveClassId, IFormCollection form);
+        Task<IActionResult> GetRecordingClass(int batchId);
         Task<IActionResult> GetAllLiveClasses();
         Task<IActionResult> GetLiveClassesByBatch(int batchId);
         Task<IActionResult> HardDeleteLiveClass(int liveClassId);
@@ -35,36 +37,32 @@ namespace CareerCracker.DataBaseLayer
                 var startTime = form["start_time"].FirstOrDefault();
                 var classEndTime = form["end_time"].FirstOrDefault();
                 var meetingLink = form["meeting_link"].FirstOrDefault();
-                var recordingLink = form["recording_link"].FirstOrDefault();
 
-                using var liveClassQuery = new NpgsqlCommand(@"
+                using var cmd = new NpgsqlCommand(@"
             INSERT INTO live_classes
-            (batch_id, topic, class_date, start_time, end_time, meeting_link, recording_link, created_at)
+            (batch_id, topic, class_date, start_time, end_time, meeting_link, created_at)
             VALUES
-            (@batchId, @topicName, @classDate, @startTime, @classEndTime, @meetingLink, @recordingLink, NOW())
+            (@batchId, @topicName, @classDate, @startTime, @classEndTime, @meetingLink, NOW())
             RETURNING id;
         ", con, tran);
 
-                liveClassQuery.Parameters.AddWithValue("@batchId", batchId);
-                liveClassQuery.Parameters.AddWithValue("@topicName",
+                cmd.Parameters.AddWithValue("@batchId", batchId);
+                cmd.Parameters.AddWithValue("@topicName",
                     string.IsNullOrWhiteSpace(topicName) ? (object)DBNull.Value : topicName);
 
-                liveClassQuery.Parameters.AddWithValue("@classDate",
+                cmd.Parameters.AddWithValue("@classDate",
                     string.IsNullOrWhiteSpace(classDate) ? (object)DBNull.Value : DateTime.Parse(classDate));
 
-                liveClassQuery.Parameters.AddWithValue("@startTime",
+                cmd.Parameters.AddWithValue("@startTime",
                     string.IsNullOrWhiteSpace(startTime) ? (object)DBNull.Value : TimeSpan.Parse(startTime));
 
-                liveClassQuery.Parameters.AddWithValue("@classEndTime",
+                cmd.Parameters.AddWithValue("@classEndTime",
                     string.IsNullOrWhiteSpace(classEndTime) ? (object)DBNull.Value : TimeSpan.Parse(classEndTime));
 
-                liveClassQuery.Parameters.AddWithValue("@meetingLink",
+                cmd.Parameters.AddWithValue("@meetingLink",
                     string.IsNullOrWhiteSpace(meetingLink) ? (object)DBNull.Value : meetingLink);
 
-                liveClassQuery.Parameters.AddWithValue("@recordingLink",
-                    string.IsNullOrWhiteSpace(recordingLink) ? (object)DBNull.Value : recordingLink);
-
-                int liveClassId = Convert.ToInt32(await liveClassQuery.ExecuteScalarAsync());
+                int liveClassId = Convert.ToInt32(await cmd.ExecuteScalarAsync());
 
                 await tran.CommitAsync();
 
@@ -95,7 +93,6 @@ namespace CareerCracker.DataBaseLayer
                 var startTime = form["start_time"].FirstOrDefault();
                 var classEndTime = form["end_time"].FirstOrDefault();
                 var meetingLink = form["meeting_link"].FirstOrDefault();
-                var recordingLink = form["recording_link"].FirstOrDefault();
 
                 using var cmd = new NpgsqlCommand(@"
             UPDATE live_classes
@@ -105,7 +102,6 @@ namespace CareerCracker.DataBaseLayer
                 start_time = @startTime,
                 end_time = @classEndTime,
                 meeting_link = @meetingLink,
-                recording_link = @recordingLink,
                 created_at = NOW()
             WHERE id = @liveClassId
             RETURNING id;
@@ -127,9 +123,6 @@ namespace CareerCracker.DataBaseLayer
 
                 cmd.Parameters.AddWithValue("@meetingLink",
                     string.IsNullOrWhiteSpace(meetingLink) ? (object)DBNull.Value : meetingLink);
-
-                cmd.Parameters.AddWithValue("@recordingLink",
-                    string.IsNullOrWhiteSpace(recordingLink) ? (object)DBNull.Value : recordingLink);
 
                 var updatedId = await cmd.ExecuteScalarAsync();
 
@@ -155,6 +148,161 @@ namespace CareerCracker.DataBaseLayer
             catch (Exception ex)
             {
                 await tran.RollbackAsync();
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
+        public async Task<IActionResult> UpdateRecordingClass(int liveClassId, IFormCollection form)
+        {
+            using var con = new NpgsqlConnection(DbConnection);
+            await con.OpenAsync();
+            using var tran = await con.BeginTransactionAsync();
+
+            try
+            {
+                var recordingStatus = form["recording_status"].FirstOrDefault()?.Trim();
+                var recordingLink = form["recording_link"].FirstOrDefault()?.Trim();
+
+                // ---------------- VALIDATION ----------------
+
+                if (string.IsNullOrEmpty(recordingStatus))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "recording_status is required"
+                    });
+                }
+
+                var allowedStatuses = new[] { "pending", "processing", "ready", "failed" };
+
+                if (!allowedStatuses.Contains(recordingStatus))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Invalid recording_status"
+                    });
+                }
+
+                if (recordingStatus == "ready" && string.IsNullOrEmpty(recordingLink))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "recording_link is required when status is 'ready'"
+                    });
+                }
+
+                if (recordingStatus != "ready")
+                {
+                    recordingLink = null; // enforce clean data
+                }
+
+                // ---------------- UPDATE ----------------
+
+                using var cmd = new NpgsqlCommand(@"
+            UPDATE live_classes
+            SET
+                recording_status = @recordingStatus,
+                recording_link = @recordingLink
+            WHERE id = @liveClassId
+            RETURNING id;
+        ", con, tran);
+
+                cmd.Parameters.AddWithValue("@liveClassId", liveClassId);
+                cmd.Parameters.AddWithValue("@recordingStatus", recordingStatus);
+                cmd.Parameters.AddWithValue("@recordingLink",
+                    recordingLink == null ? (object)DBNull.Value : recordingLink);
+
+                var updatedId = await cmd.ExecuteScalarAsync();
+
+                if (updatedId == null)
+                {
+                    await tran.RollbackAsync();
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = "Live class not found"
+                    });
+                }
+
+                await tran.CommitAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Recording status updated successfully",
+                    liveClassId
+                });
+            }
+            catch (Exception ex)
+            {
+                await tran.RollbackAsync();
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
+        public async Task<IActionResult> GetRecordingClass(int batchId)
+        {
+            try
+            {
+                using var con = new NpgsqlConnection(DbConnection);
+                await con.OpenAsync();
+
+                using var cmd = new NpgsqlCommand(@"
+            SELECT
+                id,
+                topic,
+                class_date,
+                start_time,
+                end_time,
+                recording_status,
+                recording_link
+            FROM live_classes
+            WHERE batch_id = @batchId
+              AND recording_status = 'ready'
+              AND recording_link IS NOT NULL
+            ORDER BY class_date DESC, start_time DESC;
+        ", con);
+
+                cmd.Parameters.AddWithValue("@batchId", batchId);
+
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                var recordings = new List<object>();
+
+                while (await reader.ReadAsync())
+                {
+                    recordings.Add(new
+                    {
+                        liveClassId = reader.GetInt32(0),
+                        topic = reader.GetString(1),
+                        classDate = reader.GetDateTime(2).ToString("yyyy-MM-dd"),
+                        startTime = reader.GetTimeSpan(3).ToString(@"hh\:mm"),
+                        endTime = reader.GetTimeSpan(4).ToString(@"hh\:mm"),
+                        recordingStatus = reader.GetString(5),
+                        recordingLink = reader.GetString(6)
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    count = recordings.Count,
+                    data = recordings
+                });
+            }
+            catch (Exception ex)
+            {
                 return BadRequest(new
                 {
                     success = false,
@@ -459,7 +607,6 @@ namespace CareerCracker.DataBaseLayer
             }
         }
 
-
         public async Task<IActionResult> GetAttendanceByLiveClass(int liveClassId)
         {
             using var con = new NpgsqlConnection(DbConnection);
@@ -597,6 +744,8 @@ namespace CareerCracker.DataBaseLayer
                 return BadRequest(new { success = false, message = ex.Message });
             }
         }
+
+
 
     }
 }

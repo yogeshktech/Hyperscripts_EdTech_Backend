@@ -130,116 +130,125 @@ namespace CareerCracker.Controllers
 
         [Route("user-delete")]
         [HttpPost]
-        [Authorize(Roles = "ADMIN,SUPERADMIN,USER")] // Only admins can delete users
+        [Authorize(Roles = "ADMIN,SUPERADMIN")]
+        //public async Task<IActionResult> DeleteUser(IFormCollection form)
+        //{
+        //    try
+        //    {
+        //        var email = form["email"].ToString().Trim();
+
+        //        if (string.IsNullOrWhiteSpace(email))
+        //            return BadRequest(new { success = false, message = "Email is required" });
+
+        //        var normalizedEmail = _userManager.NormalizeEmail(email);
+
+        //        var user = await _userManager.Users
+        //            .FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail);
+
+        //        if (user == null)
+        //            return NotFound(new { success = false, message = "User not found" });
+
+        //        var result = await _userManager.DeleteAsync(user);
+
+        //        if (result.Succeeded)
+        //            return Ok(new { success = true, message = "User deleted successfully" });
+
+        //        return StatusCode(500, new
+        //        {
+        //            success = false,
+        //            message = "Error deleting user",
+        //            errors = result.Errors
+        //        });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Delete user error");
+        //        return StatusCode(500, new { success = false, message = ex.Message });
+        //    }
+        //}
+
         public async Task<IActionResult> DeleteUser(IFormCollection form)
         {
             try
             {
-                var email = form["email"];
-                if (string.IsNullOrEmpty(email))
-                {
-                    _logger.LogWarning("Email is required to delete user");
-                    return BadRequest(new { success = false, message = "Email is required" });
-                }
+                if (string.IsNullOrWhiteSpace(form["email"]))
+                    return BadRequest(new { success = false, message = "email is required" });
 
-                var user = await _userManager.FindByEmailAsync(email);
-                if (user == null)
-                {
-                    _logger.LogWarning("User not found with email: {Email}", email);
-                    return NotFound(new { success = false, message = "User not found" });
-                }
+                // Optional: Last name validation
+                // if (string.IsNullOrWhiteSpace(form["LastName"]))
+                //     return BadRequest(new { success = false, message = "Last name is required" });
 
-                var result = await _userManager.DeleteAsync(user);
-                if (result.Succeeded)
-                {
-                    _logger.LogInformation("User deleted successfully: {Email}", email);
-                    return Ok(new { success = true, message = "User deleted successfully" });
-                }
-                else
-                {
-                    _logger.LogError("Error deleting user: {Email}", email);
-                    return StatusCode(500, new { success = false, message = "Error deleting user", errors = result.Errors });
-                }
+                return await _businessLayer.DeleteUser(form);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Exception while deleting user");
-                return StatusCode(500, new { success = false, message = $"Error during deletion: {ex.Message}" });
+                return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
 
-        [Route("user-update")]
+
+        [Route("user-update/{userId}")]
         [HttpPost]
-        [Authorize(Roles = "ADMIN,SUPERADMIN,USER")]
-        public async Task<IActionResult> UpdateUser(IFormCollection form)
+        [Authorize(Roles = "SUPERADMIN,USER")]
+        public async Task<IActionResult> UpdateUser(Guid userId, IFormCollection form)
         {
             try
             {
-                // Extract fields from form
-                string email = form["email"];
-                string firstname = form["firstname"];
-                string lastname = form["lastname"];
-                string phone = form["phone"];
-                var roles = form["role"].ToList(); // List of roles
+                string firstName = form["firstname"].ToString().Trim();
+                string lastName = form["lastname"].ToString().Trim();
+                string phone = form["phone"].ToString().Trim();
+                var roles = form["role"].ToList(); // multiple roles
 
-                if (string.IsNullOrEmpty(email))
-                {
-                    _logger.LogWarning("Email is required to update user");
-                    return BadRequest(new { success = false, message = "Email is required" });
-                }
+                var user = await _userManager.FindByIdAsync(userId.ToString());
 
-                var user = await _userManager.FindByEmailAsync(email);
                 if (user == null)
-                {
-                    _logger.LogWarning("User not found with email: {Email}", email);
                     return NotFound(new { success = false, message = "User not found" });
-                }
 
-                // Update basic fields
-                if (!string.IsNullOrEmpty(firstname)) user.FirstName = firstname;
-                if (!string.IsNullOrEmpty(lastname)) user.LastName = lastname;
-                if (!string.IsNullOrEmpty(phone)) user.PhoneNumber = phone;
+                // 1️⃣ Update basic fields
+                user.FirstName = firstName;
+                user.LastName = lastName;
+                user.PhoneNumber = phone;
 
-                // Update roles
-                var currentRoles = await _userManager.GetRolesAsync(user);
-                var rolesToAdd = roles.Except(currentRoles).ToList();
-                var rolesToRemove = currentRoles.Except(roles).ToList();
-
-                if (rolesToAdd.Any())
-                {
-                    var addResult = await _roleManager.Roles.AnyAsync(r => rolesToAdd.Contains(r.Name))
-                        ? await _userManager.AddToRolesAsync(user, rolesToAdd)
-                        : null;
-                    if (addResult != null && !addResult.Succeeded)
-                        return StatusCode(500, new { success = false, message = "Error adding roles", errors = addResult.Errors });
-                }
-
-                if (rolesToRemove.Any())
-                {
-                    var removeResult = await _userManager.RemoveFromRolesAsync(user, rolesToRemove);
-                    if (!removeResult.Succeeded)
-                        return StatusCode(500, new { success = false, message = "Error removing roles", errors = removeResult.Errors });
-                }
-
-                // Save updates
                 var updateResult = await _userManager.UpdateAsync(user);
-                if (updateResult.Succeeded)
+
+                if (!updateResult.Succeeded)
+                    return StatusCode(500, new
+                    {
+                        success = false,
+                        message = "User update failed",
+                        errors = updateResult.Errors
+                    });
+
+                // 2️⃣ Update Roles (SAFE way)
+                var existingRoles = await _userManager.GetRolesAsync(user);
+
+                // Remove old roles
+                var rolesToRemove = existingRoles.Except(roles).ToList();
+                if (rolesToRemove.Any())
+                    await _userManager.RemoveFromRolesAsync(user, rolesToRemove);
+
+                // Add new roles
+                var rolesToAdd = roles.Except(existingRoles).ToList();
+                foreach (var role in rolesToAdd)
                 {
-                    _logger.LogInformation("User updated successfully: {Email}", email);
-                    return Ok(new { success = true, message = "User updated successfully" });
+                    if (!await _roleManager.RoleExistsAsync(role))
+                        await _roleManager.CreateAsync(new IdentityRole(role));
+
+                    await _userManager.AddToRoleAsync(user, role);
                 }
-                else
+
+                return Ok(new
                 {
-                    _logger.LogError("Error updating user: {Email}", email);
-                    return StatusCode(500, new { success = false, message = "Error updating user", errors = updateResult.Errors });
-                }
+                    success = true,
+                    message = "User updated successfully"
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Exception while updating user");
-                return StatusCode(500, new { success = false, message = $"Error during update: {ex.Message}" });
+                return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
+
 
         [Route("user-status")]
         [HttpPost]

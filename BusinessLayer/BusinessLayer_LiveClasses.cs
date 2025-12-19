@@ -6,6 +6,8 @@ namespace CareerCracker.BusinessLayer
     {
         Task<IActionResult> CreateLiveClass(int batchId, IFormCollection form);
         Task<IActionResult> UpdateLiveClass(int liveClassId, IFormCollection form);
+        Task<IActionResult> UpdateRecordingClass(int liveClassId, IFormCollection form);
+        Task<IActionResult> GetRecordingClass(int batchId);
         Task<IActionResult> GetAllLiveClasses();
         Task<IActionResult> GetLiveClassesByBatch(int batchId);
         Task<IActionResult> HardDeleteLiveClass(int liveClassId);
@@ -28,6 +30,14 @@ namespace CareerCracker.BusinessLayer
         public async Task<IActionResult> UpdateLiveClass(int liveClassId, IFormCollection form)
         {
             return await _dataBaseLayer.UpdateLiveClass(liveClassId,form);
+        }
+        public async Task<IActionResult> UpdateRecordingClass(int liveClassId, IFormCollection form)
+        {
+            return await _dataBaseLayer.UpdateRecordingClass(liveClassId, form);
+        }
+        public async Task<IActionResult> GetRecordingClass(int batchId)
+        {
+            return await _dataBaseLayer.GetRecordingClass(batchId);
         }
         public async Task<IActionResult> GetAllLiveClasses()
         {
