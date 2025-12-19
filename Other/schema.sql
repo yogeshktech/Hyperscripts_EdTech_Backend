@@ -195,3 +195,36 @@ CREATE TABLE carrers
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
 );
+
+
+CREATE TABLE blog_comments (
+    id SERIAL PRIMARY KEY,
+
+    blog_id INT NOT NULL,
+    user_id TEXT NOT NULL,  -- AspNetUsers.Id is TEXT (UUID/string)
+
+    parent_comment_id INT NULL,
+
+    comment TEXT NOT NULL,
+
+    is_deleted BOOLEAN DEFAULT FALSE,
+
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL,
+
+    CONSTRAINT fk_blog
+        FOREIGN KEY (blog_id)
+        REFERENCES blogs(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_user
+        FOREIGN KEY (user_id)
+        REFERENCES "AspNetUsers"("Id")
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_parent_comment
+        FOREIGN KEY (parent_comment_id)
+        REFERENCES blog_comments(id)
+        ON DELETE CASCADE
+);
+

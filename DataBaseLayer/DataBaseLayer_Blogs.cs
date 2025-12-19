@@ -1,6 +1,8 @@
-﻿using Humanizer;
+﻿using CareerCracker.Models;
+using Humanizer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.Elfie.Diagnostics;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
 namespace CareerCracker.DataBaseLayer
@@ -13,8 +15,26 @@ namespace CareerCracker.DataBaseLayer
         Task<IActionResult> GetBlogById(int id);
         Task<IActionResult> DeleteBlog(int id);
         Task<IActionResult> ToggleBlogStatus(int id);
+
+        Task<bool> BlogExists(int blogId);
+
+        // Identity
+        Task<string?> GetUserIdByEmail(string email);
+
+        // Blog Comment
+        Task<IActionResult> BlogAddComment(
+            int blogId,
+            string userId,
+            AddCommentDto dto);
+        Task<IActionResult> GetCommentsByBlogId(int blogId);
+
+
+
+
     }
-    public partial interface IDataBaseLayer : IDataBaseLayer_Blogs { }
+    public partial interface IDataBaseLayer : IDataBaseLayer_Blogs {
+    
+    }
 
     public partial class DataBaseLayer
     {
@@ -441,6 +461,203 @@ namespace CareerCracker.DataBaseLayer
             }
         }
 
+
+        public async Task<bool> BlogExists(int blogId)
+        {
+            using var conn = new NpgsqlConnection(DbConnection);
+            await conn.OpenAsync();
+
+            string query = "SELECT COUNT(*) FROM blogs WHERE id = @id";
+            using var cmd = new NpgsqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@id", blogId);
+
+            var result = (long)await cmd.ExecuteScalarAsync();
+            return result > 0;
+        }
+
+        // --------------------------
+        // Get userId by email
+        // --------------------------
+        public async Task<string?> GetUserIdByEmail(string email)
+        {
+            using var conn = new NpgsqlConnection(DbConnection);
+            await conn.OpenAsync();
+
+            string query = @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email"" = @Email";
+            using var cmd = new NpgsqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@Email", email);
+
+            var result = await cmd.ExecuteScalarAsync();
+            return result?.ToString();
+        }
+
+
+
+        // --------------------------
+        // Add comment / reply
+        // --------------------------
+        public async Task<IActionResult> BlogAddComment(
+            int blogId,
+            string userId,
+            AddCommentDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Comment))
+                return new BadRequestObjectResult("Comment is required");
+
+            using var conn = new NpgsqlConnection(DbConnection);
+            await conn.OpenAsync();
+
+            // Insert comment
+            string insertQuery = @"
+                INSERT INTO blog_comments
+                (blog_id, user_id, comment, parent_comment_id, created_at)
+                VALUES
+                (@blogId, @userId, @comment, @parentCommentId, CURRENT_TIMESTAMP)
+                RETURNING id";
+
+            using var cmd = new NpgsqlCommand(insertQuery, conn);
+            cmd.Parameters.AddWithValue("@blogId", blogId);
+            cmd.Parameters.AddWithValue("@userId", userId);
+            cmd.Parameters.AddWithValue("@comment", dto.Comment);
+            cmd.Parameters.AddWithValue("@parentCommentId", (object?)dto.ParentCommentId ?? DBNull.Value);
+
+            var newId = (int)await cmd.ExecuteScalarAsync();
+
+            return new OkObjectResult(new
+            {
+                message = "Comment added successfully",
+                commentId = newId
+            });
+        }
+
+
+        //public async Task<IActionResult> GetCommentsByBlogId(int blogId)
+        //{
+        //    using var conn = new NpgsqlConnection(DbConnection);
+        //    await conn.OpenAsync();
+
+        //    // Check if blog exists
+        //    string blogExistsQuery = @"SELECT COUNT(*) FROM blogs WHERE id = @blogId";
+        //    using (var cmdCheck = new NpgsqlCommand(blogExistsQuery, conn))
+        //    {
+        //        cmdCheck.Parameters.AddWithValue("@blogId", blogId);
+        //        long exists = (long)await cmdCheck.ExecuteScalarAsync();
+        //        if (exists == 0)
+        //            return new NotFoundObjectResult("Blog not found");
+        //    }
+
+        //    // Select comments
+        //    string query = @"
+        //SELECT bc.id, bc.comment, bc.parent_comment_id, bc.created_at,
+        //       u.""Id"" as userId, u.""UserName"" as userName, u.""Email"" as email
+        //FROM blog_comments bc
+        //JOIN ""AspNetUsers"" u ON u.""Id"" = bc.user_id
+        //WHERE bc.blog_id = @blogId
+        //ORDER BY bc.created_at ASC";
+
+        //    using var cmd = new NpgsqlCommand(query, conn);
+        //    cmd.Parameters.AddWithValue("@blogId", blogId);
+
+        //    var comments = new List<object>();
+
+        //    using var reader = await cmd.ExecuteReaderAsync();
+        //    while (await reader.ReadAsync())
+        //    {
+        //        comments.Add(new
+        //        {
+        //            commentId = reader.GetInt32(0),
+        //            comment = reader.GetString(1),
+        //            parentCommentId = reader.IsDBNull(2) ? (int?)null : reader.GetInt32(2),
+        //            createdAt = reader.GetDateTime(3),
+        //            user = new
+        //            {
+        //                id = reader.GetString(4),
+        //                userName = reader.GetString(5),
+        //                email = reader.GetString(6)
+        //            }
+        //        });
+        //    }
+
+        //    return new OkObjectResult(new
+        //    {
+        //        success = true,
+        //        data = comments
+        //    });
+        //}
+
+
+        public async Task<IActionResult> GetCommentsByBlogId(int blogId)
+        {
+            using var conn = new NpgsqlConnection(DbConnection);
+            await conn.OpenAsync();
+
+            string query = @"
+        SELECT 
+            bc.id,
+            bc.comment,
+            bc.parent_comment_id,
+            bc.created_at,
+            u.""Id"",
+            u.""UserName"",
+            u.""Email""
+        FROM blog_comments bc
+        JOIN ""AspNetUsers"" u ON u.""Id"" = bc.user_id
+        WHERE bc.blog_id = @blogId
+        ORDER BY bc.created_at ASC";
+
+            using var cmd = new NpgsqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@blogId", blogId);
+
+            var flatList = new List<(int Id, string Comment, int? ParentId, DateTime CreatedAt, UserDto User)>();
+
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                flatList.Add((
+                    reader.GetInt32(0),
+                    reader.GetString(1),
+                    reader.IsDBNull(2) ? null : reader.GetInt32(2),
+                    reader.GetDateTime(3),
+                    new UserDto
+                    {
+                        Id = reader.GetString(4),
+                        UserName = reader.GetString(5),
+                        Email = reader.GetString(6)
+                    }
+                ));
+            }
+
+            // 🔁 BUILD NESTED STRUCTURE
+            var lookup = flatList.ToDictionary(
+                x => x.Id,
+                x => new BlogCommentResponse
+                {
+                    CommentId = x.Id,
+                    Comment = x.Comment,
+                    CreatedAt = x.CreatedAt,
+                    User = x.User
+                });
+
+            var result = new List<BlogCommentResponse>();
+
+            foreach (var item in flatList)
+            {
+                if (item.ParentId == null)
+                {
+                    result.Add(lookup[item.Id]);
+                }
+                else if (lookup.ContainsKey(item.ParentId.Value))
+                {
+                    lookup[item.ParentId.Value].Replies.Add(lookup[item.Id]);
+                }
+            }
+
+            return new OkObjectResult(new
+            {
+                success = true,
+                data = result
+            });
+        }
 
     }
 }

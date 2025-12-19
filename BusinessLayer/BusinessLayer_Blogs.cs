@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using CareerCracker.Models;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CareerCracker.BusinessLayer
 {
@@ -10,6 +11,8 @@ namespace CareerCracker.BusinessLayer
         Task<IActionResult> GetBlogById(int id);
         Task<IActionResult> DeleteBlog(int id);
         Task<IActionResult> ToggleBlogStatus(int id);
+        Task<IActionResult> BlogAddCommentByEmail(int blogId,string userEmail,AddCommentDto dto);
+        Task<IActionResult> GetCommentsByBlogId(int blogId);
     }
 
     public partial interface IBusinessLayer : IBusinessLayer_Blogs
@@ -46,5 +49,35 @@ namespace CareerCracker.BusinessLayer
         {
             return await _dataBaseLayer.ToggleBlogStatus(id);
         }
+
+        public async Task<IActionResult> BlogAddCommentByEmail(
+            int blogId,
+            string userEmail,
+            AddCommentDto dto)
+        {
+            // 🔐 Validate input
+            if (dto == null || string.IsNullOrWhiteSpace(dto.Comment))
+                return new BadRequestObjectResult("Comment is required");
+
+            // 🔎 Check blog exists
+            bool blogExists = await _dataBaseLayer.BlogExists(blogId);
+            if (!blogExists)
+                return new NotFoundObjectResult("Blog not found");
+
+            // 🔎 Get UserId from Email (AspNetUsers)
+            string? userId = await _dataBaseLayer.GetUserIdByEmail(userEmail);
+            if (string.IsNullOrEmpty(userId))
+                return new UnauthorizedObjectResult("User not found");
+
+            // 💾 Save comment
+            return await _dataBaseLayer.BlogAddComment(blogId, userId, dto);
+        }
+
+        public async Task<IActionResult> GetCommentsByBlogId(int blogId)
+        {
+            return await _dataBaseLayer.GetCommentsByBlogId(blogId);
+        }
     }
-}
+
+    }
+

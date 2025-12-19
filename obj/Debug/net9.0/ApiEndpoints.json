@@ -1071,6 +1071,43 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.BlogCommentController",
+    "Method": "AddComment",
+    "RelativePath": "api/blog-comment/add/{blogId}",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "blogId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "CareerCracker.Models.AddCommentDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.BlogCommentController",
+    "Method": "GetComments",
+    "RelativePath": "api/blog-comment/blog/{blogId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "blogId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CartController",
     "Method": "AddToCart",
     "RelativePath": "api/cart/add-cart/{courseId}",
