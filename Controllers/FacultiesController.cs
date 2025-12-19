@@ -78,6 +78,9 @@ public class FacultiesController : ControllerBase
         return await _businessLayer.ToggleFacultyStatusBySlug(slug);
     }
 
+
+    // create by praveen
+
     [Route("asign-batch-fac/{batchId}")]
     [HttpPost]
     public async Task<IActionResult> AsignBatch(int batchId, IFormCollection form)
