@@ -18,6 +18,12 @@ namespace CareerCracker.DataBaseLayer
         Task<IActionResult> GetFacultyBySlug(string slug);
         Task<IActionResult> DeleteFacultyBySlug(string slug);
         Task<IActionResult> ToggleFacultyStatusBySlug(string slug);
+        Task<IActionResult> AsignBatch(int batchId, IFormCollection form);
+        Task<IActionResult> UpdateAssignedFaculty(int assignId, IFormCollection form);
+        Task<IActionResult> GetAssignedFaculty(IFormCollection form);
+        Task<IActionResult> GetAssignedFacultyEmail(string userEmail);
+        Task<IActionResult> DeleteAssignedFaculty(int facultyAssignId);
+        Task<IActionResult> SoftDeleteAssignedFaculty(int facultyAssignId);
     }
 
     public partial interface IDataBaseLayer : IDataBaseLayer_Faculty { }
@@ -167,12 +173,6 @@ namespace CareerCracker.DataBaseLayer
             }
         }
 
-
-
-
-
-
-
         public async Task<IActionResult> UpdateFaculty(string id, IFormCollection form)
         {
             try
@@ -275,11 +275,6 @@ namespace CareerCracker.DataBaseLayer
             }
         }
 
-
-
-
-
-
         public async Task<IActionResult> GetAllFaculties()
         {
             try
@@ -343,7 +338,6 @@ namespace CareerCracker.DataBaseLayer
             }
         }
 
-
         public async Task<IActionResult> GetFacultyBySlug(string slug)
         {
             try
@@ -406,7 +400,6 @@ namespace CareerCracker.DataBaseLayer
             }
         }
 
-
         public async Task<IActionResult> DeleteFacultyBySlug(string slug)
         {
             try
@@ -466,9 +459,6 @@ namespace CareerCracker.DataBaseLayer
             }
         }
 
-
-
-
         public async Task<IActionResult> ToggleFacultyStatusBySlug(string slug)
         {
             try
@@ -507,7 +497,519 @@ namespace CareerCracker.DataBaseLayer
             }
         }
 
+        public async Task<IActionResult> AsignBatch(int batchId, IFormCollection form)
+        {
+            try
+            {
+                using var con = new NpgsqlConnection(DbConnection);
+                await con.OpenAsync();
 
+                string userEmail = form["email"];
+
+                if (string.IsNullOrEmpty(userEmail))
+                    return BadRequest(new { success = false, message = "User Email required!" });
+
+                // -------------------------------------------------------
+                // 1️⃣ Check batch exists
+                // -------------------------------------------------------
+                string batchCheckQuery = @"SELECT 1 FROM batches WHERE id = @batchId LIMIT 1";
+                using (var batchCmd = new NpgsqlCommand(batchCheckQuery, con))
+                {
+                    batchCmd.Parameters.AddWithValue("@batchId", batchId);
+                    var batchExists = await batchCmd.ExecuteScalarAsync();
+
+                    if (batchExists == null)
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Batch does not exist. Please create batch before assigning faculty."
+                        });
+                    }
+                }
+
+                // -------------------------------------------------------
+                // 2️⃣ Get faculty ID using email
+                // -------------------------------------------------------
+                Guid facultyId;
+
+                string userQuery = @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email"" = @Email LIMIT 1";
+                using (var userCmd = new NpgsqlCommand(userQuery, con))
+                {
+                    userCmd.Parameters.AddWithValue("@Email", userEmail);
+                    var result = await userCmd.ExecuteScalarAsync();
+
+                    if (result == null)
+                        return BadRequest(new { success = false, message = "Faculty not found!" });
+
+                    facultyId = Guid.Parse(result.ToString()!);
+                }
+
+                // -------------------------------------------------------
+                // 3️⃣ Check faculty already assigned to batch
+                // -------------------------------------------------------
+                string existsQuery = @"
+            SELECT 1 
+            FROM batch_faculties 
+            WHERE batch_id = @batchId 
+              AND faculties_id = @facultyId
+            LIMIT 1";
+
+                using (var existsCmd = new NpgsqlCommand(existsQuery, con))
+                {
+                    existsCmd.Parameters.AddWithValue("@batchId", batchId);
+                    existsCmd.Parameters.AddWithValue("@facultyId", facultyId);
+
+                    if (await existsCmd.ExecuteScalarAsync() != null)
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Faculty is already assigned to this batch."
+                        });
+                    }
+                }
+
+                // -------------------------------------------------------
+                // 4️⃣ Assign faculty to batch
+                // -------------------------------------------------------
+                string insertQuery = @"
+            INSERT INTO batch_faculties (batch_id, faculties_id, assigned_at, is_active)
+            VALUES (@batchId, @facultyId, NOW(), TRUE)
+            RETURNING id;
+        ";
+
+                using var cmd = new NpgsqlCommand(insertQuery, con);
+                cmd.Parameters.AddWithValue("@batchId", batchId);
+                cmd.Parameters.AddWithValue("@facultyId", facultyId);
+
+                int assignId = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Faculty assigned to batch successfully",
+                    assign_id = assignId
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        public async Task<IActionResult> UpdateAssignedFaculty(int assignId, IFormCollection form)
+        {
+            try
+            {
+                using var con = new NpgsqlConnection(DbConnection);
+                await con.OpenAsync();
+
+                string userEmail = form["email"];
+
+                if (string.IsNullOrEmpty(userEmail))
+                    return BadRequest(new { success = false, message = "Faculty Email required!" });
+
+                // -------------------------------------------------------
+                // 1️⃣ Check assignment exists & get batch_id
+                // -------------------------------------------------------
+                int batchId;
+                string assignCheckQuery = @"
+            SELECT batch_id 
+            FROM batch_faculties 
+            WHERE id = @assignId
+            LIMIT 1";
+
+                using (var assignCmd = new NpgsqlCommand(assignCheckQuery, con))
+                {
+                    assignCmd.Parameters.AddWithValue("@assignId", assignId);
+                    var result = await assignCmd.ExecuteScalarAsync();
+
+                    if (result == null)
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Batch faculty assignment not found!"
+                        });
+                    }
+
+                    batchId = Convert.ToInt32(result);
+                }
+
+                // -------------------------------------------------------
+                // 2️⃣ Get new faculty ID using email
+                // -------------------------------------------------------
+                Guid facultyId;
+                string userQuery = @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email""=@Email LIMIT 1";
+
+                using (var userCmd = new NpgsqlCommand(userQuery, con))
+                {
+                    userCmd.Parameters.AddWithValue("@Email", userEmail);
+                    var result = await userCmd.ExecuteScalarAsync();
+
+                    if (result == null)
+                        return BadRequest(new { success = false, message = "Faculty not found!" });
+
+                    facultyId = Guid.Parse(result.ToString()!);
+                }
+
+                // -------------------------------------------------------
+                // 3️⃣ Prevent duplicate faculty in same batch
+                // -------------------------------------------------------
+                string duplicateQuery = @"
+            SELECT 1
+            FROM batch_faculties
+            WHERE batch_id = @batchId
+              AND faculties_id = @facultyId
+              AND id <> @assignId
+            LIMIT 1";
+
+                using (var dupCmd = new NpgsqlCommand(duplicateQuery, con))
+                {
+                    dupCmd.Parameters.AddWithValue("@batchId", batchId);
+                    dupCmd.Parameters.AddWithValue("@facultyId", facultyId);
+                    dupCmd.Parameters.AddWithValue("@assignId", assignId);
+
+                    if (await dupCmd.ExecuteScalarAsync() != null)
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "This faculty is already assigned to this batch."
+                        });
+                    }
+                }
+
+                // -------------------------------------------------------
+                // 4️⃣ Update faculty_id only
+                // -------------------------------------------------------
+                string updateQuery = @"
+            UPDATE batch_faculties
+            SET faculties_id = @facultyId,
+                assigned_at = NOW()
+            WHERE id = @assignId
+            RETURNING id;
+        ";
+
+                using var updateCmd = new NpgsqlCommand(updateQuery, con);
+                updateCmd.Parameters.AddWithValue("@facultyId", facultyId);
+                updateCmd.Parameters.AddWithValue("@assignId", assignId);
+
+                int updatedId = Convert.ToInt32(await updateCmd.ExecuteScalarAsync());
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Faculty updated successfully",
+                    assign_id = updatedId
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        public async Task<IActionResult> GetAssignedFaculty(IFormCollection form)
+        {
+            try
+            {
+                using var con = new NpgsqlConnection(DbConnection);
+                await con.OpenAsync();
+
+                string userEmail = form["email"];
+
+                if (string.IsNullOrEmpty(userEmail))
+                    return BadRequest(new { success = false, message = "Faculty Email required!" });
+
+                // -------------------------------------------------------
+                // 1️⃣ Get faculty ID from email
+                // -------------------------------------------------------
+                Guid facultyId;
+                string userQuery = @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email""=@Email LIMIT 1";
+
+                using (var userCmd = new NpgsqlCommand(userQuery, con))
+                {
+                    userCmd.Parameters.AddWithValue("@Email", userEmail);
+                    var result = await userCmd.ExecuteScalarAsync();
+
+                    if (result == null)
+                        return BadRequest(new { success = false, message = "Faculty not found!" });
+
+                    facultyId = Guid.Parse(result.ToString()!);
+                }
+
+                // -------------------------------------------------------
+                // 2️⃣ Get assigned batches
+                // -------------------------------------------------------
+                string query = @"
+            SELECT 
+                bf.id            AS assign_id,
+                b.id             AS batch_id,
+                b.batch_name,
+                b.start_date,
+                b.end_date,
+                b.start_time,
+                b.end_time,
+                bf.is_active,
+                bf.assigned_at
+            FROM batch_faculties bf
+            JOIN batches b ON b.id = bf.batch_id
+            WHERE bf.faculties_id = @facultyId
+            ORDER BY bf.assigned_at DESC;
+        ";
+
+                using var cmd = new NpgsqlCommand(query, con);
+                cmd.Parameters.AddWithValue("@facultyId", facultyId);
+
+                var list = new List<object>();
+
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    list.Add(new
+                    {
+                        assign_id = reader.GetInt32(0),
+                        batch_id = reader.GetInt32(1),
+                        batch_name = reader.GetString(2),
+                        start_date = reader.GetDateTime(3),
+
+                        end_date = reader.IsDBNull(4)
+                                    ? (DateTime?)null
+                                    : reader.GetDateTime(4),
+
+                        start_time = reader.IsDBNull(5)
+                                    ? (TimeSpan?)null
+                                    : reader.GetTimeSpan(5),
+
+                        end_time = reader.IsDBNull(6)
+                                    ? (TimeSpan?)null
+                                    : reader.GetTimeSpan(6),
+
+                        is_active = reader.GetBoolean(7),
+                        assigned_at = reader.GetDateTime(8)
+                    });
+                }
+    
+
+                return Ok(new
+                {
+                    success = true,
+                    total = list.Count,
+                    data = list
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        public async Task<IActionResult> GetAssignedFacultyEmail(string userEmail)
+        {
+            try
+            {
+                using var con = new NpgsqlConnection(DbConnection);
+                await con.OpenAsync();
+
+                if (string.IsNullOrEmpty(userEmail))
+                    return BadRequest(new { success = false, message = "Faculty Email required!" });
+
+                // -------------------------------------------------------
+                // 1️⃣ Get faculty ID from email
+                // -------------------------------------------------------
+                Guid facultyId;
+                string userQuery = @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email""=@Email LIMIT 1";
+
+                using (var userCmd = new NpgsqlCommand(userQuery, con))
+                {
+                    userCmd.Parameters.AddWithValue("@Email", userEmail);
+                    var result = await userCmd.ExecuteScalarAsync();
+
+                    if (result == null)
+                        return BadRequest(new { success = false, message = "Faculty not found!" });
+
+                    facultyId = Guid.Parse(result.ToString()!);
+                }
+
+                // -------------------------------------------------------
+                // 2️⃣ Get active assigned batches
+                // -------------------------------------------------------
+                string query = @"
+            SELECT 
+                bf.id            AS assign_id,
+                b.id             AS batch_id,
+                b.batch_name,
+                b.start_date,
+                b.end_date,
+                b.start_time,
+                b.end_time,
+                bf.is_active,
+                bf.assigned_at
+            FROM batch_faculties bf
+            JOIN batches b ON b.id = bf.batch_id
+            WHERE bf.faculties_id = @facultyId
+              AND bf.is_active = TRUE
+            ORDER BY bf.assigned_at DESC;
+        ";
+
+                using var cmd = new NpgsqlCommand(query, con);
+                cmd.Parameters.AddWithValue("@facultyId", facultyId);
+
+                var list = new List<object>();
+
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    list.Add(new
+                    {
+                        assign_id = reader.GetInt32(0),
+                        batch_id = reader.GetInt32(1),
+                        batch_name = reader.GetString(2),
+                        start_date = reader.GetDateTime(3),
+
+                        end_date = reader.IsDBNull(4)
+                                    ? (DateTime?)null
+                                    : reader.GetDateTime(4),
+
+                        start_time = reader.IsDBNull(5)
+                                    ? (TimeSpan?)null
+                                    : reader.GetTimeSpan(5),
+
+                        end_time = reader.IsDBNull(6)
+                                    ? (TimeSpan?)null
+                                    : reader.GetTimeSpan(6),
+
+                        is_active = reader.GetBoolean(7),
+                        assigned_at = reader.GetDateTime(8)
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    total = list.Count,
+                    data = list
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+
+        public async Task<IActionResult> DeleteAssignedFaculty(int facultyAssignId)
+        {
+            try
+            {
+                using var con = new NpgsqlConnection(DbConnection);
+                await con.OpenAsync();
+
+                // -------------------------------------------------------
+                // 1️⃣ Check assignment exists
+                // -------------------------------------------------------
+                string checkQuery = @"
+            SELECT 1 
+            FROM batch_faculties 
+            WHERE id = @id
+            LIMIT 1";
+
+                using (var checkCmd = new NpgsqlCommand(checkQuery, con))
+                {
+                    checkCmd.Parameters.AddWithValue("@id", facultyAssignId);
+                    if (await checkCmd.ExecuteScalarAsync() == null)
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Faculty assignment not found!"
+                        });
+                    }
+                }
+
+                // -------------------------------------------------------
+                // 2️⃣ Delete assignment
+                // -------------------------------------------------------
+                string deleteQuery = @"
+            DELETE FROM batch_faculties
+            WHERE id = @id
+            RETURNING id;";
+
+                using var deleteCmd = new NpgsqlCommand(deleteQuery, con);
+                deleteCmd.Parameters.AddWithValue("@id", facultyAssignId);
+
+                int deletedId = Convert.ToInt32(await deleteCmd.ExecuteScalarAsync());
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Faculty assignment deleted successfully",
+                    assign_id = deletedId
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        public async Task<IActionResult> SoftDeleteAssignedFaculty(int facultyAssignId)
+        {
+            try
+            {
+                using var con = new NpgsqlConnection(DbConnection);
+                await con.OpenAsync();
+
+                // -------------------------------------------------------
+                // 1️⃣ Check assignment exists
+                // -------------------------------------------------------
+                string checkQuery = @"
+            SELECT 1 
+            FROM batch_faculties 
+            WHERE id = @id
+            LIMIT 1";
+
+                using (var checkCmd = new NpgsqlCommand(checkQuery, con))
+                {
+                    checkCmd.Parameters.AddWithValue("@id", facultyAssignId);
+                    if (await checkCmd.ExecuteScalarAsync() == null)
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Faculty assignment not found!"
+                        });
+                    }
+                }
+
+                // -------------------------------------------------------
+                // 2️⃣ Soft delete (Deactivate)
+                // -------------------------------------------------------
+                string updateQuery = @"
+            UPDATE batch_faculties
+            SET is_active = FALSE
+            WHERE id = @id
+            RETURNING id;";
+
+                using var updateCmd = new NpgsqlCommand(updateQuery, con);
+                updateCmd.Parameters.AddWithValue("@id", facultyAssignId);
+
+                int updatedId = Convert.ToInt32(await updateCmd.ExecuteScalarAsync());
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Faculty assignment deactivated successfully",
+                    assign_id = updatedId
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
 
     }
 

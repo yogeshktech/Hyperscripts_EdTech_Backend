@@ -143,6 +143,27 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "FacultiesController",
+    "Method": "AsignBatch",
+    "RelativePath": "api/admin/asign-batch-fac/{batchId}",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "batchId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.CategoryController",
     "Method": "Toggle",
     "RelativePath": "api/admin/category-status/{id}",
@@ -264,6 +285,22 @@
     "Parameters": [
       {
         "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "FacultiesController",
+    "Method": "DeleteAssignedFaculty",
+    "RelativePath": "api/admin/delete-assign-batch/{facultyAssignId}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "facultyAssignId",
         "Type": "System.Int32",
         "IsRequired": true
       }
@@ -537,6 +574,32 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "FacultiesController",
+    "Method": "GetAssignedFaculty",
+    "RelativePath": "api/admin/get-batch-facId",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "FacultiesController",
+    "Method": "GetAssignedFacultyEmail",
+    "RelativePath": "api/admin/get-batch-facultyId",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.BatchController",
     "Method": "GetByIdBatchs",
     "RelativePath": "api/admin/get-batch/{courseId}",
@@ -749,6 +812,22 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "FacultiesController",
+    "Method": "SoftDeleteAssignedFaculty",
+    "RelativePath": "api/admin/soft-delete-assign-batch/{facultyAssignId}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "facultyAssignId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.BlogsController",
     "Method": "ToggleBlogStatus",
     "RelativePath": "api/admin/status-blog/{id}",
@@ -856,6 +935,27 @@
         "Name": "slug",
         "Type": "System.String",
         "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "FacultiesController",
+    "Method": "UpdateAssignedFaculty",
+    "RelativePath": "api/admin/update-batch-fac/{assignId}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "assignId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
+        "IsRequired": false
       }
     ],
     "ReturnTypes": []
@@ -1008,6 +1108,27 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.LiveClassesController",
+    "Method": "UpdateRecordingClass",
+    "RelativePath": "api/admin/update-recording/{liveClassId}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "liveClassId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.ReviewsController",
     "Method": "UpdateReview",
     "RelativePath": "api/admin/update-review/{id}",
@@ -1121,6 +1242,16 @@
         "IsRequired": true
       }
     ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CartController",
+    "Method": "ClearCart",
+    "RelativePath": "api/cart/clear-cart",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
     "ReturnTypes": []
   },
   {
@@ -1436,6 +1567,22 @@
     "IsController": true,
     "Order": 0,
     "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.UserController",
+    "Method": "GetRecordingClass",
+    "RelativePath": "api/user/get-recording-class/{batchId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "batchId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
     "ReturnTypes": []
   },
   {

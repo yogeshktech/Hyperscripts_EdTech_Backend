@@ -7,6 +7,7 @@ namespace CareerCracker.BusinessLayer
         Task<IActionResult> AddToCart(int courseId, string userEmail, string clientIp);
         Task<IActionResult> GetToCart( string userEmail, string clientIp);
         Task<IActionResult> DeleteCart(int cartId);
+        Task<IActionResult> ClearCart(string userEmail, string clientIp);
     }
 
     public partial interface IBusinessLayer : IBusinessLayer_Carts { }
@@ -26,6 +27,10 @@ namespace CareerCracker.BusinessLayer
         public async Task<IActionResult> DeleteCart(int cartId)
         {
             return await _dataBaseLayer.DeleteCart( cartId);
+        }
+        public async Task<IActionResult> ClearCart(string userEmail, string clientIp)
+        {
+            return await _dataBaseLayer.ClearCart( userEmail, clientIp);
         }
     }
 }

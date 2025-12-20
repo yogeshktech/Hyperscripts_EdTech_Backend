@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 [EnableCors("CorsPolicy")]
 [ApiController]
@@ -75,5 +76,117 @@ public class FacultiesController : ControllerBase
     public async Task<IActionResult> ToggleFacultyStatus(string slug)
     {
         return await _businessLayer.ToggleFacultyStatusBySlug(slug);
+    }
+
+    [Route("asign-batch-fac/{batchId}")]
+    [HttpPost]
+    public async Task<IActionResult> AsignBatch(int batchId, IFormCollection form)
+    {
+        try
+        {
+            var userEmail = form["email"];
+            if (string.IsNullOrWhiteSpace(userEmail))
+            {
+                return BadRequest(new { success = false, message = "Faculties Email is required!" });
+            }
+
+            return await _businessLayer.AsignBatch(batchId, form);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new {success = false, message = ex.Message });
+        }
+    }
+
+    [Route("update-batch-fac/{assignId}")]
+    [HttpPut]
+    public async Task<IActionResult> UpdateAssignedFaculty(int assignId, IFormCollection form)
+    {
+        try
+        {
+            var userEmail = form["email"];
+            if (string.IsNullOrWhiteSpace(userEmail))
+            {
+                return BadRequest(new { success = false, message = "Faculties Email is required!" });
+            }
+
+            return await _businessLayer.UpdateAssignedFaculty(assignId, form);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { success = false, message = ex.Message });
+        }
+    }
+
+    [Route("get-batch-facId")]
+    [HttpGet]
+    public async Task<IActionResult> GetAssignedFaculty(IFormCollection form)
+    {
+        try
+        {
+            var userEmail = form["email"];
+            if (string.IsNullOrWhiteSpace(userEmail))
+            {
+                return BadRequest(new { success = false, message = "Faculties Email is required!" });
+            }
+
+            return await _businessLayer.GetAssignedFaculty( form);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { success = false, message = ex.Message });
+        }
+    }
+
+    [Route("get-batch-facultyId")]
+    [HttpGet]
+    public async Task<IActionResult> GetAssignedFacultyEmail()
+    {
+        try
+        {
+            string userEmail =
+                    User.FindFirst(ClaimTypes.Email)?.Value ??
+                    User.FindFirst("email")?.Value ??
+                    User.FindFirst("UserEmail")?.Value;
+
+            if (string.IsNullOrEmpty(userEmail))
+                return Unauthorized();
+
+            return await _businessLayer.GetAssignedFacultyEmail(userEmail);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { success = false, message = ex.Message });
+        }
+    }
+
+    [Route("delete-assign-batch/{facultyAssignId}")]
+    [HttpDelete]
+    public async Task<IActionResult> DeleteAssignedFaculty (int facultyAssignId)
+    {
+        try
+        {
+
+            return await _businessLayer.DeleteAssignedFaculty(facultyAssignId);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { success = false, message = ex.Message });
+        }
+    }
+
+    [Route("soft-delete-assign-batch/{facultyAssignId}")]
+    [HttpDelete]
+    public async Task<IActionResult> SoftDeleteAssignedFaculty(int facultyAssignId)
+    {
+        try
+        {
+
+            return await _businessLayer.SoftDeleteAssignedFaculty(facultyAssignId);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { success = false, message = ex.Message });
+        }
     }
 }
