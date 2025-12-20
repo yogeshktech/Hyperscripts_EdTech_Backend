@@ -15,7 +15,9 @@
 //        }
 //    }
 //}
+using CareerCracker.DataBaseLayer;
 using CareerCracker.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace CareerCracker.DataBaseLayer
@@ -34,3 +36,5 @@ namespace CareerCracker.DataBaseLayer
         }
     }
 }
+
+

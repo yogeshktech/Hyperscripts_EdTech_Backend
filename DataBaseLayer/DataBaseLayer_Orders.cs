@@ -123,7 +123,7 @@ namespace CareerCracker.DataBaseLayer
                             message = $"Minimum order value should be ₹{minOrder}"
                         });
 
-                    if (type == "percentage")
+                    if (type == "PERCENT")
                     {
                         couponDiscount = subtotal * (value / 100);
                         if (couponDiscount > maxDiscount)
