@@ -723,13 +723,14 @@ namespace CareerCracker.DataBaseLayer
                 if (string.IsNullOrEmpty(userEmail))
                     return BadRequest(new { success = false, message = "Faculty Email required!" });
 
-                // -------------------------------------------------------
-                // 1️⃣ Get faculty ID from email
-                // -------------------------------------------------------
+                // ===============================
+                // 1️⃣ GET FACULTY ID
+                // ===============================
                 Guid facultyId;
-                string userQuery = @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email""=@Email LIMIT 1";
 
-                using (var userCmd = new NpgsqlCommand(userQuery, con))
+                using (var userCmd = new NpgsqlCommand(
+                    @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email"" = @Email LIMIT 1",
+                    con))
                 {
                     userCmd.Parameters.AddWithValue("@Email", userEmail);
                     var result = await userCmd.ExecuteScalarAsync();
@@ -740,20 +741,21 @@ namespace CareerCracker.DataBaseLayer
                     facultyId = Guid.Parse(result.ToString()!);
                 }
 
-                // -------------------------------------------------------
-                // 2️⃣ Get assigned batches
-                // -------------------------------------------------------
+                // ===============================
+                // 2️⃣ GET ASSIGNED BATCHES
+                // ===============================
                 string query = @"
             SELECT 
-                bf.id            AS assign_id,
-                b.id             AS batch_id,
-                b.batch_name,
-                b.start_date,
-                b.end_date,
-                b.start_time,
-                b.end_time,
-                bf.is_active,
-                bf.assigned_at
+                bf.id            AS assign_id,      -- 0
+                b.id             AS batch_id,       -- 1
+                b.batch_name,                       -- 2
+                b.start_date,                       -- 3
+                b.batch_image,                      -- 4
+                b.end_date,                         -- 5
+                b.start_time,                       -- 6
+                b.end_time,                         -- 7
+                bf.is_active,                       -- 8
+                bf.assigned_at                      -- 9
             FROM batch_faculties bf
             JOIN batches b ON b.id = bf.batch_id
             WHERE bf.faculties_id = @facultyId
@@ -775,23 +777,26 @@ namespace CareerCracker.DataBaseLayer
                         batch_name = reader.GetString(2),
                         start_date = reader.GetDateTime(3),
 
-                        end_date = reader.IsDBNull(4)
-                                    ? (DateTime?)null
-                                    : reader.GetDateTime(4),
+                        batch_image = reader.IsDBNull(4)
+                            ? null
+                            : reader.GetString(4),
 
-                        start_time = reader.IsDBNull(5)
-                                    ? (TimeSpan?)null
-                                    : reader.GetTimeSpan(5),
+                        end_date = reader.IsDBNull(5)
+                            ? (DateTime?)null
+                            : reader.GetDateTime(5),
 
-                        end_time = reader.IsDBNull(6)
-                                    ? (TimeSpan?)null
-                                    : reader.GetTimeSpan(6),
+                        start_time = reader.IsDBNull(6)
+                            ? (TimeSpan?)null
+                            : reader.GetTimeSpan(6),
 
-                        is_active = reader.GetBoolean(7),
-                        assigned_at = reader.GetDateTime(8)
+                        end_time = reader.IsDBNull(7)
+                            ? (TimeSpan?)null
+                            : reader.GetTimeSpan(7),
+
+                        is_active = reader.GetBoolean(8),
+                        assigned_at = reader.GetDateTime(9)
                     });
                 }
-    
 
                 return Ok(new
                 {
@@ -802,9 +807,14 @@ namespace CareerCracker.DataBaseLayer
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }
+
 
         public async Task<IActionResult> GetAssignedFacultyEmail(string userEmail)
         {
@@ -817,16 +827,17 @@ namespace CareerCracker.DataBaseLayer
                     return BadRequest(new { success = false, message = "Faculty Email required!" });
 
                 // -------------------------------------------------------
-                // 1️⃣ Get faculty ID from email
+                // 1️⃣ Get faculty ID
                 // -------------------------------------------------------
                 Guid facultyId;
+
                 string userQuery = @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email""=@Email LIMIT 1";
 
                 using (var userCmd = new NpgsqlCommand(userQuery, con))
                 {
                     userCmd.Parameters.AddWithValue("@Email", userEmail);
-                    var result = await userCmd.ExecuteScalarAsync();
 
+                    var result = await userCmd.ExecuteScalarAsync();
                     if (result == null)
                         return BadRequest(new { success = false, message = "Faculty not found!" });
 
@@ -838,13 +849,14 @@ namespace CareerCracker.DataBaseLayer
                 // -------------------------------------------------------
                 string query = @"
             SELECT 
-                bf.id            AS assign_id,
-                b.id             AS batch_id,
+                bf.id,
+                b.id,
                 b.batch_name,
                 b.start_date,
                 b.end_date,
                 b.start_time,
                 b.end_time,
+                b.batch_image,
                 bf.is_active,
                 bf.assigned_at
             FROM batch_faculties bf
@@ -881,8 +893,12 @@ namespace CareerCracker.DataBaseLayer
                                     ? (TimeSpan?)null
                                     : reader.GetTimeSpan(6),
 
-                        is_active = reader.GetBoolean(7),
-                        assigned_at = reader.GetDateTime(8)
+                        batch_image = reader.IsDBNull(7)
+                                    ? null
+                                    : reader.GetString(7),
+
+                        is_active = reader.GetBoolean(8),
+                        assigned_at = reader.GetDateTime(9)
                     });
                 }
 
@@ -898,7 +914,6 @@ namespace CareerCracker.DataBaseLayer
                 return BadRequest(new { success = false, message = ex.Message });
             }
         }
-
 
         public async Task<IActionResult> DeleteAssignedFaculty(int facultyAssignId)
         {

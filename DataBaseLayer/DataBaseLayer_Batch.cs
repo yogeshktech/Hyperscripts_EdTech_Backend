@@ -17,6 +17,109 @@ namespace CareerCracker.DataBaseLayer
 
     public partial class DataBaseLayer
     {
+        //public async Task<IActionResult> NewBatch(IFormCollection form)
+        //{
+        //    try
+        //    {
+        //        // ===============================
+        //        // 1️⃣ VALIDATION
+        //        // ===============================
+        //        if (string.IsNullOrWhiteSpace(form["course_id"]))
+        //        {
+        //            return new BadRequestObjectResult(new
+        //            {
+        //                success = false,
+        //                message = "course_id is required"
+        //            });
+        //        }
+
+        //        int courseId = int.Parse(form["course_id"]);
+        //        string batchName = form["batch_name"].ToString();
+        //        DateTime startDate = DateTime.Parse(form["start_date"]);
+
+        //        DateTime? endDate = string.IsNullOrEmpty(form["end_date"])
+        //            ? null
+        //            : DateTime.Parse(form["end_date"]);
+
+        //        TimeSpan? startTime = string.IsNullOrEmpty(form["start_time"])
+        //            ? null
+        //            : TimeSpan.Parse(form["start_time"]);
+
+        //        TimeSpan? endTime = string.IsNullOrEmpty(form["end_time"])
+        //            ? null
+        //            : TimeSpan.Parse(form["end_time"]);
+
+        //        int? maxStudents = string.IsNullOrEmpty(form["max_students"])
+        //            ? null
+        //            : int.Parse(form["max_students"]);
+
+        //        using var con = new NpgsqlConnection(DbConnection);
+        //        await con.OpenAsync();
+
+        //        // ===============================
+        //        // 2️⃣ CHECK EXISTING BATCH
+        //        // ===============================
+        //        using (var checkCmd = new NpgsqlCommand(@"
+        //    SELECT id
+        //    FROM batches
+        //    WHERE batch_name = @batch_name
+        //      AND is_active = TRUE
+        //    LIMIT 1
+        //", con))
+        //        {
+        //            checkCmd.Parameters.AddWithValue("@batch_name", batchName);
+        //            var existingBatchId = await checkCmd.ExecuteScalarAsync();
+
+        //            if (existingBatchId != null)
+        //            {
+        //                return new OkObjectResult(new
+        //                {
+        //                    success = true,
+        //                    message = "Batch already exists",
+        //                    batch_id = Convert.ToInt32(existingBatchId)
+        //                });
+        //            }
+        //        }
+
+        //        // ===============================
+        //        // 3️⃣ CREATE NEW BATCH
+        //        // ===============================
+        //        using var cmd = new NpgsqlCommand(@"
+        //    INSERT INTO batches
+        //    (course_id, batch_name, start_date, end_date, start_time, end_time, max_students)
+        //    VALUES
+        //    (@courseId, @batchName, @startDate, @endDate, @startTime, @endTime, @maxStudents)
+        //    RETURNING id
+        //", con);
+
+        //        cmd.Parameters.AddWithValue("@courseId", courseId);
+        //        cmd.Parameters.AddWithValue("@batchName",
+        //            string.IsNullOrWhiteSpace(batchName) ? (object)DBNull.Value : batchName);
+        //        cmd.Parameters.AddWithValue("@startDate", startDate);
+        //        cmd.Parameters.AddWithValue("@endDate", endDate ?? (object)DBNull.Value);
+        //        cmd.Parameters.AddWithValue("@startTime", startTime ?? (object)DBNull.Value);
+        //        cmd.Parameters.AddWithValue("@endTime", endTime ?? (object)DBNull.Value);
+        //        cmd.Parameters.AddWithValue("@maxStudents", maxStudents ?? (object)DBNull.Value);
+
+        //        int batchId = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+
+        //        return new OkObjectResult(new
+        //        {
+        //            success = true,
+        //            message = "Batch created successfully",
+        //            batch_id = batchId
+        //        });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return new BadRequestObjectResult(new
+        //        {
+        //            success = false,
+        //            message = ex.Message
+        //        });
+        //    }
+        //}
+
         public async Task<IActionResult> NewBatch(IFormCollection form)
         {
             try
@@ -25,16 +128,13 @@ namespace CareerCracker.DataBaseLayer
                 // 1️⃣ VALIDATION
                 // ===============================
                 if (string.IsNullOrWhiteSpace(form["course_id"]))
-                {
-                    return new BadRequestObjectResult(new
-                    {
-                        success = false,
-                        message = "course_id is required"
-                    });
-                }
+                    return BadRequest(new { success = false, message = "course_id is required" });
+
+                if (string.IsNullOrWhiteSpace(form["batch_name"]))
+                    return BadRequest(new { success = false, message = "batch_name is required" });
 
                 int courseId = int.Parse(form["course_id"]);
-                string batchName = form["batch_name"].ToString();
+                string batchName = form["batch_name"];
                 DateTime startDate = DateTime.Parse(form["start_date"]);
 
                 DateTime? endDate = string.IsNullOrEmpty(form["end_date"])
@@ -53,17 +153,37 @@ namespace CareerCracker.DataBaseLayer
                     ? null
                     : int.Parse(form["max_students"]);
 
+                // ===============================
+                // 2️⃣ IMAGE UPLOAD
+                // ===============================
+                string? imagePath = null;
+                var file = form.Files["batch_image"];
+
+                if (file != null && file.Length > 0)
+                {
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/batches");
+
+                    if (!Directory.Exists(uploadsFolder))
+                        Directory.CreateDirectory(uploadsFolder);
+
+                    var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+                    var fullPath = Path.Combine(uploadsFolder, fileName);
+
+                    using var stream = new FileStream(fullPath, FileMode.Create);
+                    await file.CopyToAsync(stream);
+
+                    imagePath = $"/uploads/batches/{fileName}";
+                }
+
                 using var con = new NpgsqlConnection(DbConnection);
                 await con.OpenAsync();
 
                 // ===============================
-                // 2️⃣ CHECK EXISTING BATCH
+                // 3️⃣ CHECK EXISTING BATCH
                 // ===============================
                 using (var checkCmd = new NpgsqlCommand(@"
-            SELECT id
-            FROM batches
-            WHERE batch_name = @batch_name
-              AND is_active = TRUE
+            SELECT id FROM batches
+            WHERE batch_name = @batch_name AND is_active = TRUE
             LIMIT 1
         ", con))
                 {
@@ -72,7 +192,7 @@ namespace CareerCracker.DataBaseLayer
 
                     if (existingBatchId != null)
                     {
-                        return new OkObjectResult(new
+                        return Ok(new
                         {
                             success = true,
                             message = "Batch already exists",
@@ -82,37 +202,38 @@ namespace CareerCracker.DataBaseLayer
                 }
 
                 // ===============================
-                // 3️⃣ CREATE NEW BATCH
+                // 4️⃣ CREATE NEW BATCH
                 // ===============================
                 using var cmd = new NpgsqlCommand(@"
             INSERT INTO batches
-            (course_id, batch_name, start_date, end_date, start_time, end_time, max_students)
+            (course_id, batch_name, start_date, end_date, start_time, end_time, max_students, batch_image)
             VALUES
-            (@courseId, @batchName, @startDate, @endDate, @startTime, @endTime, @maxStudents)
+            (@courseId, @batchName, @startDate, @endDate, @startTime, @endTime, @maxStudents, @batchImage)
             RETURNING id
         ", con);
 
                 cmd.Parameters.AddWithValue("@courseId", courseId);
-                cmd.Parameters.AddWithValue("@batchName",
-                    string.IsNullOrWhiteSpace(batchName) ? (object)DBNull.Value : batchName);
+                cmd.Parameters.AddWithValue("@batchName", batchName);
                 cmd.Parameters.AddWithValue("@startDate", startDate);
                 cmd.Parameters.AddWithValue("@endDate", endDate ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@startTime", startTime ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@endTime", endTime ?? (object)DBNull.Value);
                 cmd.Parameters.AddWithValue("@maxStudents", maxStudents ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@batchImage", imagePath ?? (object)DBNull.Value);
 
                 int batchId = Convert.ToInt32(await cmd.ExecuteScalarAsync());
 
-                return new OkObjectResult(new
+                return Ok(new
                 {
                     success = true,
                     message = "Batch created successfully",
-                    batch_id = batchId
+                    batch_id = batchId,
+                    image = imagePath
                 });
             }
             catch (Exception ex)
             {
-                return new BadRequestObjectResult(new
+                return BadRequest(new
                 {
                     success = false,
                     message = ex.Message
@@ -140,6 +261,7 @@ namespace CareerCracker.DataBaseLayer
                 b.start_time,
                 b.end_time,
                 b.max_students,
+                b.batch_image,
                 b.is_active,
                 b.created_at
             FROM batches b
@@ -161,12 +283,13 @@ namespace CareerCracker.DataBaseLayer
                         start_time = reader["start_time"],
                         end_time = reader["end_time"],
                         max_students = reader["max_students"],
+                        batch_image = reader["batch_image"],
                         is_active = reader["is_active"],
                         created_at = reader["created_at"]
                     });
                 }
 
-                return new OkObjectResult(new
+                return Ok(new
                 {
                     success = true,
                     total = batches.Count,
@@ -175,11 +298,7 @@ namespace CareerCracker.DataBaseLayer
             }
             catch (Exception ex)
             {
-                return new BadRequestObjectResult(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                return BadRequest(new { success = false, message = ex.Message });
             }
         }
 
@@ -191,11 +310,11 @@ namespace CareerCracker.DataBaseLayer
             var batches = new List<object>();
 
             using var cmd = new NpgsqlCommand(@"
-                SELECT id, batch_name, start_date, is_active
-                FROM batches
-                WHERE course_id = @courseId
-                ORDER BY created_at DESC
-            ", con);
+        SELECT id, batch_name, start_date, batch_image, is_active
+        FROM batches
+        WHERE course_id = @courseId
+        ORDER BY created_at DESC
+    ", con);
 
             cmd.Parameters.AddWithValue("@courseId", courseId);
 
@@ -207,15 +326,12 @@ namespace CareerCracker.DataBaseLayer
                     id = reader["id"],
                     batch_name = reader["batch_name"],
                     start_date = reader["start_date"],
+                    batch_image = reader["batch_image"],
                     is_active = reader["is_active"]
                 });
             }
 
-            return new OkObjectResult(new
-            {
-                success = true,
-                data = batches
-            });
+            return Ok(new { success = true, data = batches });
         }
 
         public async Task<IActionResult> UpdateBatch(int batchId, IFormCollection form)
@@ -228,6 +344,9 @@ namespace CareerCracker.DataBaseLayer
                 var updates = new List<string>();
                 var parameters = new List<NpgsqlParameter>();
 
+                // ===============================
+                // 1️⃣ TEXT / BASIC FIELDS
+                // ===============================
                 if (!string.IsNullOrWhiteSpace(form["batch_name"]))
                 {
                     updates.Add("batch_name = @batch_name");
@@ -237,54 +356,122 @@ namespace CareerCracker.DataBaseLayer
                 if (!string.IsNullOrWhiteSpace(form["start_date"]))
                 {
                     updates.Add("start_date = @start_date");
-                    parameters.Add(new NpgsqlParameter("@start_date",
-                        DateTime.Parse(form["start_date"])));
+                    parameters.Add(new NpgsqlParameter("@start_date", DateTime.Parse(form["start_date"])));
                 }
 
                 if (!string.IsNullOrWhiteSpace(form["end_date"]))
                 {
                     updates.Add("end_date = @end_date");
-                    parameters.Add(new NpgsqlParameter("@end_date",
-                        DateTime.Parse(form["end_date"])));
+                    parameters.Add(new NpgsqlParameter("@end_date", DateTime.Parse(form["end_date"])));
                 }
 
                 if (!string.IsNullOrWhiteSpace(form["start_time"]))
                 {
                     updates.Add("start_time = @start_time");
-                    parameters.Add(new NpgsqlParameter("@start_time",
-                        TimeSpan.Parse(form["start_time"])));
+                    parameters.Add(new NpgsqlParameter("@start_time", TimeSpan.Parse(form["start_time"])));
                 }
 
                 if (!string.IsNullOrWhiteSpace(form["end_time"]))
                 {
                     updates.Add("end_time = @end_time");
-                    parameters.Add(new NpgsqlParameter("@end_time",
-                        TimeSpan.Parse(form["end_time"])));
+                    parameters.Add(new NpgsqlParameter("@end_time", TimeSpan.Parse(form["end_time"])));
                 }
 
                 if (!string.IsNullOrWhiteSpace(form["max_students"]))
                 {
                     updates.Add("max_students = @max_students");
-                    parameters.Add(new NpgsqlParameter("@max_students",
-                        int.Parse(form["max_students"])));
+                    parameters.Add(new NpgsqlParameter("@max_students", int.Parse(form["max_students"])));
                 }
 
                 if (!string.IsNullOrWhiteSpace(form["is_active"]))
                 {
                     updates.Add("is_active = @is_active");
-                    parameters.Add(new NpgsqlParameter("@is_active",
-                        bool.Parse(form["is_active"])));
+                    parameters.Add(new NpgsqlParameter("@is_active", bool.Parse(form["is_active"])));
                 }
 
+                // ===============================
+                // 2️⃣ IMAGE UPDATE (SAFE)
+                // ===============================
+                var file = form.Files["batch_image"];
+                if (file != null && file.Length > 0)
+                {
+                    // Get existing image safely (NULL safe)
+                    string? oldImage = null;
+
+                    using (var imgCmd = new NpgsqlCommand(
+                        "SELECT batch_image FROM batches WHERE id = @id", con))
+                    {
+                        imgCmd.Parameters.AddWithValue("@id", batchId);
+
+                        var result = await imgCmd.ExecuteScalarAsync();
+                        oldImage = result == DBNull.Value ? null : result?.ToString();
+                    }
+
+                    // Delete old image if exists
+                    if (!string.IsNullOrEmpty(oldImage))
+                    {
+                        var oldPath = Path.Combine(
+                            Directory.GetCurrentDirectory(),
+                            "wwwroot",
+                            oldImage.TrimStart('/')
+                        );
+
+                        if (System.IO.File.Exists(oldPath))
+                            System.IO.File.Delete(oldPath);
+                    }
+
+                    // Save new image
+                    var folderPath = Path.Combine("wwwroot", "uploads", "batches");
+                    Directory.CreateDirectory(folderPath);
+
+                    var ext = Path.GetExtension(file.FileName).ToLower();
+                    var allowedExt = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+
+                    if (!allowedExt.Contains(ext))
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Only JPG, PNG, WEBP images allowed"
+                        });
+                    }
+
+                    if (file.Length > 2 * 1024 * 1024)
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Image size must be less than 2MB"
+                        });
+                    }
+
+                    var fileName = $"{Guid.NewGuid()}{ext}";
+                    var newImagePath = Path.Combine(folderPath, fileName);
+
+                    using var stream = new FileStream(newImagePath, FileMode.Create);
+                    await file.CopyToAsync(stream);
+
+                    updates.Add("batch_image = @batch_image");
+                    parameters.Add(
+                        new NpgsqlParameter("@batch_image", $"/uploads/batches/{fileName}")
+                    );
+                }
+
+                // ===============================
+                // 3️⃣ NO FIELDS CHECK
+                // ===============================
                 if (updates.Count == 0)
                 {
-                    return new BadRequestObjectResult(new
+                    return BadRequest(new
                     {
                         success = false,
                         message = "No fields provided to update"
                     });
                 }
 
+                // ===============================
+                // 4️⃣ UPDATE QUERY
+                // ===============================
                 string query = $@"
             UPDATE batches
             SET {string.Join(", ", updates)}
@@ -299,14 +486,14 @@ namespace CareerCracker.DataBaseLayer
 
                 if (rows == 0)
                 {
-                    return new NotFoundObjectResult(new
+                    return NotFound(new
                     {
                         success = false,
                         message = "Batch not found"
                     });
                 }
 
-                return new OkObjectResult(new
+                return Ok(new
                 {
                     success = true,
                     message = "Batch updated successfully"
@@ -314,7 +501,7 @@ namespace CareerCracker.DataBaseLayer
             }
             catch (Exception ex)
             {
-                return new BadRequestObjectResult(new
+                return BadRequest(new
                 {
                     success = false,
                     message = ex.Message
@@ -326,41 +513,64 @@ namespace CareerCracker.DataBaseLayer
         {
             try
             {
-                await using var con = new NpgsqlConnection(DbConnection);
+                using var con = new NpgsqlConnection(DbConnection);
                 await con.OpenAsync();
+                using var tran = await con.BeginTransactionAsync();
 
-                // 1️⃣ Check if batch exists
-                await using var checkCmd = new NpgsqlCommand(@"
-            SELECT COUNT(*) 
-            FROM batches 
-            WHERE id = @batchId
-        ", con);
-                checkCmd.Parameters.AddWithValue("@batchId", batchId);
-
-                var count = (long)await checkCmd.ExecuteScalarAsync();
-                if (count == 0)
+                // ===============================
+                // 1️⃣ GET BATCH IMAGE
+                // ===============================
+                string? imagePath = null;
+                using (var imgCmd = new NpgsqlCommand(
+                    "SELECT batch_image FROM batches WHERE id = @id",
+                    con, tran))
                 {
-                    return NotFound(new
-                    {
-                        success = false,
-                        message = "Batch not found"
-                    });
+                    imgCmd.Parameters.AddWithValue("@id", batchId);
+                    var result = await imgCmd.ExecuteScalarAsync();
+                    imagePath = result == DBNull.Value ? null : result?.ToString();
                 }
 
-                // 2️⃣ Delete the batch
-                await using var deleteCmd = new NpgsqlCommand(@"
-            DELETE FROM batches
-            WHERE id = @batchId
-        ", con);
-                deleteCmd.Parameters.AddWithValue("@batchId", batchId);
 
-                var rowsAffected = await deleteCmd.ExecuteNonQueryAsync();
+
+
+                // ===============================
+                // 5️⃣ DELETE BATCH
+                // ===============================
+                using (var cmd = new NpgsqlCommand(
+                    "DELETE FROM batches WHERE id = @id",
+                    con, tran))
+                {
+                    cmd.Parameters.AddWithValue("@id", batchId);
+
+                    int rows = await cmd.ExecuteNonQueryAsync();
+                    if (rows == 0)
+                    {
+                        await tran.RollbackAsync();
+                        return NotFound(new { success = false, message = "Batch not found" });
+                    }
+                }
+
+                await tran.CommitAsync();
+
+                // ===============================
+                // 6️⃣ DELETE IMAGE FILE
+                // ===============================
+                if (!string.IsNullOrEmpty(imagePath))
+                {
+                    var fullPath = Path.Combine(
+                        Directory.GetCurrentDirectory(),
+                        "wwwroot",
+                        imagePath.TrimStart('/')
+                    );
+
+                    if (System.IO.File.Exists(fullPath))
+                        System.IO.File.Delete(fullPath);
+                }
 
                 return Ok(new
                 {
                     success = true,
-                    message = "Batch deleted successfully",
-                    deletedRows = rowsAffected
+                    message = "Batch deleted successfully"
                 });
             }
             catch (Exception ex)
