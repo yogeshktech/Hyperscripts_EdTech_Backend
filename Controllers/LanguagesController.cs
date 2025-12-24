@@ -73,6 +73,7 @@ namespace CareerCracker.Controllers
             }
         }
 
+        [AllowAnonymous]
         [Route("get-all-lang")]
         [HttpGet]
         public async Task<IActionResult> GetAllLanguages()

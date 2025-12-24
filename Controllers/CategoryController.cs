@@ -56,7 +56,7 @@ namespace CareerCracker.Controllers
                 return StatusCode(500, new { success = false, message = $"Internal server error!{ex.Message}" });
             }
         }
-
+        [AllowAnonymous]
         [Route("get-categories")]
         [HttpGet]
         public async Task<IActionResult> GetAllCategories()

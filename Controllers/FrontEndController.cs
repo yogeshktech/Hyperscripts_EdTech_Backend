@@ -8,7 +8,7 @@ namespace CareerCracker.Controllers
     [EnableCors("CorsPolicy")]
     [ApiController]
     [Route("api/admin")]
-    [Authorize(Roles = "ADMIN,SUPERADMIN")]
+    [Authorize(Roles = "USER,ADMIN,SUPERADMIN")]
     public class FrontEndController : ControllerBase
     {
         private readonly IBusinessLayer _businessLayer;
