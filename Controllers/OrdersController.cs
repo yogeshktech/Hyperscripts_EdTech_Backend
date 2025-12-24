@@ -30,7 +30,7 @@ namespace CareerCracker.Controllers
 
         [Authorize]
         [Route("checkout")]
-        [HttpGet]
+        [HttpPost]
         public async Task<IActionResult> CheckOut(IFormCollection form)
         {
             try
