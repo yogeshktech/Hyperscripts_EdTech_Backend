@@ -366,6 +366,64 @@ namespace CareerCracker.DataBaseLayer
             }
         }
 
+        //public async Task<IActionResult> GetLiveClassesByBatch(int batchId)
+        //{
+        //    using var con = new NpgsqlConnection(DbConnection);
+        //    await con.OpenAsync();
+
+        //    try
+        //    {
+        //        using var cmd = new NpgsqlCommand(@"
+        //    SELECT
+        //        id,
+        //        batch_id,
+        //        topic,
+        //        class_date,
+        //        start_time,
+        //        end_time,
+        //        meeting_link,
+        //        recording_link,
+        //        created_at
+        //    FROM live_classes
+        //    WHERE batch_id = @batchId
+        //    ORDER BY class_date DESC, start_time ASC;
+        //", con);
+
+        //        cmd.Parameters.AddWithValue("@batchId", batchId);
+
+        //        using var reader = await cmd.ExecuteReaderAsync();
+
+        //        var result = new List<object>();
+
+        //        while (await reader.ReadAsync())
+        //        {
+        //            result.Add(new
+        //            {
+        //                id = reader.GetInt32(0),
+        //                batchId = reader.GetInt32(1),
+        //                topic = reader.IsDBNull(2) ? null : reader.GetString(2),
+        //                classDate = reader.IsDBNull(3) ? (DateTime?)null : reader.GetDateTime(3),
+        //                startTime = reader.IsDBNull(4) ? (TimeSpan?)null : reader.GetTimeSpan(4),
+        //                endTime = reader.IsDBNull(5) ? (TimeSpan?)null : reader.GetTimeSpan(5),
+        //                meetingLink = reader.IsDBNull(6) ? null : reader.GetString(6),
+        //                recordingLink = reader.IsDBNull(7) ? null : reader.GetString(7),
+        //                createdAt = reader.GetDateTime(8)
+        //            });
+        //        }
+
+        //        return Ok(new
+        //        {
+        //            success = true,
+        //            count = result.Count,
+        //            data = result
+        //        });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return BadRequest(new { success = false, message = ex.Message });
+        //    }
+        //}
+
         public async Task<IActionResult> GetLiveClassesByBatch(int batchId)
         {
             using var con = new NpgsqlConnection(DbConnection);
@@ -374,19 +432,21 @@ namespace CareerCracker.DataBaseLayer
             try
             {
                 using var cmd = new NpgsqlCommand(@"
-            SELECT
-                id,
-                batch_id,
-                topic,
-                class_date,
-                start_time,
-                end_time,
-                meeting_link,
-                recording_link,
-                created_at
-            FROM live_classes
-            WHERE batch_id = @batchId
-            ORDER BY class_date DESC, start_time ASC;
+        SELECT
+            lc.id,
+            lc.batch_id,
+            lc.topic,
+            lc.class_date,
+            lc.start_time,
+            lc.end_time,
+            lc.meeting_link,
+            lc.recording_link,
+            lc.created_at,
+            b.batch_image
+        FROM live_classes lc
+        JOIN batches b ON b.id = lc.batch_id
+        WHERE lc.batch_id = @batchId
+        ORDER BY lc.class_date DESC, lc.start_time ASC;
         ", con);
 
                 cmd.Parameters.AddWithValue("@batchId", batchId);
@@ -407,7 +467,8 @@ namespace CareerCracker.DataBaseLayer
                         endTime = reader.IsDBNull(5) ? (TimeSpan?)null : reader.GetTimeSpan(5),
                         meetingLink = reader.IsDBNull(6) ? null : reader.GetString(6),
                         recordingLink = reader.IsDBNull(7) ? null : reader.GetString(7),
-                        createdAt = reader.GetDateTime(8)
+                        createdAt = reader.GetDateTime(8),
+                        batchImage = reader.IsDBNull(9) ? null : reader.GetString(9)
                     });
                 }
 
@@ -420,9 +481,14 @@ namespace CareerCracker.DataBaseLayer
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }
+
 
         public async Task<IActionResult> HardDeleteLiveClass(int liveClassId)
         {
