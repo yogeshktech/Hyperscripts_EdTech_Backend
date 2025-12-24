@@ -88,7 +88,7 @@ namespace CareerCracker.Controllers
                 return StatusCode(500, new { success = false, message = $"Internal server error!{ex.Message}" });
             }
         }
-
+        [AllowAnonymous]
         [HttpGet("get-course/{id}")]
         public async Task<IActionResult> GetCourse(int id)
         {
