@@ -27,192 +27,6 @@ namespace CareerCracker.DataBaseLayer
 
     public partial class DataBaseLayer
     {
-        //public async Task<IActionResult> CheckOut(string userEmail, IFormCollection form)
-        //{
-        //    using var con = new NpgsqlConnection(DbConnection);
-        //    await con.OpenAsync();
-        //    using var tran = await con.BeginTransactionAsync();
-
-        //    try
-        //    {
-        //        // ===============================
-        //        // 1️⃣ GET USER ID
-        //        // ===============================
-        //        Guid userId;
-
-        //        using (var userCmd = new NpgsqlCommand(
-        //            @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email""=@Email", con, tran))
-        //        {
-        //            userCmd.Parameters.AddWithValue("@Email", userEmail);
-        //            var result = await userCmd.ExecuteScalarAsync();
-
-        //            if (result == null)
-        //                return BadRequest(new { success = false, message = "User not found" });
-
-        //            userId = Guid.Parse(result.ToString());
-        //        }
-
-        //        // ===============================
-        //        // 2️⃣ GET CART ITEMS
-        //        // ===============================
-        //        var cartItems = new List<(int courseId, decimal price, decimal discount, int qty)>();
-
-        //        using (var cartCmd = new NpgsqlCommand(@"
-        //    SELECT course_id, saling_price, discount, quantity
-        //    FROM cart_items
-        //    WHERE user_id=@UserId AND is_active=true", con, tran))
-        //        {
-        //            cartCmd.Parameters.AddWithValue("@UserId", userId);
-
-        //            using var reader = await cartCmd.ExecuteReaderAsync();
-        //            while (await reader.ReadAsync())
-        //            {
-        //                cartItems.Add((
-        //                    reader.GetInt32(0),
-        //                    reader.GetDecimal(1),
-        //                    reader.GetDecimal(2),
-        //                    reader.GetInt32(3)
-        //                ));
-        //            }
-        //        }
-
-        //        if (!cartItems.Any())
-        //            return Ok(new { success = false, message = "Cart is empty" });
-
-        //        // ===============================
-        //        // 3️⃣ CALCULATE SUBTOTAL
-        //        // ===============================
-        //        decimal subtotal = 0;
-
-        //        foreach (var item in cartItems)
-        //            subtotal += item.price * item.qty;
-
-        //        // ===============================
-        //        // 4️⃣ APPLY COUPON (OPTIONAL)
-        //        // ===============================
-        //        string couponCode = form["couponCode"];
-        //        int? couponId = null;
-        //        decimal couponDiscount = 0;
-
-        //        if (!string.IsNullOrWhiteSpace(couponCode))
-        //        {
-        //            using var couponCmd = new NpgsqlCommand(@"
-        //        SELECT id, discount_type, discount_value, min_order_value, max_discount
-        //        FROM coupons
-        //        WHERE code=@Code
-        //          AND is_active=true
-        //          AND start_date<=NOW()
-        //          AND end_date>=NOW()", con, tran);
-
-        //            couponCmd.Parameters.AddWithValue("@Code", couponCode);
-
-        //            using var reader = await couponCmd.ExecuteReaderAsync();
-        //            if (!reader.Read())
-        //                return Ok(new { success = false, message = "Invalid or expired coupon" });
-
-        //            couponId = reader.GetInt32(0);
-        //            string type = reader.GetString(1);
-        //            decimal value = reader.GetDecimal(2);
-        //            decimal minOrder = reader.GetDecimal(3);
-        //            decimal maxDiscount = reader.GetDecimal(4);
-
-        //            if (subtotal < minOrder)
-        //                return Ok(new
-        //                {
-        //                    success = false,
-        //                    message = $"Minimum order value should be ₹{minOrder}"
-        //                });
-
-        //            if (type == "PERCENT")
-        //            {
-        //                couponDiscount = subtotal * (value / 100);
-        //                if (couponDiscount > maxDiscount)
-        //                    couponDiscount = maxDiscount;
-        //            }
-        //            else // fixed
-        //            {
-        //                couponDiscount = value;
-        //            }
-        //        }
-
-        //        // ===============================
-        //        // 5️⃣ FINAL TOTAL
-        //        // ===============================
-        //        decimal totalAmount = subtotal - couponDiscount;
-        //        if (totalAmount < 0) totalAmount = 0;
-
-        //        // ===============================
-        //        // 6️⃣ CREATE ORDER
-        //        // ===============================
-        //        int orderId;
-
-        //        using (var orderCmd = new NpgsqlCommand(@"
-        //    INSERT INTO orders
-        //    (user_id, coupon_id, subtotal, discount_amount, total_amount)
-        //    VALUES
-        //    (@UserId, @CouponId, @Subtotal, @Discount, @Total)
-        //    RETURNING id", con, tran))
-        //        {
-        //            orderCmd.Parameters.AddWithValue("@UserId", userId);
-        //            orderCmd.Parameters.AddWithValue("@CouponId",
-        //                (object?)couponId ?? DBNull.Value);
-        //            orderCmd.Parameters.AddWithValue("@Subtotal", subtotal);
-        //            orderCmd.Parameters.AddWithValue("@Discount", couponDiscount);
-        //            orderCmd.Parameters.AddWithValue("@Total", totalAmount);
-
-        //            orderId = Convert.ToInt32(await orderCmd.ExecuteScalarAsync());
-        //        }
-
-        //        // ===============================
-        //        // 7️⃣ INSERT ORDER ITEMS
-        //        // ===============================
-        //        foreach (var item in cartItems)
-        //        {
-        //            using var itemCmd = new NpgsqlCommand(@"
-        //        INSERT INTO order_items
-        //        (order_id, course_id, price, discount, quantity)
-        //        VALUES
-        //        (@OrderId, @CourseId, @Price, @Discount, @Qty)", con, tran);
-
-        //            itemCmd.Parameters.AddWithValue("@OrderId", orderId);
-        //            itemCmd.Parameters.AddWithValue("@CourseId", item.courseId);
-        //            itemCmd.Parameters.AddWithValue("@Price", item.price);
-        //            itemCmd.Parameters.AddWithValue("@Discount", item.discount);
-        //            itemCmd.Parameters.AddWithValue("@Qty", item.qty);
-
-        //            await itemCmd.ExecuteNonQueryAsync();
-        //        }
-
-        //        // ===============================
-        //        // 8️⃣ CLEAR CART
-        //        // ===============================
-        //        using (var clearCmd = new NpgsqlCommand(
-        //            "DELETE FROM cart_items WHERE user_id=@UserId", con, tran))
-        //        {
-        //            clearCmd.Parameters.AddWithValue("@UserId", userId);
-        //            await clearCmd.ExecuteNonQueryAsync();
-        //        }
-
-        //        await tran.CommitAsync();
-
-        //        // ===============================
-        //        // 9️⃣ RESPONSE
-        //        // ===============================
-        //        return Ok(new
-        //        {
-        //            success = true,
-        //            order_id = orderId,
-        //            subtotal,
-        //            coupon_discount = couponDiscount,
-        //            total_amount = totalAmount
-        //        });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        await tran.RollbackAsync();
-        //        return BadRequest(new { success = false, message = ex.Message });
-        //    }
-        //}
 
         public async Task<IActionResult> CheckOut(string userEmail, IFormCollection form)
         {
@@ -387,14 +201,14 @@ namespace CareerCracker.DataBaseLayer
                 // ==================================================
                 // 8️⃣ CLEAR CART
                 // ==================================================
-                using (var clearCmd = new NpgsqlCommand(
-                    @"DELETE FROM cart_items WHERE user_id = @UserId", con, tran))
-                {
-                    clearCmd.Parameters.AddWithValue("@UserId", userId);
-                    await clearCmd.ExecuteNonQueryAsync();
-                }
+                //using (var clearCmd = new NpgsqlCommand(
+                //    @"DELETE FROM cart_items WHERE user_id = @UserId", con, tran))
+                //{
+                //    clearCmd.Parameters.AddWithValue("@UserId", userId);
+                //    await clearCmd.ExecuteNonQueryAsync();
+                //}
 
-                await tran.CommitAsync();
+                //await tran.CommitAsync();
 
                 // ==================================================
                 // 9️⃣ FINAL RESPONSE (WITH COURSE DETAILS ✅)
@@ -513,6 +327,148 @@ namespace CareerCracker.DataBaseLayer
         // 3️⃣ MARK PAYMENT PAID + ENROLL USER
         // ===============================
         return await MarkPaymentPaid(orderId);
+        }
+
+        
+        public async Task<IActionResult> MarkPaymentPaid(int orderId)
+        {
+            using var con = new NpgsqlConnection(DbConnection);
+            await con.OpenAsync();
+            using var tran = await con.BeginTransactionAsync();
+
+            try
+            {
+                // ===============================
+                // 1️⃣ MARK ORDER AS PAID
+                // ===============================
+                using (var cmd = new NpgsqlCommand(@"
+            UPDATE orders
+            SET payment_status = 'PAID',
+                order_status = 'CONFIRMED'
+            WHERE id = @id
+        ", con, tran))
+                {
+                    cmd.Parameters.AddWithValue("@id", orderId);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+
+                // ===============================
+                // 2️⃣ GET USER ID
+                // ===============================
+                Guid userId;
+                using (var cmd = new NpgsqlCommand(
+                    "SELECT user_id FROM orders WHERE id = @id",
+                    con, tran))
+                {
+                    cmd.Parameters.AddWithValue("@id", orderId);
+                    userId = Guid.Parse((await cmd.ExecuteScalarAsync()).ToString());
+                }
+                // ===============================
+                //  CLEAR CART
+                // ===============================
+                using (var cmd = new NpgsqlCommand(@"
+            DELETE FROM cart_items WHERE user_id=@uid
+        ", con, tran))
+                {
+                    cmd.Parameters.AddWithValue("@uid", userId);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+
+                // ===============================
+                // 3️⃣ GET COURSES FROM ORDER
+                // ===============================
+                var courseIds = new List<int>();
+                using (var cmd = new NpgsqlCommand(@"
+            SELECT course_id
+            FROM order_items
+            WHERE order_id = @orderId
+        ", con, tran))
+                {
+                    cmd.Parameters.AddWithValue("@orderId", orderId);
+                    using var reader = await cmd.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                        courseIds.Add(reader.GetInt32(0));
+                }
+
+                // ===============================
+                // 4️⃣ ASSIGN EXISTING BATCH ONLY
+                // ===============================
+                foreach (var courseId in courseIds)
+                {
+                    // 🔹 FIND ACTIVE BATCH
+                    int batchId;
+                    using (var cmd = new NpgsqlCommand(@"
+                SELECT id
+                FROM batches
+                WHERE course_id = @courseId
+                  AND is_active = TRUE
+                LIMIT 1
+            ", con, tran))
+                    {
+                        cmd.Parameters.AddWithValue("@courseId", courseId);
+                        var result = await cmd.ExecuteScalarAsync();
+
+                        if (result == null)
+                        {
+                            await tran.RollbackAsync();
+                            return new BadRequestObjectResult(new
+                            {
+                                success = false,
+                                message = $"No active batch found for course_id = {courseId}"
+                            });
+                        }
+
+                        batchId = Convert.ToInt32(result);
+                    }
+
+                    // 🔹 ASSIGN USER TO BATCH
+                    using (var cmd = new NpgsqlCommand(@"
+                INSERT INTO user_batches
+                (user_id, course_id, batch_id)
+                VALUES
+                (@userId, @courseId, @batchId)
+                ON CONFLICT (user_id, batch_id) DO NOTHING
+            ", con, tran))
+                    {
+                        cmd.Parameters.AddWithValue("@userId", userId);
+                        cmd.Parameters.AddWithValue("@courseId", courseId);
+                        cmd.Parameters.AddWithValue("@batchId", batchId);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+
+                    // 🔹 ENROLL USER INTO COURSE
+                    using (var cmd = new NpgsqlCommand(@"
+                INSERT INTO user_courses
+                (user_id, course_id, order_id, access_type)
+                VALUES
+                (@userId, @courseId, @orderId, 'FULL')
+                ON CONFLICT (user_id, course_id) DO NOTHING
+            ", con, tran))
+                    {
+                        cmd.Parameters.AddWithValue("@userId", userId);
+                        cmd.Parameters.AddWithValue("@courseId", courseId);
+                        cmd.Parameters.AddWithValue("@orderId", orderId);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
+
+                await tran.CommitAsync();
+
+                return new OkObjectResult(new
+                {
+                    success = true,
+                    message = "Payment successful, user assigned to existing batch"
+                });
+            }
+            catch (Exception ex)
+            {
+                await tran.RollbackAsync();
+                return new BadRequestObjectResult(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
 
         public async Task<IActionResult> CreateOrder(string userEmail, IFormCollection form)
@@ -736,138 +692,6 @@ namespace CareerCracker.DataBaseLayer
         //        return BadRequest(new { success = false, message = ex.Message });
         //    }
         //}
-
-        public async Task<IActionResult> MarkPaymentPaid(int orderId)
-        {
-            using var con = new NpgsqlConnection(DbConnection);
-            await con.OpenAsync();
-            using var tran = await con.BeginTransactionAsync();
-
-            try
-            {
-                // ===============================
-                // 1️⃣ MARK ORDER AS PAID
-                // ===============================
-                using (var cmd = new NpgsqlCommand(@"
-            UPDATE orders
-            SET payment_status = 'PAID',
-                order_status = 'CONFIRMED'
-            WHERE id = @id
-        ", con, tran))
-                {
-                    cmd.Parameters.AddWithValue("@id", orderId);
-                    await cmd.ExecuteNonQueryAsync();
-                }
-
-                // ===============================
-                // 2️⃣ GET USER ID
-                // ===============================
-                Guid userId;
-                using (var cmd = new NpgsqlCommand(
-                    "SELECT user_id FROM orders WHERE id = @id",
-                    con, tran))
-                {
-                    cmd.Parameters.AddWithValue("@id", orderId);
-                    userId = Guid.Parse((await cmd.ExecuteScalarAsync()).ToString());
-                }
-
-                // ===============================
-                // 3️⃣ GET COURSES FROM ORDER
-                // ===============================
-                var courseIds = new List<int>();
-                using (var cmd = new NpgsqlCommand(@"
-            SELECT course_id
-            FROM order_items
-            WHERE order_id = @orderId
-        ", con, tran))
-                {
-                    cmd.Parameters.AddWithValue("@orderId", orderId);
-                    using var reader = await cmd.ExecuteReaderAsync();
-                    while (await reader.ReadAsync())
-                        courseIds.Add(reader.GetInt32(0));
-                }
-
-                // ===============================
-                // 4️⃣ ASSIGN EXISTING BATCH ONLY
-                // ===============================
-                foreach (var courseId in courseIds)
-                {
-                    // 🔹 FIND ACTIVE BATCH
-                    int batchId;
-                    using (var cmd = new NpgsqlCommand(@"
-                SELECT id
-                FROM batches
-                WHERE course_id = @courseId
-                  AND is_active = TRUE
-                LIMIT 1
-            ", con, tran))
-                    {
-                        cmd.Parameters.AddWithValue("@courseId", courseId);
-                        var result = await cmd.ExecuteScalarAsync();
-
-                        if (result == null)
-                        {
-                            await tran.RollbackAsync();
-                            return new BadRequestObjectResult(new
-                            {
-                                success = false,
-                                message = $"No active batch found for course_id = {courseId}"
-                            });
-                        }
-
-                        batchId = Convert.ToInt32(result);
-                    }
-
-                    // 🔹 ASSIGN USER TO BATCH
-                    using (var cmd = new NpgsqlCommand(@"
-                INSERT INTO user_batches
-                (user_id, course_id, batch_id)
-                VALUES
-                (@userId, @courseId, @batchId)
-                ON CONFLICT (user_id, batch_id) DO NOTHING
-            ", con, tran))
-                    {
-                        cmd.Parameters.AddWithValue("@userId", userId);
-                        cmd.Parameters.AddWithValue("@courseId", courseId);
-                        cmd.Parameters.AddWithValue("@batchId", batchId);
-                        await cmd.ExecuteNonQueryAsync();
-                    }
-
-                    // 🔹 ENROLL USER INTO COURSE
-                    using (var cmd = new NpgsqlCommand(@"
-                INSERT INTO user_courses
-                (user_id, course_id, order_id, access_type)
-                VALUES
-                (@userId, @courseId, @orderId, 'FULL')
-                ON CONFLICT (user_id, course_id) DO NOTHING
-            ", con, tran))
-                    {
-                        cmd.Parameters.AddWithValue("@userId", userId);
-                        cmd.Parameters.AddWithValue("@courseId", courseId);
-                        cmd.Parameters.AddWithValue("@orderId", orderId);
-                        await cmd.ExecuteNonQueryAsync();
-                    }
-                }
-
-                await tran.CommitAsync();
-
-                return new OkObjectResult(new
-                {
-                    success = true,
-                    message = "Payment successful, user assigned to existing batch"
-                });
-            }
-            catch (Exception ex)
-            {
-                await tran.RollbackAsync();
-                return new BadRequestObjectResult(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-            }
-        }
-
 
 
         public async Task<IActionResult> GetOrder(int orderId)
