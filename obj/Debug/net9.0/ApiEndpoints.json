@@ -1472,15 +1472,15 @@
   {
     "ContainingType": "CareerCracker.Controllers.OrdersController",
     "Method": "BuyNow",
-    "RelativePath": "api/order/buy-now",
+    "RelativePath": "api/order/buy-now/{courseId}",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "form",
-        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
-        "IsRequired": false
+        "Name": "courseId",
+        "Type": "System.Int32",
+        "IsRequired": true
       }
     ],
     "ReturnTypes": []

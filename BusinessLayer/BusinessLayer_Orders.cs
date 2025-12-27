@@ -5,7 +5,7 @@ namespace CareerCracker.BusinessLayer
     public interface IBusinessLayer_Orders
     {
         Task<IActionResult> CheckOut(string userEmail, IFormCollection form);
-        Task<IActionResult> BuyNow(string userEmail, IFormCollection form);
+        Task<IActionResult> BuyNow(string userEmail, int courseId);
         Task<IActionResult> CreateRazorpay(IFormCollection form);
         Task<IActionResult> Verify(IFormCollection form);
         Task<IActionResult> MarkPaymentPaid(int orderId);
@@ -25,9 +25,9 @@ namespace CareerCracker.BusinessLayer
         {
             return await _dataBaseLayer.CheckOut(userEmail,form);
         }
-        public async Task<IActionResult> BuyNow(string userEmail, IFormCollection form)
+        public async Task<IActionResult> BuyNow(string userEmail, int courseId)
         {
-            return await _dataBaseLayer.BuyNow(userEmail, form);
+            return await _dataBaseLayer.BuyNow(userEmail, courseId);
         }
 
         public async Task<IActionResult> CreateRazorpay(IFormCollection form)

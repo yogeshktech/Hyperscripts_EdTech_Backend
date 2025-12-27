@@ -126,6 +126,7 @@ wwwroot\uploads\batches\09a58bb7-960b-4f40-9060-58bad78b1e91.png
 wwwroot\uploads\batches\d3d1fc1d-657d-4a6b-921f-9cc606cdf9d6.jpeg
 wwwroot\uploads\batches\51c5a6dd-5500-4d09-9e1e-4d0e2520fe37.jpeg
 wwwroot\uploads\batches\ff51f43e-0265-4ec9-8a09-61119fd939ff.jpeg
+wwwroot\uploads\batches\8a1c6704-f57b-46f5-9682-d10340231472.png
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\wwwroot\css\site.css
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\wwwroot\favicon.ico
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\wwwroot\js\site.js

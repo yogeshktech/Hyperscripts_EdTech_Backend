@@ -230,7 +230,6 @@ namespace CareerCracker.DataBaseLayer
             }
         }
 
-
         public async Task<IActionResult> DeleteCart(int cartId)
         {
             try

@@ -56,9 +56,9 @@ namespace CareerCracker.Controllers
         }
 
         [Authorize]
-        [Route("buy-now")]
+        [Route("buy-now/{courseId}")]
         [HttpPost]
-        public async Task<IActionResult> BuyNow(IFormCollection form)
+        public async Task<IActionResult> BuyNow(int courseId)
         {
             try
             {
@@ -70,7 +70,7 @@ namespace CareerCracker.Controllers
                 if (string.IsNullOrEmpty(userEmail))
                     return Unauthorized();
 
-                return await _businessLayer.BuyNow(userEmail, form);
+                return await _businessLayer.BuyNow(userEmail, courseId);
             }
             catch (Exception ex)
             {

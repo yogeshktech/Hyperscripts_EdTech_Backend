@@ -94,4 +94,25 @@ namespace CareerCracker.Models
         public int? ParentCommentId { get; set; } // for reply
     }
 
+    class CourseDto
+    {
+        public int CourseId { get; set; }
+        public string CourseName { get; set; }
+        public string CourseSlug { get; set; }
+        public string CourseImage { get; set; }
+        public decimal Price { get; set; }
+    }
+
+    public class BuyNowCourseDto
+    {
+        public int CourseId { get; set; }
+        public string CourseName { get; set; }
+        public string CourseSlug { get; set; }
+        public string CourseImage { get; set; }
+        public decimal Price { get; set; }
+        public int Quantity { get; set; } = 1;
+        public decimal Discount { get; set; } = 0;
+    }
+
+
 }
