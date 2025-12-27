@@ -55,6 +55,33 @@ namespace CareerCracker.Controllers
             }
         }
 
+        [Authorize]
+        [Route("buy-now")]
+        [HttpPost]
+        public async Task<IActionResult> BuyNow(IFormCollection form)
+        {
+            try
+            {
+                string userEmail =
+                    User.FindFirst(ClaimTypes.Email)?.Value ??
+                    User.FindFirst("email")?.Value ??
+                    User.FindFirst("UserEmail")?.Value;
+
+                if (string.IsNullOrEmpty(userEmail))
+                    return Unauthorized();
+
+                return await _businessLayer.BuyNow(userEmail, form);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
 
         [Route("create-order")]
         [HttpPost]

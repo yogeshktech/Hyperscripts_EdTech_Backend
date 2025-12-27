@@ -1471,9 +1471,25 @@
   },
   {
     "ContainingType": "CareerCracker.Controllers.OrdersController",
+    "Method": "BuyNow",
+    "RelativePath": "api/order/buy-now",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.OrdersController",
     "Method": "CheckOut",
     "RelativePath": "api/order/checkout",
-    "HttpMethod": "GET",
+    "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
     "Parameters": [

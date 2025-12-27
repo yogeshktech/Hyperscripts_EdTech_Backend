@@ -11,6 +11,7 @@ namespace CareerCracker.DataBaseLayer
     public interface IDataBaseLayer_Orders
     {
         Task<IActionResult> CheckOut(string userEmail, IFormCollection form);
+        Task<IActionResult> BuyNow(string userEmail, IFormCollection form);
         Task<IActionResult> CreateRazorpay(IFormCollection form);
         Task<IActionResult> Verify(IFormCollection form);
         Task<IActionResult> CreateOrder(string userEmail, IFormCollection form);
@@ -30,9 +31,215 @@ namespace CareerCracker.DataBaseLayer
 
         public async Task<IActionResult> CheckOut(string userEmail, IFormCollection form)
         {
+            await using var con = new NpgsqlConnection(DbConnection);
+            await con.OpenAsync();
+            await using var tran = await con.BeginTransactionAsync();
+
+            try
+            {
+                // ==================================================
+                // 1️⃣ GET USER ID
+                // ==================================================
+                Guid userId;
+
+                await using (var userCmd = new NpgsqlCommand(
+                    @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email"" = @Email",
+                    con, tran))
+                {
+                    userCmd.Parameters.AddWithValue("@Email", userEmail);
+
+                    var result = await userCmd.ExecuteScalarAsync();
+                    if (result == null)
+                        return BadRequest(new { success = false, message = "User not found" });
+
+                    userId = Guid.Parse(result.ToString()!);
+                }
+
+                // ==================================================
+                // 2️⃣ GET CART ITEMS
+                // ==================================================
+                var cartItems = new List<dynamic>();
+
+                await using (var cartCmd = new NpgsqlCommand(@"
+            SELECT 
+                c.id,
+                c.course_name,
+                c.course_slug,
+                c.course_image,
+                ci.saling_price,
+                ci.discount,
+                ci.quantity
+            FROM cart_items ci
+            JOIN courses c ON c.id = ci.course_id
+            WHERE ci.user_id = @UserId AND ci.is_active = true
+        ", con, tran))
+                {
+                    cartCmd.Parameters.AddWithValue("@UserId", userId);
+
+                    await using var reader = await cartCmd.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        cartItems.Add(new
+                        {
+                            CourseId = reader.GetInt32(0),
+                            CourseName = reader.GetString(1),
+                            CourseSlug = reader.GetString(2),
+                            CourseImage = reader.IsDBNull(3) ? null : reader.GetString(3),
+                            Price = reader.GetDecimal(4),
+                            Discount = reader.GetDecimal(5),
+                            Quantity = reader.GetInt32(6)
+                        });
+                    }
+                }
+
+                if (!cartItems.Any())
+                    return Ok(new { success = false, message = "Cart is empty" });
+
+                // ==================================================
+                // 3️⃣ CALCULATE SUBTOTAL (CORRECT)
+                // ==================================================
+                decimal subtotal = cartItems.Sum(x =>
+                    ((decimal)x.Price - (decimal)x.Discount) * (int)x.Quantity
+                );
+
+                // ==================================================
+                // 4️⃣ APPLY COUPON (OPTIONAL)
+                // ==================================================
+                string couponCode = form["couponCode"];
+                int? couponId = null;
+                decimal couponDiscount = 0;
+
+                if (!string.IsNullOrWhiteSpace(couponCode))
+                {
+                    await using var couponCmd = new NpgsqlCommand(@"
+                SELECT id, discount_type, discount_value, min_order_value, max_discount
+                FROM coupons
+                WHERE code = @Code
+                  AND is_active = true
+                  AND start_date <= NOW()
+                  AND end_date >= NOW()
+            ", con, tran);
+
+                    couponCmd.Parameters.AddWithValue("@Code", couponCode);
+
+                    await using var reader = await couponCmd.ExecuteReaderAsync();
+                    if (!await reader.ReadAsync())
+                        return Ok(new { success = false, message = "Invalid or expired coupon" });
+
+                    couponId = reader.GetInt32(0);
+                    string discountType = reader.GetString(1);
+                    decimal discountValue = reader.GetDecimal(2);
+                    decimal minOrder = reader.GetDecimal(3);
+                    decimal maxDiscount = reader.GetDecimal(4);
+
+                    if (subtotal < minOrder)
+                        return Ok(new
+                        {
+                            success = false,
+                            message = $"Minimum order value should be ₹{minOrder}"
+                        });
+
+                    couponDiscount = discountType == "PERCENT"
+                        ? Math.Min(subtotal * (discountValue / 100), maxDiscount)
+                        : discountValue;
+                }
+
+                // ==================================================
+                // 5️⃣ FINAL TOTAL
+                // ==================================================
+                decimal totalAmount = Math.Max(subtotal - couponDiscount, 0);
+
+                // ==================================================
+                // 6️⃣ CREATE ORDER
+                // ==================================================
+                int orderId;
+
+                await using (var orderCmd = new NpgsqlCommand(@"
+            INSERT INTO orders
+            (user_id, coupon_id, subtotal, discount_amount, total_amount)
+            VALUES
+            (@UserId, @CouponId, @Subtotal, @Discount, @Total)
+            RETURNING id
+        ", con, tran))
+                {
+                    orderCmd.Parameters.AddWithValue("@UserId", userId);
+                    orderCmd.Parameters.AddWithValue("@CouponId", (object?)couponId ?? DBNull.Value);
+                    orderCmd.Parameters.AddWithValue("@Subtotal", subtotal);
+                    orderCmd.Parameters.AddWithValue("@Discount", couponDiscount);
+                    orderCmd.Parameters.AddWithValue("@Total", totalAmount);
+
+                    orderId = Convert.ToInt32(await orderCmd.ExecuteScalarAsync());
+                }
+
+                // ==================================================
+                // 7️⃣ INSERT ORDER ITEMS
+                // ==================================================
+                foreach (var item in cartItems)
+                {
+                    await using var itemCmd = new NpgsqlCommand(@"
+                INSERT INTO order_items
+                (order_id, course_id, price, discount, quantity)
+                VALUES
+                (@OrderId, @CourseId, @Price, @Discount, @Qty)
+            ", con, tran);
+
+                    itemCmd.Parameters.AddWithValue("@OrderId", orderId);
+                    itemCmd.Parameters.AddWithValue("@CourseId", item.CourseId);
+                    itemCmd.Parameters.AddWithValue("@Price", item.Price);
+                    itemCmd.Parameters.AddWithValue("@Discount", item.Discount);
+                    itemCmd.Parameters.AddWithValue("@Qty", item.Quantity);
+
+                    await itemCmd.ExecuteNonQueryAsync();
+                }
+
+                // ==================================================
+                // 8️⃣ CLEAR CART
+                // ==================================================
+                //await using (var clearCmd = new NpgsqlCommand(
+                //    @"DELETE FROM cart_items WHERE user_id = @UserId",
+                //    con, tran))
+                //{
+                //    clearCmd.Parameters.AddWithValue("@UserId", userId);
+                //    await clearCmd.ExecuteNonQueryAsync();
+                //}
+
+                // ==================================================
+                // 9️⃣ COMMIT TRANSACTION
+                // ==================================================
+                await tran.CommitAsync();
+
+                // ==================================================
+                // 🔟 RESPONSE
+                // ==================================================
+                return Ok(new
+                {
+                    success = true,
+                    order_id = orderId,
+                    subtotal,
+                    coupon_discount = couponDiscount,
+                    total_amount = totalAmount,
+                    courses = cartItems
+                });
+            }
+            catch (Exception ex)
+            {
+                await tran.RollbackAsync();
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
+
+        public async Task<IActionResult> BuyNow(string userEmail, IFormCollection form)
+        {
             using var con = new NpgsqlConnection(DbConnection);
             await con.OpenAsync();
             using var tran = await con.BeginTransactionAsync();
+
+            
 
             try
             {
@@ -233,8 +440,6 @@ namespace CareerCracker.DataBaseLayer
                 });
             }
         }
-
-
         public async Task<IActionResult> CreateRazorpay(IFormCollection form)
         {
             decimal amount = decimal.Parse(form["amount"]);
