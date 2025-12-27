@@ -173,32 +173,32 @@ namespace CareerCracker.DataBaseLayer
                         userId = Guid.Parse(result.ToString());
                 }
 
-                // ✔ Query cart + course details
+                // ✔ Cart query
                 string query = @"
-            SELECT ci.id AS cart_id,
-                   ci.course_id,
-                   ci.quantity,
-                   ci.price,
-                   ci.discount,
-                   c.course_name,
-                   c.course_discription,
-                   c.category_id,
-                   c.course_image,
-                   c.mrp_price,
-                   c.saling_price
-            FROM cart_items ci
-            JOIN courses c ON c.id = ci.course_id
-            WHERE ci.is_active = TRUE
-            AND (
-                (ci.user_id = @uid)
-                OR
-                (ci.user_id IS NULL AND ci.ip_address = @ip)
-            )
-            ORDER BY ci.id DESC";
+        SELECT ci.id,
+               ci.course_id,
+               ci.quantity,
+               ci.price,
+               ci.discount,
+               c.course_name,
+               c.course_discription,
+               c.category_id,
+               c.course_image,
+               c.mrp_price,
+               c.saling_price
+        FROM cart_items ci
+        JOIN courses c ON c.id = ci.course_id
+        WHERE ci.is_active = TRUE
+        AND (
+            (ci.user_id = @uid)
+            OR
+            (ci.user_id IS NULL AND ci.ip_address = @ip)
+        )
+        ORDER BY ci.id DESC";
 
                 using var cartCmd = new NpgsqlCommand(query, con);
                 cartCmd.Parameters.AddWithValue("@uid", (object?)userId ?? DBNull.Value);
-                cartCmd.Parameters.AddWithValue("@ip", (object?)ip ?? DBNull.Value);
+                cartCmd.Parameters.AddWithValue("@ip", ip);
 
                 using var reader = await cartCmd.ExecuteReaderAsync();
 
@@ -211,14 +211,14 @@ namespace CareerCracker.DataBaseLayer
                         cartId = reader.GetInt32(0),
                         courseId = reader.GetInt32(1),
                         quantity = reader.GetInt32(2),
-                        price = reader.GetDecimal(3),
-                        discount = reader.GetDecimal(4),
-                        courseName = reader.GetString(5),
-                        description = reader.GetString(6),
-                        categoryId = reader.GetInt32(7),
-                        imageUrl = reader.GetString(8),
-                        mrpPrice = reader.GetDecimal(9),
-                        salePrice = reader.GetDecimal(10)
+                        price = reader.IsDBNull(3) ? 0 : reader.GetDecimal(3),
+                        discount = reader.IsDBNull(4) ? 0 : reader.GetDecimal(4),
+                        courseName = reader.IsDBNull(5) ? "" : reader.GetString(5),
+                        description = reader.IsDBNull(6) ? "" : reader.GetString(6),
+                        categoryId = reader.IsDBNull(7) ? 0 : reader.GetInt32(7),
+                        imageUrl = reader.IsDBNull(8) ? "" : reader.GetString(8),
+                        mrpPrice = reader.IsDBNull(9) ? 0 : reader.GetDecimal(9),
+                        salePrice = reader.IsDBNull(10) ? 0 : reader.GetDecimal(10)
                     });
                 }
 
@@ -229,6 +229,7 @@ namespace CareerCracker.DataBaseLayer
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
+
 
         public async Task<IActionResult> DeleteCart(int cartId)
         {
