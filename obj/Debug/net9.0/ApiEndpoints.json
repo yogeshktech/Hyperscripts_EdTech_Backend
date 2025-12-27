@@ -1462,7 +1462,7 @@
   {
     "ContainingType": "CareerCracker.Controllers.OrdersController",
     "Method": "GetAllOrders",
-    "RelativePath": "api/order/all",
+    "RelativePath": "api/order/all-order",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -1520,7 +1520,7 @@
   {
     "ContainingType": "CareerCracker.Controllers.OrdersController",
     "Method": "GetOrder",
-    "RelativePath": "api/order/get-order",
+    "RelativePath": "api/order/get-order/{orderId}",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -1528,7 +1528,7 @@
       {
         "Name": "orderId",
         "Type": "System.Int32",
-        "IsRequired": false
+        "IsRequired": true
       }
     ],
     "ReturnTypes": []

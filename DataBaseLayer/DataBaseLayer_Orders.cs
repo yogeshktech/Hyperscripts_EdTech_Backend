@@ -100,7 +100,7 @@ namespace CareerCracker.DataBaseLayer
                 // 3️⃣ CALCULATE SUBTOTAL (CORRECT)
                 // ==================================================
                 decimal subtotal = cartItems.Sum(x =>
-                    ((decimal)x.Price - (decimal)x.Discount) * (int)x.Quantity
+                    ((decimal)x.Price ) * (int)x.Quantity
                 );
 
                 // ==================================================
@@ -832,60 +832,115 @@ namespace CareerCracker.DataBaseLayer
         {
             try
             {
-                using var con = new NpgsqlConnection(DbConnection);
+                await using var con = new NpgsqlConnection(DbConnection);
                 await con.OpenAsync();
 
-                string queryOrder = "SELECT * FROM orders WHERE id=@id";
-                string queryItems = "SELECT * FROM order_items WHERE order_id=@id";
-
                 var order = new Dictionary<string, object>();
+                var user = new Dictionary<string, object>();
                 var items = new List<Dictionary<string, object>>();
 
-                using (var cmd = new NpgsqlCommand(queryOrder, con))
-                {
-                    cmd.Parameters.AddWithValue("@id", orderId);
+                // ==================================================
+                // 1️⃣ ORDER + USER DETAILS
+                // ==================================================
+                await using (var cmd = new NpgsqlCommand(@"
+            SELECT
+                o.id AS order_id,
+                o.subtotal,
+                o.discount_amount,
+                o.total_amount,
+                o.payment_status,
+                o.order_status,
 
-                    using var reader = await cmd.ExecuteReaderAsync();
-                    if (await reader.ReadAsync())
-                    {
-                        order["id"] = reader["id"];
-                        order["user_id"] = reader["user_id"];
-                        order["subtotal"] = reader["subtotal"];
-                        order["discount_amount"] = reader["discount_amount"];
-                        order["total_amount"] = reader["total_amount"];
-                        order["payment_status"] = reader["payment_status"];
-                        order["order_status"] = reader["order_status"];
-                    }
-                    else
-                    {
-                        return new NotFoundObjectResult(new { success = false, message = "Order not found" });
-                    }
+                u.""Id""            AS user_id,
+                u.""UserName""      AS name,
+                u.""Email""         AS email,
+                u.""PhoneNumber""   AS mobile
+            FROM orders o
+            INNER JOIN ""AspNetUsers"" u
+                ON u.""Id"" = o.user_id
+            WHERE o.id = @orderId
+        ", con))
+                {
+                    cmd.Parameters.AddWithValue("@orderId", orderId);
+
+                    await using var reader = await cmd.ExecuteReaderAsync();
+                    if (!await reader.ReadAsync())
+                        return NotFound(new { success = false, message = "Order not found" });
+
+                    order["id"] = reader["order_id"];
+                    order["subtotal"] = reader["subtotal"];
+                    order["discount_amount"] = reader["discount_amount"];
+                    order["total_amount"] = reader["total_amount"];
+                    order["payment_status"] = reader["payment_status"];
+                    order["order_status"] = reader["order_status"];
+
+                    user["id"] = reader["user_id"];
+                    user["name"] = reader["name"];
+                    user["email"] = reader["email"];
+                    user["mobile"] = reader["mobile"];
                 }
 
-                using (var cmd = new NpgsqlCommand(queryItems, con))
-                {
-                    cmd.Parameters.AddWithValue("@id", orderId);
-                    using var reader = await cmd.ExecuteReaderAsync();
+                // ==================================================
+                // 2️⃣ ORDER ITEMS + COURSE DETAILS
+                // ==================================================
+                await using (var cmd = new NpgsqlCommand(@"
+            SELECT
+                oi.quantity,
+                oi.price,
+                oi.discount,
+                oi.total,
 
+                c.id          AS course_id,
+                c.title,
+                c.description,
+                c.thumbnail,
+                c.duration
+            FROM order_items oi
+            INNER JOIN courses c ON c.id = oi.course_id
+            WHERE oi.order_id = @orderId
+        ", con))
+                {
+                    cmd.Parameters.AddWithValue("@orderId", orderId);
+
+                    await using var reader = await cmd.ExecuteReaderAsync();
                     while (await reader.ReadAsync())
                     {
-                        items.Add(new Dictionary<string, object>()
-                {
-                    { "course_id", reader["course_id"] },
-                    { "price", reader["price"] },
-                    { "discount", reader["discount"] },
-                    { "quantity", reader["quantity"] }
-                });
+                        items.Add(new Dictionary<string, object>
+                        {
+                            ["course_id"] = reader["course_id"],
+                            ["course_title"] = reader["title"],
+                            ["description"] = reader["description"],
+                            ["thumbnail"] = reader["thumbnail"],
+                            ["duration"] = reader["duration"],
+                            ["price"] = reader["price"],
+                            ["discount"] = reader["discount"],
+                            ["quantity"] = reader["quantity"],
+                            ["total"] = reader["total"]
+                        });
                     }
                 }
 
-                return new OkObjectResult(new { success = true, order, items });
+                // ==================================================
+                // 3️⃣ FINAL RESPONSE
+                // ==================================================
+                return Ok(new
+                {
+                    success = true,
+                    order,
+                    user,
+                    items
+                });
             }
             catch (Exception ex)
             {
-                return new BadRequestObjectResult(new { success = false, message = ex.Message });
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }
+
 
         public async Task<IActionResult> GetAllOrders()
         {
@@ -894,7 +949,14 @@ namespace CareerCracker.DataBaseLayer
                 using var con = new NpgsqlConnection(DbConnection);
                 await con.OpenAsync();
 
-                string query = "SELECT * FROM orders ORDER BY id DESC";
+                string query = @"
+                    SELECT *
+                    FROM orders
+                    WHERE order_status = 'CONFIRMED'
+                      AND payment_status = 'PAID'
+                    ORDER BY id DESC
+                ";
+
 
                 var list = new List<Dictionary<string, object>>();
 
