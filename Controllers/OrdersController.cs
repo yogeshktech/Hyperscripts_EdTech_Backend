@@ -195,7 +195,7 @@ namespace CareerCracker.Controllers
         }
 
 
-        [Route("get-order/{orderId}")]
+        [Route("get-order-detail/{orderId}")]
         [HttpGet]
         public async Task<IActionResult> GetOrder(int orderId)
         {

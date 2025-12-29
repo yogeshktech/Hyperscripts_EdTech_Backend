@@ -463,7 +463,6 @@ namespace CareerCracker.DataBaseLayer
         return await MarkPaymentPaid(orderId);
         }
 
-        
         public async Task<IActionResult> MarkPaymentPaid(int orderId)
         {
             using var con = new NpgsqlConnection(DbConnection);
@@ -827,7 +826,6 @@ namespace CareerCracker.DataBaseLayer
         //    }
         //}
 
-
         public async Task<IActionResult> GetOrder(int orderId)
         {
             try
@@ -843,22 +841,23 @@ namespace CareerCracker.DataBaseLayer
                 // 1️⃣ ORDER + USER DETAILS
                 // ==================================================
                 await using (var cmd = new NpgsqlCommand(@"
-            SELECT
-                o.id AS order_id,
-                o.subtotal,
-                o.discount_amount,
-                o.total_amount,
-                o.payment_status,
-                o.order_status,
+                            SELECT
+                    o.id AS order_id,
+                    o.subtotal,
+                    o.discount_amount,
+                    o.total_amount,
+                    o.payment_status,
+                    o.order_status,
 
-                u.""Id""            AS user_id,
-                u.""UserName""      AS name,
-                u.""Email""         AS email,
-                u.""PhoneNumber""   AS mobile
-            FROM orders o
-            INNER JOIN ""AspNetUsers"" u
-                ON u.""Id"" = o.user_id
-            WHERE o.id = @orderId
+                    u.""Id""          AS user_id,
+                    u.""UserName""    AS name,
+                    u.""Email""       AS email,
+                    u.""PhoneNumber"" AS mobile
+                FROM orders o
+                JOIN ""AspNetUsers"" u
+                    ON u.""Id""::uuid = o.user_id
+                WHERE o.id = @orderId;
+
         ", con))
                 {
                     cmd.Parameters.AddWithValue("@orderId", orderId);
@@ -891,9 +890,16 @@ namespace CareerCracker.DataBaseLayer
                 oi.total,
 
                 c.id          AS course_id,
-                c.title,
-                c.description,
-                c.thumbnail,
+                c.course_name,
+                c.course_image,
+                c.course_discription,
+                c.start_class_date,
+                c.demo_end_date,
+                c.maximum_lpa,
+                c.minimum_lpa,
+                c.demo_start_date,
+                c.demo_end_date,
+                c.course_slug,
                 c.duration
             FROM order_items oi
             INNER JOIN courses c ON c.id = oi.course_id
@@ -908,9 +914,16 @@ namespace CareerCracker.DataBaseLayer
                         items.Add(new Dictionary<string, object>
                         {
                             ["course_id"] = reader["course_id"],
-                            ["course_title"] = reader["title"],
-                            ["description"] = reader["description"],
-                            ["thumbnail"] = reader["thumbnail"],
+                            ["course_name"] = reader["course_name"],
+                            ["course_image"] = reader["course_image"],
+                            ["course_discription"] = reader["course_discription"],
+                            ["start_class_date"] = reader["start_class_date"],
+                            ["demo_end_date"] = reader["demo_end_date"],
+                            ["maximum_lpa"] = reader["maximum_lpa"],
+                            ["minimum_lpa"] = reader["minimum_lpa"],
+                            ["demo_start_date"] = reader["demo_start_date"],
+                            ["demo_end_date"] = reader["demo_end_date"],
+                            ["course_slug"] = reader["course_slug"],
                             ["duration"] = reader["duration"],
                             ["price"] = reader["price"],
                             ["discount"] = reader["discount"],
@@ -940,8 +953,7 @@ namespace CareerCracker.DataBaseLayer
                 });
             }
         }
-
-
+            
         public async Task<IActionResult> GetAllOrders()
         {
             try
