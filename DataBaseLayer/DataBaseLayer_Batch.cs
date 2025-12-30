@@ -11,6 +11,7 @@ namespace CareerCracker.DataBaseLayer
         Task<IActionResult> GetByIdBatchs(int courseId);
         Task<IActionResult> UpdateBatch(int batchId, IFormCollection form);
         Task<IActionResult> DeleteBatchs(int batchId);
+        Task<IActionResult> GetBatchByUserId(string userEmail);
     }
 
     public partial interface IDataBaseLayer : IDataBaseLayer_Batch { }
@@ -572,6 +573,27 @@ namespace CareerCracker.DataBaseLayer
                     success = true,
                     message = "Batch deleted successfully"
                 });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
+        public async Task<IActionResult> GetBatchByUserId(string userEmail)
+        {
+            try
+            {
+                using var con = new NpgsqlConnection(DbConnection);
+                await con.OpenAsync();
+                using var tran = await con.BeginTransactionAsync();
+
+
+                return Ok();
             }
             catch (Exception ex)
             {

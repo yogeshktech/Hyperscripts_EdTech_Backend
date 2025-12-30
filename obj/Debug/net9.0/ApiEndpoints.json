@@ -1587,6 +1587,16 @@
   },
   {
     "ContainingType": "CareerCracker.Controllers.UserController",
+    "Method": "GetBatchByUserId",
+    "RelativePath": "api/user/get-batch-by-userid",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.UserController",
     "Method": "GetRecordingClass",
     "RelativePath": "api/user/get-recording-class/{batchId}",
     "HttpMethod": "GET",

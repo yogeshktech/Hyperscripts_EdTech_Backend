@@ -132,5 +132,24 @@ namespace CareerCracker.Controllers
                 });
             }
         }
+
+        [Route("get-batch-by-userid")]
+        [HttpDelete]
+        public async Task<IActionResult> GetBatchByUserId()
+        {
+            try
+            {
+                string userEmail =
+                    User.FindFirst(ClaimTypes.Email)?.Value ??
+                    User.FindFirst("email")?.Value ??
+                    User.FindFirst("UserEmail")?.Value;
+
+                return await _businessLayer.GetBatchByUserId(userEmail);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
     }
 }

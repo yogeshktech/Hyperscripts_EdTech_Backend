@@ -142,7 +142,7 @@ namespace CareerCracker.DataBaseLayer
 
                 // Step 2: Get batches for this user and course
                 using var cmdBatches = new NpgsqlCommand(@"
-            SELECT b.id, b.batch_name, b.start_date, b.end_date, b.start_time, b.end_time, b.max_students, b.is_active
+            SELECT b.id, b.batch_name, b.start_date, b.end_date, b.start_time, b.end_time, b.max_students, b.is_active, batch_image
             FROM batches b
             INNER JOIN user_batches ub ON b.id = ub.batch_id
             WHERE ub.user_id = @userId
@@ -167,7 +167,8 @@ namespace CareerCracker.DataBaseLayer
                         start_time = reader.IsDBNull(4) ? (TimeSpan?)null : reader.GetTimeSpan(4),
                         end_time = reader.IsDBNull(5) ? (TimeSpan?)null : reader.GetTimeSpan(5),
                         max_students = reader.IsDBNull(6) ? (int?)null : reader.GetInt32(6),
-                        is_active = reader.GetBoolean(7)
+                        is_active = reader.GetBoolean(7),
+                        batch_image = reader.GetString(8)
                     });
                 }
 
