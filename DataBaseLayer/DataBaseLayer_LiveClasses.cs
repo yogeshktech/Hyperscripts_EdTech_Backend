@@ -26,41 +26,75 @@ namespace CareerCracker.DataBaseLayer
     {
         public async Task<IActionResult> CreateLiveClass(int batchId, IFormCollection form)
         {
-            using var con = new NpgsqlConnection(DbConnection);
+            await using var con = new NpgsqlConnection(DbConnection);
             await con.OpenAsync();
-            using var tran = await con.BeginTransactionAsync();
+            await using var tran = await con.BeginTransactionAsync();
 
             try
             {
+                // ==================================================
+                // 1️⃣ VALIDATE BATCH EXISTS
+                // ==================================================
+                await using (var batchCmd = new NpgsqlCommand(
+                    @"SELECT COUNT(1) FROM batches WHERE id = @batchId",
+                    con, tran))
+                {
+                    batchCmd.Parameters.AddWithValue("@batchId", batchId);
+
+                    var exists = Convert.ToInt32(await batchCmd.ExecuteScalarAsync());
+
+                    if (exists == 0)
+                    {
+                        await tran.RollbackAsync();
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Invalid batchId. Batch does not exist."
+                        });
+                    }
+                }
+
+                // ==================================================
+                // 2️⃣ READ FORM VALUES
+                // ==================================================
                 var topicName = form["topic_name"].FirstOrDefault();
                 var classDate = form["class_date"].FirstOrDefault();
                 var startTime = form["start_time"].FirstOrDefault();
-                var classEndTime = form["end_time"].FirstOrDefault();
+                var endTime = form["end_time"].FirstOrDefault();
                 var meetingLink = form["meeting_link"].FirstOrDefault();
 
-                using var cmd = new NpgsqlCommand(@"
+                // ==================================================
+                // 3️⃣ INSERT LIVE CLASS
+                // ==================================================
+                await using var cmd = new NpgsqlCommand(@"
             INSERT INTO live_classes
             (batch_id, topic, class_date, start_time, end_time, meeting_link, created_at)
             VALUES
-            (@batchId, @topicName, @classDate, @startTime, @classEndTime, @meetingLink, NOW())
+            (@batchId, @topic, @classDate, @startTime, @endTime, @meetingLink, NOW())
             RETURNING id;
         ", con, tran);
 
                 cmd.Parameters.AddWithValue("@batchId", batchId);
-                cmd.Parameters.AddWithValue("@topicName",
-                    string.IsNullOrWhiteSpace(topicName) ? (object)DBNull.Value : topicName);
+                cmd.Parameters.AddWithValue("@topic",
+                    string.IsNullOrWhiteSpace(topicName) ? DBNull.Value : topicName);
 
                 cmd.Parameters.AddWithValue("@classDate",
-                    string.IsNullOrWhiteSpace(classDate) ? (object)DBNull.Value : DateTime.Parse(classDate));
+                    string.IsNullOrWhiteSpace(classDate)
+                        ? DBNull.Value
+                        : DateTime.Parse(classDate));
 
                 cmd.Parameters.AddWithValue("@startTime",
-                    string.IsNullOrWhiteSpace(startTime) ? (object)DBNull.Value : TimeSpan.Parse(startTime));
+                    string.IsNullOrWhiteSpace(startTime)
+                        ? DBNull.Value
+                        : TimeSpan.Parse(startTime));
 
-                cmd.Parameters.AddWithValue("@classEndTime",
-                    string.IsNullOrWhiteSpace(classEndTime) ? (object)DBNull.Value : TimeSpan.Parse(classEndTime));
+                cmd.Parameters.AddWithValue("@endTime",
+                    string.IsNullOrWhiteSpace(endTime)
+                        ? DBNull.Value
+                        : TimeSpan.Parse(endTime));
 
                 cmd.Parameters.AddWithValue("@meetingLink",
-                    string.IsNullOrWhiteSpace(meetingLink) ? (object)DBNull.Value : meetingLink);
+                    string.IsNullOrWhiteSpace(meetingLink) ? DBNull.Value : meetingLink);
 
                 int liveClassId = Convert.ToInt32(await cmd.ExecuteScalarAsync());
 
@@ -76,7 +110,11 @@ namespace CareerCracker.DataBaseLayer
             catch (Exception ex)
             {
                 await tran.RollbackAsync();
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }
 
@@ -313,27 +351,41 @@ namespace CareerCracker.DataBaseLayer
 
         public async Task<IActionResult> GetAllLiveClasses()
         {
-            using var con = new NpgsqlConnection(DbConnection);
+            await using var con = new NpgsqlConnection(DbConnection);
             await con.OpenAsync();
 
             try
             {
-                using var cmd = new NpgsqlCommand(@"
+                await using var cmd = new NpgsqlCommand(@"
             SELECT
-                id,
-                batch_id,
-                topic,
-                class_date,
-                start_time,
-                end_time,
-                meeting_link,
-                recording_link,
-                created_at
-            FROM live_classes
-            ORDER BY class_date DESC, start_time ASC;
+    lc.id,
+    lc.batch_id,
+    lc.topic,
+    lc.class_date,
+    lc.start_time,
+    lc.end_time,
+    lc.meeting_link,
+    lc.recording_link,
+    lc.created_at,
+
+    bf.faculties_id,
+
+    anu.""Id""        AS user_id,
+    anu.""FirstName"",
+    anu.""LastName"",
+    anu.""Email"",
+    anu.""PhoneNumber"",
+    anu.""UserName""
+FROM live_classes lc
+INNER JOIN batch_faculties bf
+    ON lc.batch_id = bf.batch_id
+INNER JOIN ""AspNetUsers"" anu
+    ON anu.""Id""::uuid = bf.faculties_id
+ORDER BY lc.class_date DESC, lc.start_time ASC;
+
         ", con);
 
-                using var reader = await cmd.ExecuteReaderAsync();
+                await using var reader = await cmd.ExecuteReaderAsync();
 
                 var result = new List<object>();
 
@@ -341,15 +393,26 @@ namespace CareerCracker.DataBaseLayer
                 {
                     result.Add(new
                     {
-                        id = reader.GetInt32(0),
-                        batchId = reader.GetInt32(1),
-                        topic = reader.IsDBNull(2) ? null : reader.GetString(2),
-                        classDate = reader.IsDBNull(3) ? (DateTime?)null : reader.GetDateTime(3),
-                        startTime = reader.IsDBNull(4) ? (TimeSpan?)null : reader.GetTimeSpan(4),
-                        endTime = reader.IsDBNull(5) ? (TimeSpan?)null : reader.GetTimeSpan(5),
-                        meetingLink = reader.IsDBNull(6) ? null : reader.GetString(6),
-                        recordingLink = reader.IsDBNull(7) ? null : reader.GetString(7),
-                        createdAt = reader.GetDateTime(8)
+                        id = reader.GetInt32(reader.GetOrdinal("id")),
+                        batchId = reader.GetInt32(reader.GetOrdinal("batch_id")),
+                        topic = reader["topic"] as string,
+                        classDate = reader["class_date"] as DateTime?,
+                        startTime = reader["start_time"] as TimeSpan?,
+                        endTime = reader["end_time"] as TimeSpan?,
+                        meetingLink = reader["meeting_link"] as string,
+                        recordingLink = reader["recording_link"] as string,
+                        createdAt = reader.GetDateTime(reader.GetOrdinal("created_at")),
+
+                        faculty = new
+                        {
+                            id = reader["user_id"].ToString(),   // ✅ FIX
+                            firstName = reader["FirstName"] as string,
+                            lastName = reader["LastName"] as string,
+                            email = reader["Email"] as string,
+                            phoneNumber = reader["PhoneNumber"] as string,
+                            userName = reader["UserName"] as string
+                        }
+
                     });
                 }
 
@@ -362,9 +425,14 @@ namespace CareerCracker.DataBaseLayer
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }
+
 
         //public async Task<IActionResult> GetLiveClassesByBatch(int batchId)
         //{
