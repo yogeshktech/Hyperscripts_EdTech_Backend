@@ -9,7 +9,7 @@ namespace CareerCracker.Controllers
     [EnableCors("CorsPolicy")]
     [ApiController]
     [Route("api/user")]
-    [Authorize(Roles = "USER")]
+    [Authorize(Roles = "USER,SUPERADMIN")]
     public class UserController : ControllerBase
     {
         private readonly IBusinessLayer _businessLayer;
