@@ -489,7 +489,6 @@ namespace CareerCracker.DataBaseLayer
             }
         }
 
-
         public async Task<IActionResult> HardDeleteLiveClass(int liveClassId)
         {
             using var con = new NpgsqlConnection(DbConnection);
@@ -724,26 +723,35 @@ namespace CareerCracker.DataBaseLayer
 
         public async Task<IActionResult> GetAttendanceByUser(Guid userId)
         {
-            using var con = new NpgsqlConnection(DbConnection);
+            await using var con = new NpgsqlConnection(DbConnection);
             await con.OpenAsync();
 
             try
             {
-                using var cmd = new NpgsqlCommand(@"
+                await using var cmd = new NpgsqlCommand(@"
             SELECT
-                id,
-                live_class_id,
-                joined_at,
-                left_at,
-                attended
-            FROM live_class_attendance
-            WHERE user_id = @userId
-            ORDER BY joined_at DESC;
+                a.id,
+                a.live_class_id,
+                a.joined_at,
+                a.left_at,
+                a.attended,
+
+                u.""Id""          AS user_id,
+                u.""FirstName""   AS first_name,
+                u.""LastName""    AS last_name,
+                u.""Email""       AS email,
+                u.""PhoneNumber"" AS mobile,
+                u.profile_image   AS profile_image
+            FROM live_class_attendance a
+            JOIN ""AspNetUsers"" u
+                ON u.""Id""::uuid = a.user_id
+            WHERE a.user_id = @userId
+            ORDER BY a.joined_at DESC;
         ", con);
 
                 cmd.Parameters.AddWithValue("@userId", userId);
 
-                using var reader = await cmd.ExecuteReaderAsync();
+                await using var reader = await cmd.ExecuteReaderAsync();
                 var result = new List<object>();
 
                 while (await reader.ReadAsync())
@@ -754,7 +762,17 @@ namespace CareerCracker.DataBaseLayer
                         liveClassId = reader.GetInt32(1),
                         joinedAt = reader.IsDBNull(2) ? (DateTime?)null : reader.GetDateTime(2),
                         leftAt = reader.IsDBNull(3) ? (DateTime?)null : reader.GetDateTime(3),
-                        attended = reader.GetBoolean(4)
+                        attended = reader.GetBoolean(4),
+
+                        user = new
+                        {
+                            id = reader.GetString(5),
+                            first_name = reader.IsDBNull(6) ? null : reader.GetString(6),
+                            last_name = reader.IsDBNull(7) ? null : reader.GetString(7),
+                            email = reader.GetString(8),
+                            mobile = reader.IsDBNull(9) ? null : reader.GetString(9),
+                            image = reader.IsDBNull(10) ? null : reader.GetString(10)
+                        }
                     });
                 }
 
@@ -810,7 +828,6 @@ namespace CareerCracker.DataBaseLayer
                 return BadRequest(new { success = false, message = ex.Message });
             }
         }
-
 
 
     }

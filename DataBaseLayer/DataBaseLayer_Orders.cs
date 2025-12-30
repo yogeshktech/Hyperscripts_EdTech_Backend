@@ -68,7 +68,6 @@ namespace CareerCracker.DataBaseLayer
                 c.course_slug,
                 c.course_image,
                 ci.saling_price,
-                ci.discount,
                 ci.quantity
             FROM cart_items ci
             JOIN courses c ON c.id = ci.course_id
@@ -87,8 +86,7 @@ namespace CareerCracker.DataBaseLayer
                             CourseSlug = reader.GetString(2),
                             CourseImage = reader.IsDBNull(3) ? null : reader.GetString(3),
                             Price = reader.GetDecimal(4),
-                            Discount = reader.GetDecimal(5),
-                            Quantity = reader.GetInt32(6)
+                            Quantity = reader.GetInt32(5)
                         });
                     }
                 }
@@ -97,10 +95,10 @@ namespace CareerCracker.DataBaseLayer
                     return Ok(new { success = false, message = "Cart is empty" });
 
                 // ==================================================
-                // 3️⃣ CALCULATE SUBTOTAL (CORRECT)
+                // 3️⃣ CALCULATE SUBTOTAL
                 // ==================================================
                 decimal subtotal = cartItems.Sum(x =>
-                    ((decimal)x.Price ) * (int)x.Quantity
+                    (decimal)x.Price * (int)x.Quantity
                 );
 
                 // ==================================================
@@ -151,7 +149,7 @@ namespace CareerCracker.DataBaseLayer
                 decimal totalAmount = Math.Max(subtotal - couponDiscount, 0);
 
                 // ==================================================
-                // 6️⃣ CREATE ORDER
+                // 6️⃣ CREATE ORDER (SAVE COUPON DISCOUNT HERE ONLY)
                 // ==================================================
                 int orderId;
 
@@ -173,21 +171,20 @@ namespace CareerCracker.DataBaseLayer
                 }
 
                 // ==================================================
-                // 7️⃣ INSERT ORDER ITEMS
+                // 7️⃣ INSERT ORDER ITEMS (NO COUPON DISCOUNT HERE)
                 // ==================================================
                 foreach (var item in cartItems)
                 {
                     await using var itemCmd = new NpgsqlCommand(@"
                 INSERT INTO order_items
-                (order_id, course_id, price, discount, quantity)
+                (order_id, course_id, price, quantity)
                 VALUES
-                (@OrderId, @CourseId, @Price, @Discount, @Qty)
+                (@OrderId, @CourseId, @Price, @Qty)
             ", con, tran);
 
                     itemCmd.Parameters.AddWithValue("@OrderId", orderId);
                     itemCmd.Parameters.AddWithValue("@CourseId", item.CourseId);
                     itemCmd.Parameters.AddWithValue("@Price", item.Price);
-                    itemCmd.Parameters.AddWithValue("@Discount", item.Discount);
                     itemCmd.Parameters.AddWithValue("@Qty", item.Quantity);
 
                     await itemCmd.ExecuteNonQueryAsync();
@@ -260,20 +257,40 @@ namespace CareerCracker.DataBaseLayer
                 }
 
                 // ==================================================
-                // 2️⃣ GET COURSE
+                // 2️⃣ CHECK IF COURSE ALREADY PURCHASED
+                // ==================================================
+                await using (var checkCmd = new NpgsqlCommand(@"
+            SELECT 1
+            FROM order_items oi
+            JOIN orders o ON o.id = oi.order_id
+            WHERE o.user_id = @UserId
+              AND oi.course_id = @CourseId
+              AND o.payment_status = 'CONFIRMED'
+        ", con, tran))
+                {
+                    checkCmd.Parameters.AddWithValue("@UserId", userId);
+                    checkCmd.Parameters.AddWithValue("@CourseId", courseId);
+
+                    var exists = await checkCmd.ExecuteScalarAsync();
+                    if (exists != null)
+                        return BadRequest(new { success = false, message = "Course already purchased" });
+                }
+
+                // ==================================================
+                // 3️⃣ GET COURSE
                 // ==================================================
                 BuyNowCourseDto course;
 
                 await using (var courseCmd = new NpgsqlCommand(@"
             SELECT 
-                c.id,
-                c.course_name,
-                c.course_slug,
-                c.course_image,
-                c.saling_price
-            FROM courses c
-            WHERE c.id = @courseId
-              AND c.is_active = TRUE
+                id,
+                course_name,
+                course_slug,
+                course_image,
+                saling_price
+            FROM courses
+            WHERE id = @courseId
+              AND is_active = TRUE
         ", con, tran))
                 {
                     courseCmd.Parameters.AddWithValue("@courseId", courseId);
@@ -281,38 +298,38 @@ namespace CareerCracker.DataBaseLayer
                     await using var reader = await courseCmd.ExecuteReaderAsync();
 
                     if (!await reader.ReadAsync())
-                        return Ok(new { success = false, message = "Course is not active" });
+                        return BadRequest(new { success = false, message = "Course not found or inactive" });
 
                     course = new BuyNowCourseDto
                     {
                         CourseId = reader.GetInt32(0),
-                        CourseName = reader.IsDBNull(1) ? "" : reader.GetString(1),
-                        CourseSlug = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                        CourseName = reader.GetString(1),
+                        CourseSlug = reader.GetString(2),
                         CourseImage = reader.IsDBNull(3) ? null : reader.GetString(3),
-                        Price = reader.IsDBNull(4) ? 0 : reader.GetDecimal(4),
+                        Price = reader.GetDecimal(4),
                         Quantity = 1,
                         Discount = 0
                     };
                 }
 
                 // ==================================================
-                // 3️⃣ CALCULATE TOTALS
+                // 4️⃣ CALCULATE TOTALS
                 // ==================================================
-                decimal subtotal = course.Price * course.Quantity;
+                decimal subtotal = course.Price;
                 decimal couponDiscount = 0;
                 decimal totalAmount = subtotal - couponDiscount;
                 int? couponId = null;
 
                 // ==================================================
-                // 4️⃣ CREATE ORDER
+                // 5️⃣ CREATE ORDER
                 // ==================================================
                 int orderId;
 
                 await using (var orderCmd = new NpgsqlCommand(@"
             INSERT INTO orders
-            (user_id, coupon_id, subtotal, discount_amount, total_amount)
+            (user_id, coupon_id, subtotal, discount_amount, total_amount, order_status, payment_status)
             VALUES
-            (@UserId, @CouponId, @Subtotal, @Discount, @Total)
+            (@UserId, @CouponId, @Subtotal, @Discount, @Total, 'PENDING', 'PENDING')
             RETURNING id
         ", con, tran))
                 {
@@ -326,7 +343,7 @@ namespace CareerCracker.DataBaseLayer
                 }
 
                 // ==================================================
-                // 5️⃣ INSERT ORDER ITEM
+                // 6️⃣ INSERT ORDER ITEM
                 // ==================================================
                 await using (var itemCmd = new NpgsqlCommand(@"
             INSERT INTO order_items
@@ -339,35 +356,35 @@ namespace CareerCracker.DataBaseLayer
                     itemCmd.Parameters.AddWithValue("@CourseId", course.CourseId);
                     itemCmd.Parameters.AddWithValue("@Price", course.Price);
                     itemCmd.Parameters.AddWithValue("@Discount", course.Discount);
-                    itemCmd.Parameters.AddWithValue("@Qty", course.Quantity);
+                    itemCmd.Parameters.AddWithValue("@Qty", 1);
 
                     await itemCmd.ExecuteNonQueryAsync();
                 }
 
                 // ==================================================
-                // 6️⃣ COMMIT
+                // 7️⃣ COMMIT
                 // ==================================================
                 await tran.CommitAsync();
 
-                // ==================================================
-                // 7️⃣ RESPONSE
-                // ==================================================
                 return Ok(new
                 {
                     success = true,
                     order_id = orderId,
-                    subtotal,
-                    coupon_discount = couponDiscount,
                     total_amount = totalAmount,
                     course
                 });
             }
-            catch (Exception ex)
+            catch
             {
                 await tran.RollbackAsync();
-                return BadRequest(new { success = false, message = ex.Message });
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Something went wrong while placing order"
+                });
             }
         }
+
 
         public async Task<IActionResult> CreateRazorpay(IFormCollection form)
         {
@@ -894,7 +911,9 @@ namespace CareerCracker.DataBaseLayer
                 c.course_image,
                 c.course_discription,
                 c.start_class_date,
-                c.demo_end_date,
+                c.mrp_price,
+                c.saling_price,
+                c.total_lectures,
                 c.maximum_lpa,
                 c.minimum_lpa,
                 c.demo_start_date,
@@ -918,7 +937,9 @@ namespace CareerCracker.DataBaseLayer
                             ["course_image"] = reader["course_image"],
                             ["course_discription"] = reader["course_discription"],
                             ["start_class_date"] = reader["start_class_date"],
-                            ["demo_end_date"] = reader["demo_end_date"],
+                            ["mrp_price"] = reader["mrp_price"],
+                            ["saling_price"] = reader["saling_price"],
+                            ["total_lectures"] = reader["total_lectures"],
                             ["maximum_lpa"] = reader["maximum_lpa"],
                             ["minimum_lpa"] = reader["minimum_lpa"],
                             ["demo_start_date"] = reader["demo_start_date"],

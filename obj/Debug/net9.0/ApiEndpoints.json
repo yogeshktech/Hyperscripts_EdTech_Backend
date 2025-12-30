@@ -1520,7 +1520,7 @@
   {
     "ContainingType": "CareerCracker.Controllers.OrdersController",
     "Method": "GetOrder",
-    "RelativePath": "api/order/get-order/{orderId}",
+    "RelativePath": "api/order/get-order-detail/{orderId}",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
