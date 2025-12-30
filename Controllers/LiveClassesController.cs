@@ -109,24 +109,7 @@ namespace CareerCracker.Controllers
             }
         }
 
-        [Route("get-all-live-class/{batchId}")]
-        [HttpGet]
-        public async Task<IActionResult> GetLiveClassesByBatch(int batchId)
-        {
-            try
-            {
-                return await _businessLayer.GetLiveClassesByBatch(batchId);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-            }
-        }
-
+        
         [Route("delete-live-class/{liveClassId}")]
         [HttpDelete]
         public async Task<IActionResult> HardDeleteLiveClass(int liveClassId)
