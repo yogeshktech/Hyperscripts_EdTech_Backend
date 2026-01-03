@@ -19,130 +19,90 @@ namespace CareerCracker.DataBaseLayer
         {
             try
             {
-                using var con = new NpgsqlConnection(DbConnection);
+                await using var con = new NpgsqlConnection(DbConnection);
                 await con.OpenAsync();
 
                 Guid? userId = null;
 
-                // -------------------------------------------------------
-                // 1️⃣ Logged-in user → get userId
-                // -------------------------------------------------------
+                // 1️⃣ Get userId if logged in
                 if (!string.IsNullOrEmpty(userEmail))
                 {
-                    string userQuery = @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email""=@Email LIMIT 1";
+                    var userCmd = new NpgsqlCommand(
+                        @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email""=@Email LIMIT 1", con);
 
-                    using var cmd = new NpgsqlCommand(userQuery, con);
-                    cmd.Parameters.AddWithValue("@Email", userEmail);
+                    userCmd.Parameters.AddWithValue("@Email", userEmail);
 
-                    var result = await cmd.ExecuteScalarAsync();
+                    var result = await userCmd.ExecuteScalarAsync();
                     if (result != null)
                         userId = Guid.Parse(result.ToString());
                 }
 
-                // -------------------------------------------------------
                 // 2️⃣ Get course prices
-                // -------------------------------------------------------
-                string courseQuery = @"SELECT mrp_price, saling_price FROM courses WHERE id=@id";
-                decimal mrp = 0, sale = 0;
-                
-
-                using (var getCourse = new NpgsqlCommand(courseQuery, con))
+                decimal mrp, sale;
+                await using (var priceCmd = new NpgsqlCommand(
+                    @"SELECT mrp_price, saling_price FROM courses WHERE id=@id", con))
                 {
-                    getCourse.Parameters.AddWithValue("@id", courseId);
-                    using var rd = await getCourse.ExecuteReaderAsync();
+                    priceCmd.Parameters.AddWithValue("@id", courseId);
 
+                    await using var rd = await priceCmd.ExecuteReaderAsync();
                     if (!await rd.ReadAsync())
-                        return BadRequest(new { success = false, message = "Course not found!" });
+                        return BadRequest(new { success = false, message = "Course not found" });
 
                     mrp = rd.GetDecimal(0);
                     sale = rd.GetDecimal(1);
                 }
-                decimal dis = mrp - sale;
 
-                // -------------------------------------------------------
-                // 3️⃣ Merge guest cart → logged-in cart
-                // -------------------------------------------------------
+                decimal discount = mrp - sale;
+
+                // 3️⃣ Merge guest cart after login
                 if (userId.HasValue)
                 {
-                    string mergeQuery = @"
-                UPDATE cart_items 
+                    var mergeCmd = new NpgsqlCommand(@"
+                UPDATE cart_items
                 SET user_id = @uid, ip_address = NULL
-                WHERE ip_address = @ip AND user_id IS NULL AND is_active = TRUE";
+                WHERE ip_address = @ip AND user_id IS NULL AND is_active = TRUE", con);
 
-                    using var mergeCmd = new NpgsqlCommand(mergeQuery, con);
                     mergeCmd.Parameters.AddWithValue("@uid", userId.Value);
                     mergeCmd.Parameters.AddWithValue("@ip", ip ?? "");
 
                     await mergeCmd.ExecuteNonQueryAsync();
                 }
 
-                // -------------------------------------------------------
-                // 4️⃣ CHECK IF COURSE ALREADY IN CART
-                // -------------------------------------------------------
-                string checkQuery = @"
-            SELECT id 
-            FROM cart_items 
-            WHERE course_id = @pid
-            AND is_active = TRUE
-            AND (
-                    (user_id = @uid)
-                OR  (user_id IS NULL AND ip_address = @ip)
-                )
-            LIMIT 1";
+                // 4️⃣ Check if course already exists
+                var checkCmd = new NpgsqlCommand(@"
+            SELECT id FROM cart_items
+            WHERE course_id=@cid AND is_active=TRUE
+              AND (
+                    (user_id=@uid)
+                 OR (user_id IS NULL AND ip_address=@ip)
+              )
+            LIMIT 1", con);
 
-                int? existingId = null;
+                checkCmd.Parameters.AddWithValue("@cid", courseId);
+                checkCmd.Parameters.AddWithValue("@uid", (object?)userId ?? DBNull.Value);
+                checkCmd.Parameters.AddWithValue("@ip", (object?)ip ?? DBNull.Value);
 
-                using (var check = new NpgsqlCommand(checkQuery, con))
+                var exists = await checkCmd.ExecuteScalarAsync();
+                if (exists != null)
                 {
-                    check.Parameters.AddWithValue("@pid", courseId);
-                    check.Parameters.AddWithValue("@uid", (object?)userId ?? DBNull.Value);
-                    check.Parameters.AddWithValue("@ip", (object?)ip ?? DBNull.Value);
-
-                    var rd = await check.ExecuteScalarAsync();
-                    if (rd != null)
-                        existingId = Convert.ToInt32(rd);
+                    return Ok(new { success = false, message = "Course already in cart" });
                 }
 
-                // ⭐ If exists → do NOT update quantity (always 1)
-                if (existingId.HasValue)
-                {
-                    return Ok(new
-                    {
-                        success = false,
-                        message = "Course already in cart"
-                    });
-                }
+                // 5️⃣ Insert cart item
+                var insertCmd = new NpgsqlCommand(@"
+            INSERT INTO cart_items
+            (user_id, ip_address, course_id, quantity, price, discount, saling_price, is_active)
+            VALUES
+            (@uid, @ip, @cid, 1, @price, @discount, @sale, TRUE)", con);
 
-                // -------------------------------------------------------
-                // 5️⃣ INSERT NEW CART RECORD
-                // -------------------------------------------------------
-                string insert = @"
-            INSERT INTO cart_items 
-            (user_id, ip_address, course_id, quantity, price, discount, is_active, saling_price)
-            VALUES 
-            (@uid, @ip, @pid, 1, @price, @discount, TRUE,@saling_price)";
+                insertCmd.Parameters.AddWithValue("@uid", (object?)userId ?? DBNull.Value);
+                insertCmd.Parameters.AddWithValue("@ip", userId.HasValue ? DBNull.Value : ip ?? "");
+                insertCmd.Parameters.AddWithValue("@cid", courseId);
+                insertCmd.Parameters.AddWithValue("@price", mrp);
+                insertCmd.Parameters.AddWithValue("@discount", discount);
+                insertCmd.Parameters.AddWithValue("@sale", sale);
 
-                using var ins = new NpgsqlCommand(insert, con);
-
-                // ✔ If userId exists → save userId & NULL IP
-                if (userId.HasValue)
-                {
-                    ins.Parameters.AddWithValue("@uid", userId.Value);
-                    ins.Parameters.AddWithValue("@ip", DBNull.Value);
-                }
-                else
-                {
-                    // ✔ Guest (not logged-in) → save IP & NULL userId
-                    ins.Parameters.AddWithValue("@uid", DBNull.Value);
-                    ins.Parameters.AddWithValue("@ip", ip ?? "");
-                }
-
-                ins.Parameters.AddWithValue("@pid", courseId);
-                ins.Parameters.AddWithValue("@price", mrp);
-                ins.Parameters.AddWithValue("@discount", dis);
-                ins.Parameters.AddWithValue("@saling_price", sale);
-
-                await ins.ExecuteNonQueryAsync();
+                await insertCmd.ExecuteNonQueryAsync();
 
                 return Ok(new { success = true, message = "Course added to cart" });
             }
@@ -151,6 +111,7 @@ namespace CareerCracker.DataBaseLayer
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
+
 
         public async Task<IActionResult> GetToCart(string userEmail, string ip)
         {

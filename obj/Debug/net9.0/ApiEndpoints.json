@@ -522,22 +522,6 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "CareerCracker.Controllers.LiveClassesController",
-    "Method": "GetLiveClassesByBatch",
-    "RelativePath": "api/admin/get-all-live-class/{batchId}",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "batchId",
-        "Type": "System.Int32",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
     "ContainingType": "CareerCracker.Controllers.ReviewsController",
     "Method": "GetReviews",
     "RelativePath": "api/admin/get-all-review/{courseId}",
@@ -1583,6 +1567,22 @@
     "IsController": true,
     "Order": 0,
     "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.UserController",
+    "Method": "GetLiveClassesByBatch",
+    "RelativePath": "api/user/get-all-live-class/{batchId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "batchId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
     "ReturnTypes": []
   },
   {
