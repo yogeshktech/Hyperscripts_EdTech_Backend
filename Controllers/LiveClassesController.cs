@@ -19,9 +19,9 @@ namespace CareerCracker.Controllers
             
         }
 
-        [Route("add-live-class/{batchId}")]
+        [Route("add-live-class")]
         [HttpPost]
-        public async Task<IActionResult> CreateLiveClass(int batchId,IFormCollection form)
+        public async Task<IActionResult> CreateLiveClass(IFormCollection form)
         {
             try
             {
@@ -31,7 +31,7 @@ namespace CareerCracker.Controllers
                 {
                     return BadRequest(new {success = false, message = "Topic name is required!" });
                 }
-                return await _businessLayer.CreateLiveClass(batchId, form);
+                return await _businessLayer.CreateLiveClass( form);
             }
             catch (Exception ex)
             {

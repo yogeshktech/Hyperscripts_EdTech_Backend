@@ -417,7 +417,7 @@ namespace CareerCracker.DataBaseLayer
             return Ok(new { success = true, data = batches });
         }
 
-    public async Task<IActionResult> UpdateBatch(int batchId, IFormCollection form)
+        public async Task<IActionResult> UpdateBatch(int batchId, IFormCollection form)
     {
         try
         {
@@ -637,8 +637,7 @@ namespace CareerCracker.DataBaseLayer
         }
     }
 
-
-    public async Task<IActionResult> DeleteBatchs(int batchId)
+        public async Task<IActionResult> DeleteBatchs(int batchId)
         {
             try
             {

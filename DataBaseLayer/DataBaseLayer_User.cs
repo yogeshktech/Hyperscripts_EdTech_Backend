@@ -9,6 +9,7 @@ namespace CareerCracker.DataBaseLayer
         Task<IActionResult> MyBatch(int courseId, string userEmail);
         Task<IActionResult> DeleteUser(IFormCollection form);
         Task<IActionResult> UpdateUser(Guid userId, IFormCollection form);
+        Task<IActionResult> UpdateUserDetailByUserId(string userEmail, IFormCollection form);
     }
 
     public partial interface IDataBaseLayer : IDataBaseLayer_User { }
@@ -331,5 +332,29 @@ namespace CareerCracker.DataBaseLayer
             }
         }
 
+        public async Task<IActionResult> UpdateUserDetailByUserId(string userEmail, IFormCollection form)
+        {
+            try
+            {
+                var firstName = form["firstName"];
+                var lastName = form["last_name"];
+                var phoneNumber = form["phone_number"];
+                var position = form["position"];
+                var experience = form["experience"];
+                var specialization = form["specialization"];
+                var profileImage = form["profile_image"];
+                var gender = form["gender"];
+                var address = form["user_address"];
+                var dob = form["dob"];
+                var subject = form["subject"];
+                var salary = form["salary"];
+
+                return Ok(phoneNumber);
+            }
+            catch(Exception ex)
+            {
+                return new BadRequestObjectResult(new { success = false, message = ex.Message });
+            }
+        }
     }
 }

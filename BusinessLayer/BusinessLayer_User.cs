@@ -8,6 +8,7 @@ namespace CareerCracker.BusinessLayer
         Task<IActionResult> MyBatch(int courseId,string userEmail);
         Task<IActionResult> DeleteUser(IFormCollection form);
         Task<IActionResult> UpdateUser(Guid userId, IFormCollection form);
+        Task<IActionResult> UpdateUserDetailByUserId(string userEmail,IFormCollection form);
     }
 
     public partial interface IBusinessLayer : IBusinessLayer_User { }
@@ -30,6 +31,11 @@ namespace CareerCracker.BusinessLayer
         public async Task<IActionResult> UpdateUser(Guid userId, IFormCollection form)
         {
             return await _dataBaseLayer.UpdateUser(userId, form);
+        }
+
+        public async Task<IActionResult> UpdateUserDetailByUserId(string userEmail,IFormCollection form)
+        {
+            return await _dataBaseLayer.UpdateUserDetailByUserId(userEmail,form);
         }
     }
 }

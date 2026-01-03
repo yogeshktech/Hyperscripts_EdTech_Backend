@@ -6,7 +6,7 @@ namespace CareerCracker.DataBaseLayer
 {
     public interface IDataBaseLayer_LiveClasses
     {
-        Task<IActionResult> CreateLiveClass(int batchId, IFormCollection form);
+        Task<IActionResult> CreateLiveClass( IFormCollection form);
         Task<IActionResult> UpdateLiveClass(int liveClassId, IFormCollection form);
         Task<IActionResult> UpdateRecordingClass(int liveClassId, IFormCollection form);
         Task<IActionResult> GetRecordingClass(int batchId);
@@ -24,14 +24,16 @@ namespace CareerCracker.DataBaseLayer
 
     public partial class DataBaseLayer
     {
-        public async Task<IActionResult> CreateLiveClass(int batchId, IFormCollection form)
+        public async Task<IActionResult> CreateLiveClass( IFormCollection form)
         {
             await using var con = new NpgsqlConnection(DbConnection);
             await con.OpenAsync();
             await using var tran = await con.BeginTransactionAsync();
 
+
             try
             {
+                var batchId = form["batch_id"];
                 // ==================================================
                 // 1️⃣ VALIDATE BATCH EXISTS
                 // ==================================================
