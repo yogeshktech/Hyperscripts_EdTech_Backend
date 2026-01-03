@@ -417,182 +417,228 @@ namespace CareerCracker.DataBaseLayer
             return Ok(new { success = true, data = batches });
         }
 
-        public async Task<IActionResult> UpdateBatch(int batchId, IFormCollection form)
+    public async Task<IActionResult> UpdateBatch(int batchId, IFormCollection form)
+    {
+        try
         {
-            try
+            await using var con = new NpgsqlConnection(DbConnection);
+            await con.OpenAsync();
+
+            var updates = new List<string>();
+            var parameters = new List<NpgsqlParameter>();
+
+            // ===============================
+            // 1️⃣ TEXT FIELDS
+            // ===============================
+            if (!string.IsNullOrWhiteSpace(form["batch_name"]))
             {
-                using var con = new NpgsqlConnection(DbConnection);
-                await con.OpenAsync();
+                updates.Add("batch_name = @batch_name");
+                parameters.Add(new NpgsqlParameter("@batch_name", form["batch_name"].ToString()));
+            }
 
-                var updates = new List<string>();
-                var parameters = new List<NpgsqlParameter>();
-
-                // ===============================
-                // 1️⃣ TEXT / BASIC FIELDS
-                // ===============================
-                if (!string.IsNullOrWhiteSpace(form["batch_name"]))
-                {
-                    updates.Add("batch_name = @batch_name");
-                    parameters.Add(new NpgsqlParameter("@batch_name", form["batch_name"].ToString()));
-                }
-
-                if (!string.IsNullOrWhiteSpace(form["start_date"]))
-                {
-                    updates.Add("start_date = @start_date");
-                    parameters.Add(new NpgsqlParameter("@start_date", DateTime.Parse(form["start_date"])));
-                }
-
-                if (!string.IsNullOrWhiteSpace(form["end_date"]))
-                {
-                    updates.Add("end_date = @end_date");
-                    parameters.Add(new NpgsqlParameter("@end_date", DateTime.Parse(form["end_date"])));
-                }
-
-                if (!string.IsNullOrWhiteSpace(form["start_time"]))
-                {
-                    updates.Add("start_time = @start_time");
-                    parameters.Add(new NpgsqlParameter("@start_time", TimeSpan.Parse(form["start_time"])));
-                }
-
-                if (!string.IsNullOrWhiteSpace(form["end_time"]))
-                {
-                    updates.Add("end_time = @end_time");
-                    parameters.Add(new NpgsqlParameter("@end_time", TimeSpan.Parse(form["end_time"])));
-                }
-
-                if (!string.IsNullOrWhiteSpace(form["max_students"]))
-                {
-                    updates.Add("max_students = @max_students");
-                    parameters.Add(new NpgsqlParameter("@max_students", int.Parse(form["max_students"])));
-                }
-
-                if (!string.IsNullOrWhiteSpace(form["is_active"]))
-                {
-                    updates.Add("is_active = @is_active");
-                    parameters.Add(new NpgsqlParameter("@is_active", bool.Parse(form["is_active"])));
-                }
-
-                // ===============================
-                // 2️⃣ IMAGE UPDATE (SAFE)
-                // ===============================
-                var file = form.Files["batch_image"];
-                if (file != null && file.Length > 0)
-                {
-                    // Get existing image safely (NULL safe)
-                    string? oldImage = null;
-
-                    using (var imgCmd = new NpgsqlCommand(
-                        "SELECT batch_image FROM batches WHERE id = @id", con))
-                    {
-                        imgCmd.Parameters.AddWithValue("@id", batchId);
-
-                        var result = await imgCmd.ExecuteScalarAsync();
-                        oldImage = result == DBNull.Value ? null : result?.ToString();
-                    }
-
-                    // Delete old image if exists
-                    if (!string.IsNullOrEmpty(oldImage))
-                    {
-                        var oldPath = Path.Combine(
-                            Directory.GetCurrentDirectory(),
-                            "wwwroot",
-                            oldImage.TrimStart('/')
-                        );
-
-                        if (System.IO.File.Exists(oldPath))
-                            System.IO.File.Delete(oldPath);
-                    }
-
-                    // Save new image
-                    var folderPath = Path.Combine("wwwroot", "uploads", "batches");
-                    Directory.CreateDirectory(folderPath);
-
-                    var ext = Path.GetExtension(file.FileName).ToLower();
-                    var allowedExt = new[] { ".jpg", ".jpeg", ".png", ".webp" };
-
-                    if (!allowedExt.Contains(ext))
-                    {
-                        return BadRequest(new
-                        {
-                            success = false,
-                            message = "Only JPG, PNG, WEBP images allowed"
-                        });
-                    }
-
-                    if (file.Length > 2 * 1024 * 1024)
-                    {
-                        return BadRequest(new
-                        {
-                            success = false,
-                            message = "Image size must be less than 2MB"
-                        });
-                    }
-
-                    var fileName = $"{Guid.NewGuid()}{ext}";
-                    var newImagePath = Path.Combine(folderPath, fileName);
-
-                    using var stream = new FileStream(newImagePath, FileMode.Create);
-                    await file.CopyToAsync(stream);
-
-                    updates.Add("batch_image = @batch_image");
-                    parameters.Add(
-                        new NpgsqlParameter("@batch_image", $"/uploads/batches/{fileName}")
-                    );
-                }
-
-                // ===============================
-                // 3️⃣ NO FIELDS CHECK
-                // ===============================
-                if (updates.Count == 0)
+            // ===============================
+            // 2️⃣ DATE FIELDS (FIXED)
+            // ===============================
+            if (!string.IsNullOrWhiteSpace(form["start_date"]))
+            {
+                if (!DateTime.TryParseExact(
+                        form["start_date"],
+                        "dd-MM-yyyy",
+                        CultureInfo.InvariantCulture,
+                        DateTimeStyles.None,
+                        out DateTime startDate))
                 {
                     return BadRequest(new
                     {
                         success = false,
-                        message = "No fields provided to update"
+                        message = "Invalid start_date format. Use dd-MM-yyyy"
                     });
                 }
 
-                // ===============================
-                // 4️⃣ UPDATE QUERY
-                // ===============================
-                string query = $@"
+                updates.Add("start_date = @start_date");
+                parameters.Add(new NpgsqlParameter("@start_date", startDate));
+            }
+
+            if (!string.IsNullOrWhiteSpace(form["end_date"]))
+            {
+                if (!DateTime.TryParseExact(
+                        form["end_date"],
+                        "dd-MM-yyyy",
+                        CultureInfo.InvariantCulture,
+                        DateTimeStyles.None,
+                        out DateTime endDate))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Invalid end_date format. Use dd-MM-yyyy"
+                    });
+                }
+
+                updates.Add("end_date = @end_date");
+                parameters.Add(new NpgsqlParameter("@end_date", endDate));
+            }
+
+            // ===============================
+            // 3️⃣ TIME FIELDS
+            // ===============================
+            if (!string.IsNullOrWhiteSpace(form["start_time"]))
+            {
+                if (!TimeSpan.TryParse(form["start_time"], out TimeSpan st))
+                    return BadRequest(new { success = false, message = "Invalid start_time" });
+
+                updates.Add("start_time = @start_time");
+                parameters.Add(new NpgsqlParameter("@start_time", st));
+            }
+
+            if (!string.IsNullOrWhiteSpace(form["end_time"]))
+            {
+                if (!TimeSpan.TryParse(form["end_time"], out TimeSpan et))
+                    return BadRequest(new { success = false, message = "Invalid end_time" });
+
+                updates.Add("end_time = @end_time");
+                parameters.Add(new NpgsqlParameter("@end_time", et));
+            }
+
+            // ===============================
+            // 4️⃣ OTHER FIELDS
+            // ===============================
+            if (!string.IsNullOrWhiteSpace(form["max_students"]))
+            {
+                if (!int.TryParse(form["max_students"], out int max))
+                    return BadRequest(new { success = false, message = "Invalid max_students" });
+
+                updates.Add("max_students = @max_students");
+                parameters.Add(new NpgsqlParameter("@max_students", max));
+            }
+
+            if (!string.IsNullOrWhiteSpace(form["is_active"]))
+            {
+                if (!bool.TryParse(form["is_active"], out bool active))
+                    return BadRequest(new { success = false, message = "Invalid is_active" });
+
+                updates.Add("is_active = @is_active");
+                parameters.Add(new NpgsqlParameter("@is_active", active));
+            }
+
+            // ===============================
+            // 5️⃣ IMAGE UPDATE
+            // ===============================
+            var file = form.Files["batch_image"];
+            if (file != null && file.Length > 0)
+            {
+                string? oldImage = null;
+
+                await using (var imgCmd = new NpgsqlCommand(
+                    "SELECT batch_image FROM batches WHERE id = @id", con))
+                {
+                    imgCmd.Parameters.AddWithValue("@id", batchId);
+                    var result = await imgCmd.ExecuteScalarAsync();
+                    oldImage = result == DBNull.Value ? null : result?.ToString();
+                }
+
+                if (!string.IsNullOrEmpty(oldImage))
+                {
+                    var oldPath = Path.Combine(
+                        Directory.GetCurrentDirectory(),
+                        "wwwroot",
+                        oldImage.TrimStart('/')
+                    );
+
+                    if (System.IO.File.Exists(oldPath))
+                        System.IO.File.Delete(oldPath);
+                }
+
+                var uploadDir = Path.Combine("wwwroot", "uploads", "batches");
+                Directory.CreateDirectory(uploadDir);
+
+                var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+                var allowedExt = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+
+                if (!allowedExt.Contains(ext))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Only JPG, PNG, WEBP images allowed"
+                    });
+                }
+
+                if (file.Length > 2 * 1024 * 1024)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Image size must be less than 2MB"
+                    });
+                }
+
+                var fileName = $"{Guid.NewGuid()}{ext}";
+                var fullPath = Path.Combine(uploadDir, fileName);
+
+                using var stream = new FileStream(fullPath, FileMode.Create);
+                await file.CopyToAsync(stream);
+
+                updates.Add("batch_image = @batch_image");
+                parameters.Add(
+                    new NpgsqlParameter("@batch_image", $"/uploads/batches/{fileName}")
+                );
+            }
+
+            // ===============================
+            // 6️⃣ NO UPDATE CHECK
+            // ===============================
+            if (updates.Count == 0)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "No fields provided to update"
+                });
+            }
+
+            // ===============================
+            // 7️⃣ UPDATE QUERY
+            // ===============================
+            string query = $@"
             UPDATE batches
             SET {string.Join(", ", updates)}
             WHERE id = @batchId
         ";
 
-                using var cmd = new NpgsqlCommand(query, con);
-                cmd.Parameters.AddWithValue("@batchId", batchId);
-                cmd.Parameters.AddRange(parameters.ToArray());
+            await using var cmd = new NpgsqlCommand(query, con);
+            cmd.Parameters.AddWithValue("@batchId", batchId);
+            cmd.Parameters.AddRange(parameters.ToArray());
 
-                int rows = await cmd.ExecuteNonQueryAsync();
+            int rows = await cmd.ExecuteNonQueryAsync();
 
-                if (rows == 0)
-                {
-                    return NotFound(new
-                    {
-                        success = false,
-                        message = "Batch not found"
-                    });
-                }
-
-                return Ok(new
-                {
-                    success = true,
-                    message = "Batch updated successfully"
-                });
-            }
-            catch (Exception ex)
+            if (rows == 0)
             {
-                return BadRequest(new
+                return NotFound(new
                 {
                     success = false,
-                    message = ex.Message
+                    message = "Batch not found"
                 });
             }
-        }
 
-        public async Task<IActionResult> DeleteBatchs(int batchId)
+            return Ok(new
+            {
+                success = true,
+                message = "Batch updated successfully"
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new
+            {
+                success = false,
+                message = ex.Message
+            });
+        }
+    }
+
+
+    public async Task<IActionResult> DeleteBatchs(int batchId)
         {
             try
             {
