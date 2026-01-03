@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using System.Data.Common;
+using System.Globalization;
 
 namespace CareerCracker.DataBaseLayer
 {
@@ -134,41 +135,103 @@ namespace CareerCracker.DataBaseLayer
                 if (string.IsNullOrWhiteSpace(form["batch_name"]))
                     return BadRequest(new { success = false, message = "batch_name is required" });
 
-                int courseId = int.Parse(form["course_id"]);
-                string batchName = form["batch_name"];
-                DateTime startDate = DateTime.Parse(form["start_date"]);
-
-                DateTime? endDate = string.IsNullOrEmpty(form["end_date"])
-                    ? null
-                    : DateTime.Parse(form["end_date"]);
-
-                TimeSpan? startTime = string.IsNullOrEmpty(form["start_time"])
-                    ? null
-                    : TimeSpan.Parse(form["start_time"]);
-
-                TimeSpan? endTime = string.IsNullOrEmpty(form["end_time"])
-                    ? null
-                    : TimeSpan.Parse(form["end_time"]);
-
-                int? maxStudents = string.IsNullOrEmpty(form["max_students"])
-                    ? null
-                    : int.Parse(form["max_students"]);
+                if (string.IsNullOrWhiteSpace(form["start_date"]))
+                    return BadRequest(new { success = false, message = "start_date is required" });
 
                 // ===============================
-                // 2️⃣ IMAGE UPLOAD
+                // 2️⃣ PARSE BASIC FIELDS
+                // ===============================
+                if (!int.TryParse(form["course_id"], out int courseId))
+                    return BadRequest(new { success = false, message = "Invalid course_id" });
+
+                string batchName = form["batch_name"];
+
+                // ===============================
+                // 3️⃣ DATE PARSING (FIXED)
+                // ===============================
+                if (!DateTime.TryParseExact(
+                        form["start_date"],
+                        "dd-MM-yyyy",
+                        CultureInfo.InvariantCulture,
+                        DateTimeStyles.None,
+                        out DateTime startDate))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Invalid start_date format. Use dd-MM-yyyy"
+                    });
+                }
+
+                DateTime? endDate = null;
+                if (!string.IsNullOrEmpty(form["end_date"]))
+                {
+                    if (!DateTime.TryParseExact(
+                            form["end_date"],
+                            "dd-MM-yyyy",
+                            CultureInfo.InvariantCulture,
+                            DateTimeStyles.None,
+                            out DateTime parsedEndDate))
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Invalid end_date format. Use dd-MM-yyyy"
+                        });
+                    }
+                    endDate = parsedEndDate;
+                }
+
+                // ===============================
+                // 4️⃣ TIME PARSING
+                // ===============================
+                TimeSpan? startTime = null;
+                if (!string.IsNullOrEmpty(form["start_time"]))
+                {
+                    if (!TimeSpan.TryParse(form["start_time"], out TimeSpan st))
+                        return BadRequest(new { success = false, message = "Invalid start_time" });
+
+                    startTime = st;
+                }
+
+                TimeSpan? endTime = null;
+                if (!string.IsNullOrEmpty(form["end_time"]))
+                {
+                    if (!TimeSpan.TryParse(form["end_time"], out TimeSpan et))
+                        return BadRequest(new { success = false, message = "Invalid end_time" });
+
+                    endTime = et;
+                }
+
+                int? maxStudents = null;
+                if (!string.IsNullOrEmpty(form["max_students"]))
+                {
+                    if (!int.TryParse(form["max_students"], out int max))
+                        return BadRequest(new { success = false, message = "Invalid max_students" });
+
+                    maxStudents = max;
+                }
+
+                // ===============================
+                // 5️⃣ IMAGE UPLOAD
                 // ===============================
                 string? imagePath = null;
                 var file = form.Files["batch_image"];
 
                 if (file != null && file.Length > 0)
                 {
-                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/batches");
+                    var uploadDir = Path.Combine(
+                        Directory.GetCurrentDirectory(),
+                        "wwwroot",
+                        "uploads",
+                        "batches"
+                    );
 
-                    if (!Directory.Exists(uploadsFolder))
-                        Directory.CreateDirectory(uploadsFolder);
+                    if (!Directory.Exists(uploadDir))
+                        Directory.CreateDirectory(uploadDir);
 
                     var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
-                    var fullPath = Path.Combine(uploadsFolder, fileName);
+                    var fullPath = Path.Combine(uploadDir, fileName);
 
                     using var stream = new FileStream(fullPath, FileMode.Create);
                     await file.CopyToAsync(stream);
@@ -176,51 +239,70 @@ namespace CareerCracker.DataBaseLayer
                     imagePath = $"/uploads/batches/{fileName}";
                 }
 
-                using var con = new NpgsqlConnection(DbConnection);
+                await using var con = new NpgsqlConnection(DbConnection);
                 await con.OpenAsync();
 
                 // ===============================
-                // 3️⃣ CHECK EXISTING BATCH
+                // 6️⃣ CHECK EXISTING BATCH
                 // ===============================
-                using (var checkCmd = new NpgsqlCommand(@"
-            SELECT id FROM batches
+                await using (var checkCmd = new NpgsqlCommand(@"
+            SELECT id 
+            FROM batches 
             WHERE batch_name = @batch_name AND is_active = TRUE
             LIMIT 1
         ", con))
                 {
                     checkCmd.Parameters.AddWithValue("@batch_name", batchName);
-                    var existingBatchId = await checkCmd.ExecuteScalarAsync();
 
-                    if (existingBatchId != null)
+                    var existingId = await checkCmd.ExecuteScalarAsync();
+                    if (existingId != null)
                     {
                         return Ok(new
                         {
                             success = true,
                             message = "Batch already exists",
-                            batch_id = Convert.ToInt32(existingBatchId)
+                            batch_id = Convert.ToInt32(existingId)
                         });
                     }
                 }
 
                 // ===============================
-                // 4️⃣ CREATE NEW BATCH
+                // 7️⃣ INSERT NEW BATCH
                 // ===============================
-                using var cmd = new NpgsqlCommand(@"
+                await using var cmd = new NpgsqlCommand(@"
             INSERT INTO batches
-            (course_id, batch_name, start_date, end_date, start_time, end_time, max_students, batch_image)
+            (
+                course_id,
+                batch_name,
+                start_date,
+                end_date,
+                start_time,
+                end_time,
+                max_students,
+                batch_image
+            )
             VALUES
-            (@courseId, @batchName, @startDate, @endDate, @startTime, @endTime, @maxStudents, @batchImage)
+            (
+                @course_id,
+                @batch_name,
+                @start_date,
+                @end_date,
+                @start_time,
+                @end_time,
+                @max_students,
+                @batch_image
+            )
             RETURNING id
         ", con);
 
-                cmd.Parameters.AddWithValue("@courseId", courseId);
-                cmd.Parameters.AddWithValue("@batchName", batchName);
-                cmd.Parameters.AddWithValue("@startDate", startDate);
-                cmd.Parameters.AddWithValue("@endDate", endDate ?? (object)DBNull.Value);
-                cmd.Parameters.AddWithValue("@startTime", startTime ?? (object)DBNull.Value);
-                cmd.Parameters.AddWithValue("@endTime", endTime ?? (object)DBNull.Value);
-                cmd.Parameters.AddWithValue("@maxStudents", maxStudents ?? (object)DBNull.Value);
-                cmd.Parameters.AddWithValue("@batchImage", imagePath ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@course_id", courseId);
+                cmd.Parameters.AddWithValue("@batch_name", batchName);
+                cmd.Parameters.AddWithValue("@start_date", startDate);
+                cmd.Parameters.AddWithValue("@end_date", endDate ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@start_time", startTime ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@end_time", endTime ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@max_students", maxStudents ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue("@batch_image", imagePath ?? (object)DBNull.Value);
 
                 int batchId = Convert.ToInt32(await cmd.ExecuteScalarAsync());
 
