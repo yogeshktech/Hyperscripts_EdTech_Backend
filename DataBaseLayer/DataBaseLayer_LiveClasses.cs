@@ -24,89 +24,120 @@ namespace CareerCracker.DataBaseLayer
 
     public partial class DataBaseLayer
     {
-        public async Task<IActionResult> CreateLiveClass( IFormCollection form)
+        public async Task<IActionResult> CreateLiveClass(IFormCollection form)
         {
             await using var con = new NpgsqlConnection(DbConnection);
             await con.OpenAsync();
             await using var tran = await con.BeginTransactionAsync();
 
-
             try
             {
-                var batchId = form["batch_id"];
-                // ==================================================
-                // 1️⃣ VALIDATE BATCH EXISTS
-                // ==================================================
+                // ===============================
+                // 1️⃣ READ & VALIDATE FORM DATA
+                // ===============================
+
+                string topic = form["topic_name"].FirstOrDefault();
+                string meetingLink = form["meeting_link"].FirstOrDefault();
+                string recordingLink = form["recording_link"].FirstOrDefault();
+
+                // batch_id (INT)
+                if (!int.TryParse(form["batch_id"].FirstOrDefault(), out int batchId))
+                {
+                    return BadRequest(new { success = false, message = "Invalid batch_id" });
+                }
+
+                // class_date (DATE)
+                if (!DateTime.TryParse(form["class_date"].FirstOrDefault(), out DateTime classDate))
+                {
+                    return BadRequest(new { success = false, message = "Invalid class_date" });
+                }
+
+                // start_time (TIME)
+                if (!TimeSpan.TryParse(form["start_time"].FirstOrDefault(), out TimeSpan startTime))
+                {
+                    return BadRequest(new { success = false, message = "Invalid start_time" });
+                }
+
+                // end_time (TIME)
+                if (!TimeSpan.TryParse(form["end_time"].FirstOrDefault(), out TimeSpan endTime))
+                {
+                    return BadRequest(new { success = false, message = "Invalid end_time" });
+                }
+
+                if (string.IsNullOrWhiteSpace(topic))
+                {
+                    return BadRequest(new { success = false, message = "Topic is required" });
+                }
+
+                // ===============================
+                // 2️⃣ VALIDATE BATCH EXISTS
+                // ===============================
                 await using (var batchCmd = new NpgsqlCommand(
-                    @"SELECT COUNT(1) FROM batches WHERE id = @batchId",
+                    @"SELECT 1 FROM batches WHERE id = @batchId",
                     con, tran))
                 {
-                    batchCmd.Parameters.AddWithValue("@batchId", batchId);
+                    batchCmd.Parameters.Add("@batchId", NpgsqlTypes.NpgsqlDbType.Integer)
+                                       .Value = batchId;
 
-                    var exists = Convert.ToInt32(await batchCmd.ExecuteScalarAsync());
-
-                    if (exists == 0)
+                    var exists = await batchCmd.ExecuteScalarAsync();
+                    if (exists == null)
                     {
                         await tran.RollbackAsync();
                         return BadRequest(new
                         {
                             success = false,
-                            message = "Invalid batchId. Batch does not exist."
+                            message = "Batch does not exist"
                         });
                     }
                 }
 
-                // ==================================================
-                // 2️⃣ READ FORM VALUES
-                // ==================================================
-                var topicName = form["topic_name"].FirstOrDefault();
-                var classDate = form["class_date"].FirstOrDefault();
-                var startTime = form["start_time"].FirstOrDefault();
-                var endTime = form["end_time"].FirstOrDefault();
-                var meetingLink = form["meeting_link"].FirstOrDefault();
-
-                // ==================================================
+                // ===============================
                 // 3️⃣ INSERT LIVE CLASS
-                // ==================================================
-                await using var cmd = new NpgsqlCommand(@"
+                // ===============================
+                await using (var insertCmd = new NpgsqlCommand(@"
             INSERT INTO live_classes
-            (batch_id, topic, class_date, start_time, end_time, meeting_link, created_at)
+            (
+                batch_id,
+                topic,
+                class_date,
+                start_time,
+                end_time,
+                meeting_link,
+                recording_link,
+                created_at
+            )
             VALUES
-            (@batchId, @topic, @classDate, @startTime, @endTime, @meetingLink, NOW())
-            RETURNING id;
-        ", con, tran);
+            (
+                @batch_id,
+                @topic,
+                @class_date,
+                @start_time,
+                @end_time,
+                @meeting_link,
+                @recording_link,
+                NOW()
+            )", con, tran))
+                {
+                    insertCmd.Parameters.AddWithValue("@batch_id", batchId);
+                    insertCmd.Parameters.AddWithValue("@topic", topic);
+                    insertCmd.Parameters.AddWithValue("@class_date", classDate.Date);
+                    insertCmd.Parameters.AddWithValue("@start_time", startTime);
+                    insertCmd.Parameters.AddWithValue("@end_time", endTime);
+                    insertCmd.Parameters.AddWithValue("@meeting_link", meetingLink ?? (object)DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@recording_link", recordingLink ?? (object)DBNull.Value);
 
-                cmd.Parameters.AddWithValue("@batchId", batchId);
-                cmd.Parameters.AddWithValue("@topic",
-                    string.IsNullOrWhiteSpace(topicName) ? DBNull.Value : topicName);
+                    await insertCmd.ExecuteNonQueryAsync();
+                }
 
-                cmd.Parameters.AddWithValue("@classDate",
-                    string.IsNullOrWhiteSpace(classDate)
-                        ? DBNull.Value
-                        : DateTime.Parse(classDate));
-
-                cmd.Parameters.AddWithValue("@startTime",
-                    string.IsNullOrWhiteSpace(startTime)
-                        ? DBNull.Value
-                        : TimeSpan.Parse(startTime));
-
-                cmd.Parameters.AddWithValue("@endTime",
-                    string.IsNullOrWhiteSpace(endTime)
-                        ? DBNull.Value
-                        : TimeSpan.Parse(endTime));
-
-                cmd.Parameters.AddWithValue("@meetingLink",
-                    string.IsNullOrWhiteSpace(meetingLink) ? DBNull.Value : meetingLink);
-
-                int liveClassId = Convert.ToInt32(await cmd.ExecuteScalarAsync());
-
+                // ===============================
+                // 4️⃣ COMMIT
+                // ===============================
                 await tran.CommitAsync();
 
                 return Ok(new
                 {
                     success = true,
-                    message = "Live class created successfully",
-                    liveClassId
+                    message = "Live class created successfully"
                 });
             }
             catch (Exception ex)

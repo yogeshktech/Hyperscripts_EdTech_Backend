@@ -66,16 +66,11 @@
   {
     "ContainingType": "CareerCracker.Controllers.LiveClassesController",
     "Method": "CreateLiveClass",
-    "RelativePath": "api/admin/add-live-class/{batchId}",
+    "RelativePath": "api/admin/add-live-class",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
     "Parameters": [
-      {
-        "Name": "batchId",
-        "Type": "System.Int32",
-        "IsRequired": true
-      },
       {
         "Name": "form",
         "Type": "Microsoft.AspNetCore.Http.IFormCollection",
