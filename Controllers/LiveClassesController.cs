@@ -109,7 +109,25 @@ namespace CareerCracker.Controllers
             }
         }
 
-        
+        [Route("live-class-status/{liveclassid}")]
+        [HttpPut]
+        public async Task<IActionResult> LiveClassesStatus(int liveclassid)
+        {
+            try
+            {
+                return await _businessLayer.LiveClassesStatus(liveclassid);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
+
         [Route("delete-live-class/{liveClassId}")]
         [HttpDelete]
         public async Task<IActionResult> HardDeleteLiveClass(int liveClassId)

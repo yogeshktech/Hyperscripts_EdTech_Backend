@@ -775,6 +775,22 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.LiveClassesController",
+    "Method": "LiveClassesStatus",
+    "RelativePath": "api/admin/live-class-status/{liveclassid}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "liveclassid",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.BatchController",
     "Method": "NewBatch",
     "RelativePath": "api/admin/new-batch",

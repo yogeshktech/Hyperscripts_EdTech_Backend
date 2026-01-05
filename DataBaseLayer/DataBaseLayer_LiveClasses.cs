@@ -11,6 +11,7 @@ namespace CareerCracker.DataBaseLayer
         Task<IActionResult> UpdateRecordingClass(int liveClassId, IFormCollection form);
         Task<IActionResult> GetRecordingClass(int batchId);
         Task<IActionResult> GetAllLiveClasses();
+        Task<IActionResult> LiveClassesStatus(int liveclassid);
         Task<IActionResult> GetLiveClassesByBatch(int batchId);
         Task<IActionResult> HardDeleteLiveClass(int liveClassId);
         Task<IActionResult> CreateLiveClassAttendance(int liveClassId, string userEmail);
@@ -33,66 +34,72 @@ namespace CareerCracker.DataBaseLayer
             try
             {
                 // ===============================
-                // 1️⃣ READ & VALIDATE FORM DATA
+                // 1️⃣ READ FORM DATA
                 // ===============================
-
                 string topic = form["topic_name"].FirstOrDefault();
                 string meetingLink = form["meeting_link"].FirstOrDefault();
                 string recordingLink = form["recording_link"].FirstOrDefault();
 
-                // batch_id (INT)
                 if (!int.TryParse(form["batch_id"].FirstOrDefault(), out int batchId))
-                {
                     return BadRequest(new { success = false, message = "Invalid batch_id" });
-                }
 
-                // class_date (DATE)
                 if (!DateTime.TryParse(form["class_date"].FirstOrDefault(), out DateTime classDate))
-                {
                     return BadRequest(new { success = false, message = "Invalid class_date" });
-                }
 
-                // start_time (TIME)
                 if (!TimeSpan.TryParse(form["start_time"].FirstOrDefault(), out TimeSpan startTime))
-                {
                     return BadRequest(new { success = false, message = "Invalid start_time" });
-                }
 
-                // end_time (TIME)
                 if (!TimeSpan.TryParse(form["end_time"].FirstOrDefault(), out TimeSpan endTime))
-                {
                     return BadRequest(new { success = false, message = "Invalid end_time" });
-                }
 
                 if (string.IsNullOrWhiteSpace(topic))
-                {
                     return BadRequest(new { success = false, message = "Topic is required" });
+
+                // ===============================
+                // 2️⃣ IMAGE UPLOAD
+                // ===============================
+                string imagePath = null;
+                var imageFile = form.Files.FirstOrDefault(f => f.Name == "image");
+
+                if (imageFile != null && imageFile.Length > 0)
+                {
+                    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+                    var ext = Path.GetExtension(imageFile.FileName).ToLower();
+
+                    if (!allowedExtensions.Contains(ext))
+                        return BadRequest(new { success = false, message = "Invalid image format" });
+
+                    var fileName = $"{Guid.NewGuid()}{ext}";
+                    var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/live-classes");
+
+                    if (!Directory.Exists(folderPath))
+                        Directory.CreateDirectory(folderPath);
+
+                    var fullPath = Path.Combine(folderPath, fileName);
+
+                    using var stream = new FileStream(fullPath, FileMode.Create);
+                    await imageFile.CopyToAsync(stream);
+
+                    imagePath = $"/live-classes/{fileName}";
                 }
 
                 // ===============================
-                // 2️⃣ VALIDATE BATCH EXISTS
+                // 3️⃣ VALIDATE BATCH
                 // ===============================
                 await using (var batchCmd = new NpgsqlCommand(
-                    @"SELECT 1 FROM batches WHERE id = @batchId",
+                    "SELECT 1 FROM batches WHERE id = @batchId",
                     con, tran))
                 {
-                    batchCmd.Parameters.Add("@batchId", NpgsqlTypes.NpgsqlDbType.Integer)
-                                       .Value = batchId;
-
-                    var exists = await batchCmd.ExecuteScalarAsync();
-                    if (exists == null)
+                    batchCmd.Parameters.AddWithValue("@batchId", batchId);
+                    if (await batchCmd.ExecuteScalarAsync() == null)
                     {
                         await tran.RollbackAsync();
-                        return BadRequest(new
-                        {
-                            success = false,
-                            message = "Batch does not exist"
-                        });
+                        return BadRequest(new { success = false, message = "Batch does not exist" });
                     }
                 }
 
                 // ===============================
-                // 3️⃣ INSERT LIVE CLASS
+                // 4️⃣ INSERT LIVE CLASS
                 // ===============================
                 await using (var insertCmd = new NpgsqlCommand(@"
             INSERT INTO live_classes
@@ -104,6 +111,7 @@ namespace CareerCracker.DataBaseLayer
                 end_time,
                 meeting_link,
                 recording_link,
+                image_path,
                 created_at
             )
             VALUES
@@ -115,6 +123,7 @@ namespace CareerCracker.DataBaseLayer
                 @end_time,
                 @meeting_link,
                 @recording_link,
+                @image,
                 NOW()
             )", con, tran))
                 {
@@ -125,75 +134,133 @@ namespace CareerCracker.DataBaseLayer
                     insertCmd.Parameters.AddWithValue("@end_time", endTime);
                     insertCmd.Parameters.AddWithValue("@meeting_link", meetingLink ?? (object)DBNull.Value);
                     insertCmd.Parameters.AddWithValue("@recording_link", recordingLink ?? (object)DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@image", imagePath ?? (object)DBNull.Value);
 
                     await insertCmd.ExecuteNonQueryAsync();
                 }
 
-                // ===============================
-                // 4️⃣ COMMIT
-                // ===============================
                 await tran.CommitAsync();
 
                 return Ok(new
                 {
                     success = true,
-                    message = "Live class created successfully"
+                    message = "Live class created successfully",
+                    image = imagePath
                 });
             }
             catch (Exception ex)
             {
                 await tran.RollbackAsync();
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                return BadRequest(new { success = false, message = ex.Message });
             }
         }
 
         public async Task<IActionResult> UpdateLiveClass(int liveClassId, IFormCollection form)
         {
-            using var con = new NpgsqlConnection(DbConnection);
+            await using var con = new NpgsqlConnection(DbConnection);
             await con.OpenAsync();
-            using var tran = await con.BeginTransactionAsync();
+            await using var tran = await con.BeginTransactionAsync();
 
             try
             {
-                var topicName = form["topic_name"].FirstOrDefault();
-                var classDate = form["class_date"].FirstOrDefault();
-                var startTime = form["start_time"].FirstOrDefault();
-                var classEndTime = form["end_time"].FirstOrDefault();
-                var meetingLink = form["meeting_link"].FirstOrDefault();
+                // ===============================
+                // 1️⃣ READ FORM VALUES
+                // ===============================
+                string topicName = form["topic_name"].FirstOrDefault();
+                string meetingLink = form["meeting_link"].FirstOrDefault();
 
-                using var cmd = new NpgsqlCommand(@"
+                DateTime? classDate = DateTime.TryParse(form["class_date"].FirstOrDefault(), out var cd)
+                    ? cd : null;
+
+                TimeSpan? startTime = TimeSpan.TryParse(form["start_time"].FirstOrDefault(), out var st)
+                    ? st : null;
+
+                TimeSpan? endTime = TimeSpan.TryParse(form["end_time"].FirstOrDefault(), out var et)
+                    ? et : null;
+
+                // ===============================
+                // 2️⃣ GET OLD IMAGE (IF ANY)
+                // ===============================
+                string oldImagePath = null;
+
+                await using (var getImgCmd = new NpgsqlCommand(
+                    "SELECT image FROM live_classes WHERE id = @id",
+                    con, tran))
+                {
+                    getImgCmd.Parameters.AddWithValue("@id", liveClassId);
+                    oldImagePath = await getImgCmd.ExecuteScalarAsync() as string;
+
+                    if (oldImagePath == null && oldImagePath != "")
+                    {
+                        // record exists but image may be null – continue
+                    }
+                }
+
+                // ===============================
+                // 3️⃣ HANDLE IMAGE UPLOAD
+                // ===============================
+                string newImagePath = oldImagePath;
+                var imageFile = form.Files.FirstOrDefault(f => f.Name == "image");
+
+                if (imageFile != null && imageFile.Length > 0)
+                {
+                    var allowedExt = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+                    var ext = Path.GetExtension(imageFile.FileName).ToLower();
+
+                    if (!allowedExt.Contains(ext))
+                        return BadRequest(new { success = false, message = "Invalid image format" });
+
+                    var fileName = $"{Guid.NewGuid()}{ext}";
+                    var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/live-classes");
+
+                    if (!Directory.Exists(folderPath))
+                        Directory.CreateDirectory(folderPath);
+
+                    var fullPath = Path.Combine(folderPath, fileName);
+
+                    using var stream = new FileStream(fullPath, FileMode.Create);
+                    await imageFile.CopyToAsync(stream);
+
+                    newImagePath = $"/live-classes/{fileName}";
+
+                    // delete old image
+                    if (!string.IsNullOrWhiteSpace(oldImagePath))
+                    {
+                        var oldFullPath = Path.Combine(
+                            Directory.GetCurrentDirectory(),
+                            "wwwroot",
+                            oldImagePath.TrimStart('/')
+                        );
+
+                        if (System.IO.File.Exists(oldFullPath))
+                            System.IO.File.Delete(oldFullPath);
+                    }
+                }
+
+                // ===============================
+                // 4️⃣ UPDATE LIVE CLASS
+                // ===============================
+                await using var cmd = new NpgsqlCommand(@"
             UPDATE live_classes
             SET
-                topic = @topicName,
-                class_date = @classDate,
-                start_time = @startTime,
-                end_time = @classEndTime,
-                meeting_link = @meetingLink,
+                topic = @topic,
+                class_date = @class_date,
+                start_time = @start_time,
+                end_time = @end_time,
+                meeting_link = @meeting_link,
+                image = @image,
                 created_at = NOW()
-            WHERE id = @liveClassId
+            WHERE id = @id
             RETURNING id;
         ", con, tran);
 
-                cmd.Parameters.AddWithValue("@liveClassId", liveClassId);
-
-                cmd.Parameters.AddWithValue("@topicName",
-                    string.IsNullOrWhiteSpace(topicName) ? (object)DBNull.Value : topicName);
-
-                cmd.Parameters.AddWithValue("@classDate",
-                    string.IsNullOrWhiteSpace(classDate) ? (object)DBNull.Value : DateTime.Parse(classDate));
-
-                cmd.Parameters.AddWithValue("@startTime",
-                    string.IsNullOrWhiteSpace(startTime) ? (object)DBNull.Value : TimeSpan.Parse(startTime));
-
-                cmd.Parameters.AddWithValue("@classEndTime",
-                    string.IsNullOrWhiteSpace(classEndTime) ? (object)DBNull.Value : TimeSpan.Parse(classEndTime));
-
-                cmd.Parameters.AddWithValue("@meetingLink",
-                    string.IsNullOrWhiteSpace(meetingLink) ? (object)DBNull.Value : meetingLink);
+                cmd.Parameters.AddWithValue("@id", liveClassId);
+                cmd.Parameters.AddWithValue("@topic", (object?)topicName ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@class_date", (object?)classDate ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@start_time", (object?)startTime ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@end_time", (object?)endTime ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@meeting_link", (object?)meetingLink ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@image", (object?)newImagePath ?? DBNull.Value);
 
                 var updatedId = await cmd.ExecuteScalarAsync();
 
@@ -213,7 +280,8 @@ namespace CareerCracker.DataBaseLayer
                 {
                     success = true,
                     message = "Live class updated successfully",
-                    liveClassId
+                    liveClassId,
+                    image = newImagePath
                 });
             }
             catch (Exception ex)
@@ -382,6 +450,90 @@ namespace CareerCracker.DataBaseLayer
             }
         }
 
+        //        public async Task<IActionResult> GetAllLiveClasses()
+        //        {
+        //            await using var con = new NpgsqlConnection(DbConnection);
+        //            await con.OpenAsync();
+
+        //            try
+        //            {
+        //                await using var cmd = new NpgsqlCommand(@"
+        //            SELECT
+        //    lc.id,
+        //    lc.batch_id,
+        //    lc.topic,
+        //    lc.class_date,
+        //    lc.start_time,
+        //    lc.end_time,
+        //    lc.meeting_link,
+        //    lc.recording_link,
+        //    lc.created_at,
+
+        //    bf.faculties_id,
+
+        //    anu.""Id""        AS user_id,
+        //    anu.""FirstName"",
+        //    anu.""LastName"",
+        //    anu.""Email"",
+        //    anu.""PhoneNumber"",
+        //    anu.""UserName""
+        //FROM live_classes lc
+        //INNER JOIN batch_faculties bf
+        //    ON lc.batch_id = bf.batch_id
+        //INNER JOIN ""AspNetUsers"" anu
+        //    ON anu.""Id""::uuid = bf.faculties_id
+        //ORDER BY lc.class_date DESC, lc.start_time ASC;
+
+        //        ", con);
+
+        //                await using var reader = await cmd.ExecuteReaderAsync();
+
+        //                var result = new List<object>();
+
+        //                while (await reader.ReadAsync())
+        //                {
+        //                    result.Add(new
+        //                    {
+        //                        id = reader.GetInt32(reader.GetOrdinal("id")),
+        //                        batchId = reader.GetInt32(reader.GetOrdinal("batch_id")),
+        //                        topic = reader["topic"] as string,
+        //                        classDate = reader["class_date"] as DateTime?,
+        //                        startTime = reader["start_time"] as TimeSpan?,
+        //                        endTime = reader["end_time"] as TimeSpan?,
+        //                        meetingLink = reader["meeting_link"] as string,
+        //                        recordingLink = reader["recording_link"] as string,
+        //                        createdAt = reader.GetDateTime(reader.GetOrdinal("created_at")),
+
+        //                        faculty = new
+        //                        {
+        //                            id = reader["user_id"].ToString(),   // ✅ FIX
+        //                            firstName = reader["FirstName"] as string,
+        //                            lastName = reader["LastName"] as string,
+        //                            email = reader["Email"] as string,
+        //                            phoneNumber = reader["PhoneNumber"] as string,
+        //                            userName = reader["UserName"] as string
+        //                        }
+
+        //                    });
+        //                }
+
+        //                return Ok(new
+        //                {
+        //                    success = true,
+        //                    count = result.Count,
+        //                    data = result
+        //                });
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                return BadRequest(new
+        //                {
+        //                    success = false,
+        //                    message = ex.Message
+        //                });
+        //            }
+        //        }
+
         public async Task<IActionResult> GetAllLiveClasses()
         {
             await using var con = new NpgsqlConnection(DbConnection);
@@ -389,32 +541,35 @@ namespace CareerCracker.DataBaseLayer
 
             try
             {
+                // ===============================
+                // SQL QUERY (image_path aliased as image)
+                // ===============================
                 await using var cmd = new NpgsqlCommand(@"
-            SELECT
-    lc.id,
-    lc.batch_id,
-    lc.topic,
-    lc.class_date,
-    lc.start_time,
-    lc.end_time,
-    lc.meeting_link,
-    lc.recording_link,
-    lc.created_at,
+                                SELECT
+                        lc.id,
+                        lc.batch_id,
+                        lc.topic,
+                        lc.class_date,
+                        lc.start_time,
+                        lc.end_time,
+                        lc.meeting_link,
+                        lc.recording_link,
+                        lc.image_path AS image,
+                        lc.created_at,
 
-    bf.faculties_id,
-
-    anu.""Id""        AS user_id,
-    anu.""FirstName"",
-    anu.""LastName"",
-    anu.""Email"",
-    anu.""PhoneNumber"",
-    anu.""UserName""
-FROM live_classes lc
-INNER JOIN batch_faculties bf
-    ON lc.batch_id = bf.batch_id
-INNER JOIN ""AspNetUsers"" anu
-    ON anu.""Id""::uuid = bf.faculties_id
-ORDER BY lc.class_date DESC, lc.start_time ASC;
+                        anu.""Id""           AS user_id,
+                        anu.""FirstName"",
+                        anu.""LastName"",
+                        anu.""Email"",
+                        anu.""PhoneNumber"",
+                        anu.""UserName""
+                    FROM live_classes lc
+                    LEFT JOIN batch_faculties bf
+                        ON lc.batch_id = bf.batch_id
+                    LEFT JOIN ""AspNetUsers"" anu
+                        ON anu.""Id""::UUID = bf.faculties_id
+                    WHERE lc.status = true
+                    ORDER BY lc.class_date DESC, lc.start_time ASC;
 
         ", con);
 
@@ -422,6 +577,9 @@ ORDER BY lc.class_date DESC, lc.start_time ASC;
 
                 var result = new List<object>();
 
+                // ===============================
+                // READ DATA
+                // ===============================
                 while (await reader.ReadAsync())
                 {
                     result.Add(new
@@ -429,23 +587,29 @@ ORDER BY lc.class_date DESC, lc.start_time ASC;
                         id = reader.GetInt32(reader.GetOrdinal("id")),
                         batchId = reader.GetInt32(reader.GetOrdinal("batch_id")),
                         topic = reader["topic"] as string,
-                        classDate = reader["class_date"] as DateTime?,
-                        startTime = reader["start_time"] as TimeSpan?,
-                        endTime = reader["end_time"] as TimeSpan?,
+                        classDate = reader["class_date"] == DBNull.Value
+                                    ? (DateTime?)null
+                                    : reader.GetDateTime(reader.GetOrdinal("class_date")),
+                        startTime = reader["start_time"] == DBNull.Value
+                                    ? (TimeSpan?)null
+                                    : reader.GetTimeSpan(reader.GetOrdinal("start_time")),
+                        endTime = reader["end_time"] == DBNull.Value
+                                    ? (TimeSpan?)null
+                                    : reader.GetTimeSpan(reader.GetOrdinal("end_time")),
                         meetingLink = reader["meeting_link"] as string,
                         recordingLink = reader["recording_link"] as string,
+                        image = reader["image"] == DBNull.Value ? null : reader["image"].ToString(),
                         createdAt = reader.GetDateTime(reader.GetOrdinal("created_at")),
 
                         faculty = new
                         {
-                            id = reader["user_id"].ToString(),   // ✅ FIX
+                            id = reader["user_id"].ToString(),
                             firstName = reader["FirstName"] as string,
                             lastName = reader["LastName"] as string,
                             email = reader["Email"] as string,
                             phoneNumber = reader["PhoneNumber"] as string,
                             userName = reader["UserName"] as string
                         }
-
                     });
                 }
 
@@ -458,6 +622,61 @@ ORDER BY lc.class_date DESC, lc.start_time ASC;
             }
             catch (Exception ex)
             {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
+        public async Task<IActionResult> LiveClassesStatus(int liveclassid)
+        {
+            await using var con = new NpgsqlConnection(DbConnection);
+            await con.OpenAsync();
+            await using var tran = await con.BeginTransactionAsync();
+
+            try
+            {
+                // ===============================
+                // TOGGLE STATUS & RETURN NEW VALUE
+                // ===============================
+                await using var cmd = new NpgsqlCommand(@"
+            UPDATE live_classes
+            SET status = NOT status
+            WHERE id = @id
+            RETURNING status;
+        ", con, tran);
+
+                cmd.Parameters.AddWithValue("@id", liveclassid);
+
+                var result = await cmd.ExecuteScalarAsync();
+
+                if (result == null)
+                {
+                    await tran.RollbackAsync();
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = "Live class not found"
+                    });
+                }
+
+                bool status = Convert.ToBoolean(result);
+
+                await tran.CommitAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = status ? "Live class activated" : "Live class deactivated",
+                    liveClassId = liveclassid,
+                    status
+                });
+            }
+            catch (Exception ex)
+            {
+                await tran.RollbackAsync();
                 return BadRequest(new
                 {
                     success = false,

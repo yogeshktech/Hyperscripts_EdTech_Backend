@@ -9,6 +9,7 @@ namespace CareerCracker.BusinessLayer
         Task<IActionResult> UpdateRecordingClass(int liveClassId, IFormCollection form);
         Task<IActionResult> GetRecordingClass(int batchId);
         Task<IActionResult> GetAllLiveClasses();
+        Task<IActionResult> LiveClassesStatus(int liveclassid);
         Task<IActionResult> GetLiveClassesByBatch(int batchId);
         Task<IActionResult> HardDeleteLiveClass(int liveClassId);
         Task<IActionResult> CreateLiveClassAttendance(int liveClassId, string userEmail);
@@ -42,6 +43,10 @@ namespace CareerCracker.BusinessLayer
         public async Task<IActionResult> GetAllLiveClasses()
         {
             return await _dataBaseLayer.GetAllLiveClasses();
+        }
+        public async Task<IActionResult> LiveClassesStatus(int liveclassid)
+        {
+            return await _dataBaseLayer.LiveClassesStatus(liveclassid);
         }
         public async Task<IActionResult> GetLiveClassesByBatch(int batchId)
         {
