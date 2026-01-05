@@ -120,8 +120,14 @@ wwwroot\uploads\facultyImages\f98672bd-27b4-4591-bb30-4ac604c636cb.PNG
 wwwroot\uploads\facultyImages\fba76919-c1be-408c-b739-ddfe4d5aeddc.jpg
 wwwroot\uploads\live-classes\0174dd2f-1374-438a-8a0e-3ea48f9857e3.png
 wwwroot\uploads\live-classes\445732a6-4640-4612-b081-b7a0cdc13af7.png
+wwwroot\uploads\live-classes\4a1c1d64-420f-4782-b1cb-e37aea514943.png
+wwwroot\uploads\live-classes\6fdf7344-1427-47a8-bcb2-c0b85382104e.png
 wwwroot\uploads\live-classes\8952c7c4-9a8c-45d1-bb41-4f456db13520.png
+wwwroot\uploads\live-classes\af0c8727-361f-4f1a-ac59-5a27ffc6cc82.png
 wwwroot\uploads\live-classes\b3b58223-17ce-4109-8ed9-1dd09812cd1e.png
+wwwroot\uploads\live-classes\c4a02e0e-9ed8-4a15-ae43-dc5f4fd1b256.png
+wwwroot\uploads\live-classes\c97db2b2-5cad-4b94-8642-7cbcf040c9eb.png
+wwwroot\uploads\live-classes\ec350fda-4c4c-43a2-be4e-b359cd3d4919.png
 wwwroot\uploads\resumes\4edd1bc4-9a7b-4847-be59-8e0015c2d257.pdf
 wwwroot\uploads\resumes\98e640ba-5a96-43d6-a4ba-73bc3dafb5bd.pdf
 wwwroot\uploads\testimonials\1797ba1b-8595-4b4c-a5ac-51b39f48ad41.png

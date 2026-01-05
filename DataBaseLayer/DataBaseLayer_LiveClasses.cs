@@ -572,7 +572,7 @@ namespace CareerCracker.DataBaseLayer
                         anu.""UserName""
                     FROM live_classes lc
                     LEFT JOIN ""AspNetUsers"" anu
-                        ON anu.""Id""::UUID = lc.faculty_id
+                        ON anu.""Id"" = lc.faculty_id
                     WHERE lc.status = true
                     ORDER BY lc.class_date DESC, lc.start_time ASC;
 
