@@ -34,7 +34,7 @@ namespace CareerCracker.DataBaseLayer
             try
             {
                 // ===============================
-                // 1️⃣ READ FORM DATA
+                // 1️⃣ FORM DATA
                 // ===============================
                 string facultyEmail = form["email"].FirstOrDefault();
                 string topic = form["topic_name"].FirstOrDefault();
@@ -53,75 +53,58 @@ namespace CareerCracker.DataBaseLayer
                 if (!TimeSpan.TryParse(form["end_time"], out TimeSpan endTime))
                     return BadRequest(new { success = false, message = "Invalid end_time" });
 
-                if (string.IsNullOrWhiteSpace(topic))
-                    return BadRequest(new { success = false, message = "Topic is required" });
-
                 if (string.IsNullOrWhiteSpace(facultyEmail))
                     return BadRequest(new { success = false, message = "Faculty email required" });
 
                 // ===============================
-                // 2️⃣ GET FACULTY ID
+                // 2️⃣ GET FACULTY ID (STRING)
                 // ===============================
-                Guid facultyId;
+                string facultyId;
 
                 await using (var userCmd = new NpgsqlCommand(
                     @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email"" = @Email LIMIT 1",
                     con, tran))
                 {
                     userCmd.Parameters.AddWithValue("@Email", facultyEmail);
+
                     var result = await userCmd.ExecuteScalarAsync();
 
                     if (result == null)
                         return BadRequest(new { success = false, message = "Faculty not found" });
 
-                    facultyId = (Guid)result;
+                    facultyId = result.ToString(); // ✅ STRING — NO CAST
                 }
 
                 // ===============================
-                // 3️⃣ IMAGE UPLOAD
+                // 3️⃣ IMAGE (OPTIONAL)
                 // ===============================
                 string imagePath = null;
-                var imageFile = form.Files.FirstOrDefault(f => f.Name == "image");
+                var image = form.Files.FirstOrDefault(f => f.Name == "image");
 
-                if (imageFile != null && imageFile.Length > 0)
+                if (image != null && image.Length > 0)
                 {
-                    var allowedExt = new[] { ".jpg", ".jpeg", ".png", ".webp" };
-                    var ext = Path.GetExtension(imageFile.FileName).ToLower();
+                    var ext = Path.GetExtension(image.FileName).ToLower();
+                    var allowed = new[] { ".jpg", ".jpeg", ".png", ".webp" };
 
-                    if (!allowedExt.Contains(ext))
-                        return BadRequest(new { success = false, message = "Invalid image format" });
+                    if (!allowed.Contains(ext))
+                        return BadRequest(new { success = false, message = "Invalid image type" });
 
                     var fileName = $"{Guid.NewGuid()}{ext}";
-                    var folder = Path.Combine("wwwroot", "uploads", "live-classes");
+                    var folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/live-classes");
 
-                    if (!Directory.Exists(folder))
-                        Directory.CreateDirectory(folder);
+                    Directory.CreateDirectory(folder);
 
-                    var fullPath = Path.Combine(folder, fileName);
-
-                    await using var fs = new FileStream(fullPath, FileMode.Create);
-                    await imageFile.CopyToAsync(fs);
+                    var path = Path.Combine(folder, fileName);
+                    await using var fs = new FileStream(path, FileMode.Create);
+                    await image.CopyToAsync(fs);
 
                     imagePath = $"/uploads/live-classes/{fileName}";
                 }
 
                 // ===============================
-                // 4️⃣ VALIDATE BATCH
+                // 4️⃣ INSERT LIVE CLASS
                 // ===============================
-                await using (var batchCmd = new NpgsqlCommand(
-                    "SELECT 1 FROM batches WHERE id = @id",
-                    con, tran))
-                {
-                    batchCmd.Parameters.AddWithValue("@id", batchId);
-
-                    if (await batchCmd.ExecuteScalarAsync() == null)
-                        return BadRequest(new { success = false, message = "Batch not found" });
-                }
-
-                // ===============================
-                // 5️⃣ INSERT LIVE CLASS
-                // ===============================
-                await using (var insertCmd = new NpgsqlCommand(@"
+                await using (var cmd = new NpgsqlCommand(@"
             INSERT INTO live_classes
             (
                 batch_id,
@@ -133,6 +116,7 @@ namespace CareerCracker.DataBaseLayer
                 recording_link,
                 image_path,
                 faculty_id,
+                status,
                 created_at
             )
             VALUES
@@ -146,20 +130,21 @@ namespace CareerCracker.DataBaseLayer
                 @recording_link,
                 @image_path,
                 @faculty_id,
+                true,
                 NOW()
             )", con, tran))
                 {
-                    insertCmd.Parameters.AddWithValue("@batch_id", batchId);
-                    insertCmd.Parameters.AddWithValue("@topic", topic);
-                    insertCmd.Parameters.AddWithValue("@class_date", classDate.Date);
-                    insertCmd.Parameters.AddWithValue("@start_time", startTime);
-                    insertCmd.Parameters.AddWithValue("@end_time", endTime);
-                    insertCmd.Parameters.AddWithValue("@meeting_link", (object?)meetingLink ?? DBNull.Value);
-                    insertCmd.Parameters.AddWithValue("@recording_link", (object?)recordingLink ?? DBNull.Value);
-                    insertCmd.Parameters.AddWithValue("@image_path", (object?)imagePath ?? DBNull.Value);
-                    insertCmd.Parameters.AddWithValue("@faculty_id", facultyId);
+                    cmd.Parameters.AddWithValue("@batch_id", batchId);
+                    cmd.Parameters.AddWithValue("@topic", topic);
+                    cmd.Parameters.AddWithValue("@class_date", classDate.Date);
+                    cmd.Parameters.AddWithValue("@start_time", startTime);
+                    cmd.Parameters.AddWithValue("@end_time", endTime);
+                    cmd.Parameters.AddWithValue("@meeting_link", (object?)meetingLink ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@recording_link", (object?)recordingLink ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@image_path", (object?)imagePath ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@faculty_id", facultyId);
 
-                    await insertCmd.ExecuteNonQueryAsync();
+                    await cmd.ExecuteNonQueryAsync();
                 }
 
                 await tran.CommitAsync();
@@ -167,8 +152,7 @@ namespace CareerCracker.DataBaseLayer
                 return Ok(new
                 {
                     success = true,
-                    message = "Live class created successfully",
-                    image = imagePath
+                    message = "Live class created successfully"
                 });
             }
             catch (Exception ex)
@@ -568,7 +552,7 @@ namespace CareerCracker.DataBaseLayer
                 // SQL QUERY (image_path aliased as image)
                 // ===============================
                 await using var cmd = new NpgsqlCommand(@"
-                                SELECT
+                         SELECT
                         lc.id,
                         lc.batch_id,
                         lc.topic,
@@ -587,10 +571,9 @@ namespace CareerCracker.DataBaseLayer
                         anu.""PhoneNumber"",
                         anu.""UserName""
                     FROM live_classes lc
-                    LEFT JOIN batch_faculties bf
-                        ON lc.batch_id = bf.batch_id
                     LEFT JOIN ""AspNetUsers"" anu
-                        ON anu.""Id""::UUID = bf.faculties_id
+                        ON anu.""Id""::UUID = lc.faculty_id
+                    WHERE lc.status = true
                     ORDER BY lc.class_date DESC, lc.start_time ASC;
 
         ", con);
