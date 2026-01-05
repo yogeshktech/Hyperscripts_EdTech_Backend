@@ -9,7 +9,7 @@ namespace CareerCracker.Controllers
     [EnableCors("CorsPolicy")]
     [ApiController]
     [Route("api/admin")]
-    [Authorize(Roles = "ADMIN,SUPERADMIN")]
+    [Authorize(Roles = "USER,ADMIN,SUPERADMIN")]
     public class ReviewsController : Controller
     {
        
@@ -60,7 +60,47 @@ namespace CareerCracker.Controllers
                 }
             }
 
-            [HttpPost("update-review/{id}")]
+        [HttpPost("add-review-by-admin")]
+        public async Task<IActionResult> AddReviewByAdmin(IFormCollection form)
+        {
+            try
+            {
+           //     string userEmail =
+           //User.FindFirst(ClaimTypes.Email)?.Value ??
+           //User.FindFirst("email")?.Value ??
+           //User.FindFirst("UserEmail")?.Value;
+
+           //     if (string.IsNullOrEmpty(userEmail))
+           //     {
+
+           //         return Unauthorized(new { success = false, message = "User not authenticated" });
+           //     }
+                var name = form["title"];
+
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Name is required"
+                    });
+                }
+
+                //return Ok(form);
+
+                return await _businessLayer.AddReviewByAdmin( form);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = $"Internal server error! {ex.Message}"
+                });
+            }
+        }
+
+        [HttpPost("update-review/{id}")]
             public async Task<IActionResult> UpdateReview(int id, IFormCollection form)
             {
                 try
@@ -98,7 +138,46 @@ namespace CareerCracker.Controllers
                 }
             }
 
-            [Route("get-all-review/{courseId}")]
+        [HttpPost("update-review-by-admin/{id}")]
+        public async Task<IActionResult> UpdateReviewByAdmin(int id, IFormCollection form)
+        {
+            try
+            {
+           //     string userEmail =
+           //User.FindFirst(ClaimTypes.Email)?.Value ??
+           //User.FindFirst("email")?.Value ??
+           //User.FindFirst("UserEmail")?.Value;
+
+           //     if (string.IsNullOrEmpty(userEmail))
+           //     {
+
+           //         return Unauthorized(new { success = false, message = "User not authenticated" });
+           //     }
+                var name = form["title"];
+
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Name is required"
+                    });
+                }
+
+                return await _businessLayer.UpdateReviewByAdmin(id, form);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = $"Internal server error! {ex.Message}"
+                });
+            }
+        }
+
+
+        [Route("get-all-review/{courseId}")]
             [HttpGet]
             public async Task<IActionResult> GetReviews(int courseId)
             {
