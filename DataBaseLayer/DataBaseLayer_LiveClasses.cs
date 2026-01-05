@@ -36,70 +36,90 @@ namespace CareerCracker.DataBaseLayer
                 // ===============================
                 // 1️⃣ READ FORM DATA
                 // ===============================
+                string facultyEmail = form["email"].FirstOrDefault();
                 string topic = form["topic_name"].FirstOrDefault();
                 string meetingLink = form["meeting_link"].FirstOrDefault();
                 string recordingLink = form["recording_link"].FirstOrDefault();
 
-                if (!int.TryParse(form["batch_id"].FirstOrDefault(), out int batchId))
+                if (!int.TryParse(form["batch_id"], out int batchId))
                     return BadRequest(new { success = false, message = "Invalid batch_id" });
 
-                if (!DateTime.TryParse(form["class_date"].FirstOrDefault(), out DateTime classDate))
+                if (!DateTime.TryParse(form["class_date"], out DateTime classDate))
                     return BadRequest(new { success = false, message = "Invalid class_date" });
 
-                if (!TimeSpan.TryParse(form["start_time"].FirstOrDefault(), out TimeSpan startTime))
+                if (!TimeSpan.TryParse(form["start_time"], out TimeSpan startTime))
                     return BadRequest(new { success = false, message = "Invalid start_time" });
 
-                if (!TimeSpan.TryParse(form["end_time"].FirstOrDefault(), out TimeSpan endTime))
+                if (!TimeSpan.TryParse(form["end_time"], out TimeSpan endTime))
                     return BadRequest(new { success = false, message = "Invalid end_time" });
 
                 if (string.IsNullOrWhiteSpace(topic))
                     return BadRequest(new { success = false, message = "Topic is required" });
 
+                if (string.IsNullOrWhiteSpace(facultyEmail))
+                    return BadRequest(new { success = false, message = "Faculty email required" });
+
                 // ===============================
-                // 2️⃣ IMAGE UPLOAD
+                // 2️⃣ GET FACULTY ID
+                // ===============================
+                Guid facultyId;
+
+                await using (var userCmd = new NpgsqlCommand(
+                    @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email"" = @Email LIMIT 1",
+                    con, tran))
+                {
+                    userCmd.Parameters.AddWithValue("@Email", facultyEmail);
+                    var result = await userCmd.ExecuteScalarAsync();
+
+                    if (result == null)
+                        return BadRequest(new { success = false, message = "Faculty not found" });
+
+                    facultyId = (Guid)result;
+                }
+
+                // ===============================
+                // 3️⃣ IMAGE UPLOAD
                 // ===============================
                 string imagePath = null;
                 var imageFile = form.Files.FirstOrDefault(f => f.Name == "image");
 
                 if (imageFile != null && imageFile.Length > 0)
                 {
-                    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+                    var allowedExt = new[] { ".jpg", ".jpeg", ".png", ".webp" };
                     var ext = Path.GetExtension(imageFile.FileName).ToLower();
 
-                    if (!allowedExtensions.Contains(ext))
+                    if (!allowedExt.Contains(ext))
                         return BadRequest(new { success = false, message = "Invalid image format" });
 
                     var fileName = $"{Guid.NewGuid()}{ext}";
-                    var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/live-classes");
+                    var folder = Path.Combine("wwwroot", "uploads", "live-classes");
 
-                    if (!Directory.Exists(folderPath))
-                        Directory.CreateDirectory(folderPath);
+                    if (!Directory.Exists(folder))
+                        Directory.CreateDirectory(folder);
 
-                    var fullPath = Path.Combine(folderPath, fileName);
+                    var fullPath = Path.Combine(folder, fileName);
 
-                    using var stream = new FileStream(fullPath, FileMode.Create);
-                    await imageFile.CopyToAsync(stream);
+                    await using var fs = new FileStream(fullPath, FileMode.Create);
+                    await imageFile.CopyToAsync(fs);
 
-                    imagePath = $"/live-classes/{fileName}";
+                    imagePath = $"/uploads/live-classes/{fileName}";
                 }
 
                 // ===============================
-                // 3️⃣ VALIDATE BATCH
+                // 4️⃣ VALIDATE BATCH
                 // ===============================
                 await using (var batchCmd = new NpgsqlCommand(
-                    "SELECT 1 FROM batches WHERE id = @batchId",
+                    "SELECT 1 FROM batches WHERE id = @id",
                     con, tran))
                 {
-                    batchCmd.Parameters.AddWithValue("@batchId", batchId);
+                    batchCmd.Parameters.AddWithValue("@id", batchId);
+
                     if (await batchCmd.ExecuteScalarAsync() == null)
-                    {
-                        await tran.RollbackAsync();
-                        return BadRequest(new { success = false, message = "Batch does not exist" });
-                    }
+                        return BadRequest(new { success = false, message = "Batch not found" });
                 }
 
                 // ===============================
-                // 4️⃣ INSERT LIVE CLASS
+                // 5️⃣ INSERT LIVE CLASS
                 // ===============================
                 await using (var insertCmd = new NpgsqlCommand(@"
             INSERT INTO live_classes
@@ -112,6 +132,7 @@ namespace CareerCracker.DataBaseLayer
                 meeting_link,
                 recording_link,
                 image_path,
+                faculty_id,
                 created_at
             )
             VALUES
@@ -123,7 +144,8 @@ namespace CareerCracker.DataBaseLayer
                 @end_time,
                 @meeting_link,
                 @recording_link,
-                @image,
+                @image_path,
+                @faculty_id,
                 NOW()
             )", con, tran))
                 {
@@ -132,9 +154,10 @@ namespace CareerCracker.DataBaseLayer
                     insertCmd.Parameters.AddWithValue("@class_date", classDate.Date);
                     insertCmd.Parameters.AddWithValue("@start_time", startTime);
                     insertCmd.Parameters.AddWithValue("@end_time", endTime);
-                    insertCmd.Parameters.AddWithValue("@meeting_link", meetingLink ?? (object)DBNull.Value);
-                    insertCmd.Parameters.AddWithValue("@recording_link", recordingLink ?? (object)DBNull.Value);
-                    insertCmd.Parameters.AddWithValue("@image", imagePath ?? (object)DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@meeting_link", (object?)meetingLink ?? DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@recording_link", (object?)recordingLink ?? DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@image_path", (object?)imagePath ?? DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@faculty_id", facultyId);
 
                     await insertCmd.ExecuteNonQueryAsync();
                 }
@@ -534,7 +557,7 @@ namespace CareerCracker.DataBaseLayer
         //            }
         //        }
 
-        public async Task<IActionResult> GetAllLiveClasses()
+        public async Task<IActionResult> GetAllLiveClasses()    
         {
             await using var con = new NpgsqlConnection(DbConnection);
             await con.OpenAsync();
@@ -568,7 +591,6 @@ namespace CareerCracker.DataBaseLayer
                         ON lc.batch_id = bf.batch_id
                     LEFT JOIN ""AspNetUsers"" anu
                         ON anu.""Id""::UUID = bf.faculties_id
-                    WHERE lc.status = true
                     ORDER BY lc.class_date DESC, lc.start_time ASC;
 
         ", con);
