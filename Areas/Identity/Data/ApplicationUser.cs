@@ -27,6 +27,20 @@ public class ApplicationUser : IdentityUser
     public string? PhoneNumber { get; set; }
     public DateTime created_at { get; set; }
     public DateTime updated_at { get; set; }
+    public string? profile_image { get; set; }
+    public string? position { get; set; }
+    public string? experience { get; set; }
+    public string? specialization { get; set; }
+    public string? Gender { get; set; }
+    public string? Address { get; set; }
+    //public string? DateOfBirth { get; set; }
+    public string? Subject { get; set; }
+    //public string? Salary { get; set; }
+    //public int? experience { get; set; }
+    public decimal? Salary { get; set; }
+    public DateTime? DateOfBirth { get; set; }
+
+
 
 }
 

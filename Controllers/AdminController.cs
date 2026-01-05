@@ -8,6 +8,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.AspNetCore.Hosting;
+
 
 namespace CareerCracker.Controllers
 {
@@ -19,14 +21,17 @@ namespace CareerCracker.Controllers
         private SignInManager<ApplicationUser> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ILogger<AdminController> _logger;
+        private readonly IWebHostEnvironment _env;
 
-        public AdminController(IBusinessLayer businessLayer, SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ILogger<AdminController> logger, IConfiguration configuration)
+        public AdminController(IBusinessLayer businessLayer, SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ILogger<AdminController> logger, IConfiguration configuration, IWebHostEnvironment env)
         {
             this._businessLayer = businessLayer;
             this._userManager = userManager;
             this._signInManager = signInManager;
             this._roleManager = roleManager;
             _logger = logger;
+            _env = env;
+
         }
 
         [Route("add-user")]
@@ -131,41 +136,6 @@ namespace CareerCracker.Controllers
         [Route("user-delete")]
         [HttpPost]
         [Authorize(Roles = "ADMIN,SUPERADMIN")]
-        //public async Task<IActionResult> DeleteUser(IFormCollection form)
-        //{
-        //    try
-        //    {
-        //        var email = form["email"].ToString().Trim();
-
-        //        if (string.IsNullOrWhiteSpace(email))
-        //            return BadRequest(new { success = false, message = "Email is required" });
-
-        //        var normalizedEmail = _userManager.NormalizeEmail(email);
-
-        //        var user = await _userManager.Users
-        //            .FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail);
-
-        //        if (user == null)
-        //            return NotFound(new { success = false, message = "User not found" });
-
-        //        var result = await _userManager.DeleteAsync(user);
-
-        //        if (result.Succeeded)
-        //            return Ok(new { success = true, message = "User deleted successfully" });
-
-        //        return StatusCode(500, new
-        //        {
-        //            success = false,
-        //            message = "Error deleting user",
-        //            errors = result.Errors
-        //        });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Delete user error");
-        //        return StatusCode(500, new { success = false, message = ex.Message });
-        //    }
-        //}
 
         public async Task<IActionResult> DeleteUser(IFormCollection form)
         {
@@ -189,45 +159,133 @@ namespace CareerCracker.Controllers
 
         [Route("user-update/{userId}")]
         [HttpPost]
-        [Authorize(Roles = "SUPERADMIN,USER")]
+        [Authorize(Roles = "SUPERADMIN,USER,ADMIN")]
         public async Task<IActionResult> UpdateUser(Guid userId, IFormCollection form)
         {
             try
             {
-                string firstName = form["firstname"].ToString().Trim();
-                string lastName = form["lastname"].ToString().Trim();
-                string phone = form["phone"].ToString().Trim();
-                var roles = form["role"].ToList(); // multiple roles
+                // ===============================
+                // 1️⃣ Read Inputs
+                // ===============================
+                string firstName = form["firstname"];
+                string lastName = form["lastname"];
+                string position = form["position"];
+                string specialization = form["specialization"];
+                string gender = form["gender"];
+                string address = form["address"];
+                string subject = form["subject"];
+                string phone = form["phone"];
+                string experienceInput = form["experience"];
+                string salaryInput = form["salary"];
+                string dobInput = form["dob"];
+
+                var roles = form["role"].ToList();
+                IFormFile image = form.Files.FirstOrDefault();
 
                 var user = await _userManager.FindByIdAsync(userId.ToString());
-
                 if (user == null)
                     return NotFound(new { success = false, message = "User not found" });
 
-                // 1️⃣ Update basic fields
-                user.FirstName = firstName;
-                user.LastName = lastName;
-                user.PhoneNumber = phone;
+                // ===============================
+                // 2️⃣ Experience Logic (TEXT)
+                // ===============================
+                if (!string.IsNullOrWhiteSpace(experienceInput) &&
+                    decimal.TryParse(experienceInput, out decimal exp))
+                {
+                    if (exp < 1)
+                        user.experience = $"{exp * 12} Months";
+                    else if (exp == 1)
+                        user.experience = "1 Year";
+                    else
+                        user.experience = $"{exp} Years";
+                }
+                else
+                {
+                    user.experience = experienceInput?.Trim();
+                }
 
+                // ===============================
+                // 3️⃣ Salary (numeric)
+                // ===============================
+                user.Salary = decimal.TryParse(salaryInput, out var sal) ? sal : null;
+
+                // ===============================
+                // 4️⃣ DateOfBirth (UTC FIX)
+                // ===============================
+                if (DateTime.TryParse(dobInput, out DateTime dob))
+                {
+                    user.DateOfBirth = DateTime.SpecifyKind(dob, DateTimeKind.Utc);
+                }
+                else
+                {
+                    user.DateOfBirth = null;
+                }
+
+                // ===============================
+                // 5️⃣ Other Fields
+                // ===============================
+                user.FirstName = firstName?.Trim();
+                user.LastName = lastName?.Trim();
+                user.position = position?.Trim();
+                user.specialization = specialization?.Trim();
+                user.Gender = gender?.Trim();
+                user.Address = address?.Trim();
+                user.Subject = subject?.Trim();
+                user.PhoneNumber = phone?.Trim();
+
+                // ===============================
+                // 6️⃣ Image Upload
+                // ===============================
+                if (image != null && image.Length > 0)
+                {
+                    var allowedExt = new[] { ".jpg", ".jpeg", ".png" };
+                    var ext = Path.GetExtension(image.FileName).ToLower();
+
+                    if (!allowedExt.Contains(ext))
+                        return BadRequest(new { success = false, message = "Invalid image type" });
+
+                    string uploadRoot = Path.Combine(_env.WebRootPath, "uploads", "users");
+                    Directory.CreateDirectory(uploadRoot);
+
+                    if (!string.IsNullOrEmpty(user.profile_image))
+                    {
+                        string oldPath = Path.Combine(_env.WebRootPath, user.profile_image.TrimStart('/'));
+                        if (System.IO.File.Exists(oldPath))
+                            System.IO.File.Delete(oldPath);
+                    }
+
+                    string fileName = $"{Guid.NewGuid()}{ext}";
+                    string filePath = Path.Combine(uploadRoot, fileName);
+
+                    using var stream = new FileStream(filePath, FileMode.Create);
+                    await image.CopyToAsync(stream);
+
+                    user.profile_image = $"/uploads/users/{fileName}";
+                }
+
+                // ===============================
+                // 7️⃣ Update User
+                // ===============================
                 var updateResult = await _userManager.UpdateAsync(user);
-
                 if (!updateResult.Succeeded)
+                {
                     return StatusCode(500, new
                     {
                         success = false,
                         message = "User update failed",
                         errors = updateResult.Errors
                     });
+                }
 
-                // 2️⃣ Update Roles (SAFE way)
+                // ===============================
+                // 8️⃣ Update Roles
+                // ===============================
                 var existingRoles = await _userManager.GetRolesAsync(user);
 
-                // Remove old roles
                 var rolesToRemove = existingRoles.Except(roles).ToList();
                 if (rolesToRemove.Any())
                     await _userManager.RemoveFromRolesAsync(user, rolesToRemove);
 
-                // Add new roles
                 var rolesToAdd = roles.Except(existingRoles).ToList();
                 foreach (var role in rolesToAdd)
                 {
@@ -245,7 +303,11 @@ namespace CareerCracker.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = ex.Message });
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.InnerException?.Message ?? ex.Message
+                });
             }
         }
 
