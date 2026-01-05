@@ -171,81 +171,103 @@ namespace CareerCracker.DataBaseLayer
             try
             {
                 // ===============================
-                // 1️⃣ READ FORM VALUES
+                // 1️⃣ FORM DATA
                 // ===============================
-                string topicName = form["topic_name"].FirstOrDefault();
+                string facultyEmail = form["email"].FirstOrDefault();
+                string topic = form["topic_name"].FirstOrDefault();
                 string meetingLink = form["meeting_link"].FirstOrDefault();
+                string recordingLink = form["recording_link"].FirstOrDefault();
 
-                DateTime? classDate = DateTime.TryParse(form["class_date"].FirstOrDefault(), out var cd)
-                    ? cd : null;
+                DateTime? classDate = DateTime.TryParse(form["class_date"], out var cd)
+                    ? cd.Date : null;
 
-                TimeSpan? startTime = TimeSpan.TryParse(form["start_time"].FirstOrDefault(), out var st)
+                TimeSpan? startTime = TimeSpan.TryParse(form["start_time"], out var st)
                     ? st : null;
 
-                TimeSpan? endTime = TimeSpan.TryParse(form["end_time"].FirstOrDefault(), out var et)
+                TimeSpan? endTime = TimeSpan.TryParse(form["end_time"], out var et)
                     ? et : null;
 
-                // ===============================
-                // 2️⃣ GET OLD IMAGE (IF ANY)
-                // ===============================
-                string oldImagePath = null;
+                if (string.IsNullOrWhiteSpace(topic))
+                    return BadRequest(new { success = false, message = "Topic is required" });
 
-                await using (var getImgCmd = new NpgsqlCommand(
-                    "SELECT image FROM live_classes WHERE id = @id",
+                if (string.IsNullOrWhiteSpace(facultyEmail))
+                    return BadRequest(new { success = false, message = "Faculty email required" });
+
+                // ===============================
+                // 2️⃣ GET FACULTY ID (STRING – SAFE)
+                // ===============================
+                string facultyId;
+
+                await using (var userCmd = new NpgsqlCommand(
+                    @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email"" = @Email LIMIT 1",
                     con, tran))
                 {
-                    getImgCmd.Parameters.AddWithValue("@id", liveClassId);
-                    oldImagePath = await getImgCmd.ExecuteScalarAsync() as string;
+                    userCmd.Parameters.AddWithValue("@Email", facultyEmail);
 
-                    if (oldImagePath == null && oldImagePath != "")
-                    {
-                        // record exists but image may be null – continue
-                    }
+                    var result = await userCmd.ExecuteScalarAsync();
+                    if (result == null)
+                        return BadRequest(new { success = false, message = "Faculty not found" });
+
+                    facultyId = result.ToString(); // ✅ STRING ONLY
                 }
 
                 // ===============================
-                // 3️⃣ HANDLE IMAGE UPLOAD
+                // 3️⃣ GET OLD IMAGE
+                // ===============================
+                string oldImagePath = null;
+
+                await using (var imgCmd = new NpgsqlCommand(
+                    "SELECT image_path FROM live_classes WHERE id = @id",
+                    con, tran))
+                {
+                    imgCmd.Parameters.AddWithValue("@id", liveClassId);
+                    oldImagePath = await imgCmd.ExecuteScalarAsync() as string;
+                }
+
+                // ===============================
+                // 4️⃣ IMAGE UPLOAD (OPTIONAL)
                 // ===============================
                 string newImagePath = oldImagePath;
-                var imageFile = form.Files.FirstOrDefault(f => f.Name == "image");
+                var image = form.Files.FirstOrDefault(f => f.Name == "image");
 
-                if (imageFile != null && imageFile.Length > 0)
+                if (image != null && image.Length > 0)
                 {
-                    var allowedExt = new[] { ".jpg", ".jpeg", ".png", ".webp" };
-                    var ext = Path.GetExtension(imageFile.FileName).ToLower();
+                    var ext = Path.GetExtension(image.FileName).ToLower();
+                    var allowed = new[] { ".jpg", ".jpeg", ".png", ".webp" };
 
-                    if (!allowedExt.Contains(ext))
-                        return BadRequest(new { success = false, message = "Invalid image format" });
+                    if (!allowed.Contains(ext))
+                        return BadRequest(new { success = false, message = "Invalid image type" });
 
                     var fileName = $"{Guid.NewGuid()}{ext}";
-                    var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/live-classes");
+                    var folder = Path.Combine(
+                        Directory.GetCurrentDirectory(),
+                        "wwwroot/uploads/live-classes"
+                    );
 
-                    if (!Directory.Exists(folderPath))
-                        Directory.CreateDirectory(folderPath);
+                    Directory.CreateDirectory(folder);
 
-                    var fullPath = Path.Combine(folderPath, fileName);
+                    var path = Path.Combine(folder, fileName);
+                    await using var fs = new FileStream(path, FileMode.Create);
+                    await image.CopyToAsync(fs);
 
-                    using var stream = new FileStream(fullPath, FileMode.Create);
-                    await imageFile.CopyToAsync(stream);
-
-                    newImagePath = $"/live-classes/{fileName}";
+                    newImagePath = $"/uploads/live-classes/{fileName}";
 
                     // delete old image
                     if (!string.IsNullOrWhiteSpace(oldImagePath))
                     {
-                        var oldFullPath = Path.Combine(
+                        var oldPath = Path.Combine(
                             Directory.GetCurrentDirectory(),
                             "wwwroot",
                             oldImagePath.TrimStart('/')
                         );
 
-                        if (System.IO.File.Exists(oldFullPath))
-                            System.IO.File.Delete(oldFullPath);
+                        if (System.IO.File.Exists(oldPath))
+                            System.IO.File.Delete(oldPath);
                     }
                 }
 
                 // ===============================
-                // 4️⃣ UPDATE LIVE CLASS
+                // 5️⃣ UPDATE LIVE CLASS
                 // ===============================
                 await using var cmd = new NpgsqlCommand(@"
             UPDATE live_classes
@@ -255,30 +277,28 @@ namespace CareerCracker.DataBaseLayer
                 start_time = @start_time,
                 end_time = @end_time,
                 meeting_link = @meeting_link,
-                image = @image,
-                created_at = NOW()
+                recording_link = @recording_link,
+                image_path = @image_path,
+                faculty_id = @faculty_id
             WHERE id = @id
             RETURNING id;
         ", con, tran);
 
                 cmd.Parameters.AddWithValue("@id", liveClassId);
-                cmd.Parameters.AddWithValue("@topic", (object?)topicName ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@topic", topic);
                 cmd.Parameters.AddWithValue("@class_date", (object?)classDate ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@start_time", (object?)startTime ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@end_time", (object?)endTime ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@meeting_link", (object?)meetingLink ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@image", (object?)newImagePath ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@recording_link", (object?)recordingLink ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@image_path", (object?)newImagePath ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@faculty_id", facultyId);
 
-                var updatedId = await cmd.ExecuteScalarAsync();
-
-                if (updatedId == null)
+                var updated = await cmd.ExecuteScalarAsync();
+                if (updated == null)
                 {
                     await tran.RollbackAsync();
-                    return NotFound(new
-                    {
-                        success = false,
-                        message = "Live class not found"
-                    });
+                    return NotFound(new { success = false, message = "Live class not found" });
                 }
 
                 await tran.CommitAsync();
@@ -294,11 +314,7 @@ namespace CareerCracker.DataBaseLayer
             catch (Exception ex)
             {
                 await tran.RollbackAsync();
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                return BadRequest(new { success = false, message = ex.Message });
             }
         }
 
