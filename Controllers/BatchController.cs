@@ -133,6 +133,24 @@ namespace CareerCracker.Controllers
                 });
             }
         }
+
+        [Route("status-batch/{batchId}")]
+        [HttpPut]
+        public async Task<IActionResult>StatusBatchs(int batchId)
+        {
+            try
+            {
+                return await _businessLayer.StatusBatchs(batchId);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
     }
 
 }

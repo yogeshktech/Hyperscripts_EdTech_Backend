@@ -534,6 +534,16 @@
   },
   {
     "ContainingType": "CareerCracker.Controllers.ReviewsController",
+    "Method": "getAllReviewByAdmin",
+    "RelativePath": "api/admin/get-all-review-admin",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.ReviewsController",
     "Method": "GetReviews",
     "RelativePath": "api/admin/get-all-review/{courseId}",
     "HttpMethod": "GET",
@@ -832,6 +842,22 @@
     "Parameters": [
       {
         "Name": "facultyAssignId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.BatchController",
+    "Method": "StatusBatchs",
+    "RelativePath": "api/admin/status-batch/{batchId}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "batchId",
         "Type": "System.Int32",
         "IsRequired": true
       }
@@ -1473,6 +1499,32 @@
     "IsController": true,
     "Order": 0,
     "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.NotificationController",
+    "Method": "Send",
+    "RelativePath": "api/Notification/send",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "token",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "title",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "body",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
     "ReturnTypes": []
   },
   {

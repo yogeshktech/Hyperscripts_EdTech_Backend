@@ -13,6 +13,7 @@ namespace CareerCracker.DataBaseLayer
         Task<IActionResult> UpdateBatch(int batchId, IFormCollection form);
         Task<IActionResult> DeleteBatchs(int batchId);
         Task<IActionResult> GetBatchByUserId(string userEmail);
+        Task<IActionResult> StatusBatchs(int batchId);
     }
 
     public partial interface IDataBaseLayer : IDataBaseLayer_Batch { }
@@ -721,6 +722,52 @@ namespace CareerCracker.DataBaseLayer
 
 
                 return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+        public async Task<IActionResult> StatusBatchs(int batchId)
+        {
+            try
+            {
+                await using var con = new NpgsqlConnection(DbConnection);
+                await con.OpenAsync();
+
+                // 🔁 Toggle status in ONE query
+                await using var cmd = new NpgsqlCommand(@"
+            UPDATE batches
+            SET is_active = NOT is_active
+            WHERE id = @id
+            RETURNING is_active;
+        ", con);
+
+                cmd.Parameters.AddWithValue("@id", batchId);
+
+                var newStatus = await cmd.ExecuteScalarAsync();
+
+                if (newStatus == null)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = "Batch not found"
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = (bool)newStatus
+                        ? "Batch activated successfully"
+                        : "Batch deactivated successfully",
+                    status = (bool)newStatus
+                });
             }
             catch (Exception ex)
             {

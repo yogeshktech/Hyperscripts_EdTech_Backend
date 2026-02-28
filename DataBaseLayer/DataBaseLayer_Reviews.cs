@@ -13,6 +13,7 @@ namespace CareerCracker.DataBaseLayer
         Task<IActionResult> GetReviews(int courseId);
         Task<IActionResult> DeleteReview(int id);
         Task<IActionResult> ToggleReview(int id);
+        Task<IActionResult> getAllReviewByAdmin();
     }
 
     public partial interface IDataBaseLayer : IDataBaseLayer_Reviews { }
@@ -673,6 +674,68 @@ namespace CareerCracker.DataBaseLayer
                 {
                     success = false,
                     message = "Internal server error: " + ex.Message
+                });
+            }
+        }
+
+        public async Task<IActionResult> getAllReviewByAdmin()
+        {
+            try
+            {
+                using (var con = new NpgsqlConnection(DbConnection))
+                {
+                    await con.OpenAsync();
+
+                    string query = @"
+                SELECT 
+                    id,
+                    rating,
+                    title,
+                    review_text,
+                    created_at,
+                    updated_at,
+                    user_id
+                FROM reviews
+                ORDER BY created_at DESC
+            ";
+
+                    using (var cmd = new NpgsqlCommand(query, con))
+                    {
+                        var reviews = new List<object>();
+
+                        using (var reader = await cmd.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                reviews.Add(new
+                                {
+                                    id = reader["id"],
+                                    rating = reader["rating"],
+                                    title = reader["title"],
+                                    review_text = reader["review_text"],
+                                    created_at = reader["created_at"],
+                                    updated_at = reader["updated_at"],
+                                    user_id = reader["user_id"]
+                                });
+                            }
+                        }
+
+                        return Ok(new
+                        {
+                            success = true,
+                            message = "Reviews fetched successfully",
+                            total = reviews.Count,
+                            reviews
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = $"Internal server error: {ex.Message}"
                 });
             }
         }

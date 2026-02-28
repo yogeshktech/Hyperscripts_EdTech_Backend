@@ -19,7 +19,6 @@ namespace CareerCracker.DataBaseLayer
 
     public partial class DataBaseLayer
     {
-        [HttpPost("add")]
         public async Task<IActionResult> AddTestimonial(IFormCollection form)
         {
             try
@@ -115,88 +114,87 @@ namespace CareerCracker.DataBaseLayer
             }
         }
 
-
         public async Task<IActionResult> GetAllTestimonials()
             {
-                try
+            try
+            {
+                using (var con = new NpgsqlConnection(DbConnection))
                 {
-                    using (var con = new NpgsqlConnection(DbConnection))
+                    await con.OpenAsync();
+
+                    string query = @"SELECT * FROM testimonial ORDER BY id DESC";
+
+                    using (var cmd = new NpgsqlCommand(query, con))
+                    using (var reader = await cmd.ExecuteReaderAsync())
                     {
-                        await con.OpenAsync();
+                        var list = new List<object>();
 
-                        string query = @"SELECT * FROM testimonial ORDER BY id DESC";
+                        while (await reader.ReadAsync())
+                        {
+                            list.Add(new
+                            {
+                                id = reader["id"],
+                                test_name = reader["test_name"],
+                                discription = reader["discription"],
+                                test_content = reader["test_content"],
+                                slug = reader["slug"],
+                                image = reader["image"],
+                                is_active = reader["is_active"],
+                                updated_at = reader["updated_at"]
+                            });
+                        }
 
-                        using (var cmd = new NpgsqlCommand(query, con))
+                        return Ok(new { success = true, data = list });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        public async Task<IActionResult> GetTestimonialById(int id)
+        {
+            try
+            {
+                using (var con = new NpgsqlConnection(DbConnection))
+                {
+                    await con.OpenAsync();
+
+                    string query = @"SELECT * FROM testimonial WHERE id=@id";
+
+                    using (var cmd = new NpgsqlCommand(query, con))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+
                         using (var reader = await cmd.ExecuteReaderAsync())
                         {
-                            var list = new List<object>();
+                            if (!reader.Read())
+                                return NotFound(new { success = false, message = "Testimonial not found" });
 
-                            while (await reader.ReadAsync())
+                            var result = new
                             {
-                                list.Add(new
-                                {
-                                    id = reader["id"],
-                                    test_name = reader["test_name"],
-                                    discription = reader["discription"],
-                                    test_content = reader["test_content"],
-                                    slug = reader["slug"],
-                                    image = reader["image"],
-                                    is_active = reader["is_active"],
-                                    updated_at = reader["updated_at"]
-                                });
-                            }
+                                id = reader["id"],
+                                test_name = reader["test_name"],
+                                discription = reader["discription"],
+                                test_content = reader["test_content"],
+                                slug = reader["slug"],
+                                image = reader["image"],
+                                is_active = reader["is_active"],
+                                updated_at = reader["updated_at"]
+                            };
 
-                            return Ok(new { success = true, data = list });
+                            return Ok(new { success = true, data = result });
                         }
                     }
                 }
-                catch (Exception ex)
-                {
-                    return StatusCode(500, new { success = false, message = ex.Message });
-                }
             }
-
-            public async Task<IActionResult> GetTestimonialById(int id)
+            catch (Exception ex)
             {
-                try
-                {
-                    using (var con = new NpgsqlConnection(DbConnection))
-                    {
-                        await con.OpenAsync();
-
-                        string query = @"SELECT * FROM testimonial WHERE id=@id";
-
-                        using (var cmd = new NpgsqlCommand(query, con))
-                        {
-                            cmd.Parameters.AddWithValue("@id", id);
-
-                            using (var reader = await cmd.ExecuteReaderAsync())
-                            {
-                                if (!reader.Read())
-                                    return NotFound(new { success = false, message = "Testimonial not found" });
-
-                                var result = new
-                                {
-                                    id = reader["id"],
-                                    test_name = reader["test_name"],
-                                    discription = reader["discription"],
-                                    test_content = reader["test_content"],
-                                    slug = reader["slug"],
-                                    image = reader["image"],
-                                    is_active = reader["is_active"],
-                                    updated_at = reader["updated_at"]
-                                };
-
-                                return Ok(new { success = true, data = result });
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    return StatusCode(500, new { success = false, message = ex.Message });
-                }
+                return StatusCode(500, new { success = false, message = ex.Message });
             }
+        }
 
         public async Task<IActionResult> UpdateTestimonial(int id, IFormCollection form)
         {
@@ -291,7 +289,6 @@ namespace CareerCracker.DataBaseLayer
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
-
 
         public async Task<IActionResult> DeleteTestimonial(int id)
         {

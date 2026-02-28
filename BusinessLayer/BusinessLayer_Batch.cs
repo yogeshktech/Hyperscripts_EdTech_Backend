@@ -11,6 +11,7 @@ namespace CareerCracker.BusinessLayer
         Task<IActionResult> UpdateBatch(int batchId ,IFormCollection form);
         Task<IActionResult> DeleteBatchs(int batchId);
         Task<IActionResult> GetBatchByUserId(string userEmail);
+        Task<IActionResult> StatusBatchs(int batchId);
     }
 
     public partial interface IBusinessLayer : IBusinessLayer_Batch { }
@@ -43,6 +44,11 @@ namespace CareerCracker.BusinessLayer
         public async Task<IActionResult> GetBatchByUserId(string userEmail)
         {
             return await _dataBaseLayer.GetBatchByUserId(userEmail);
+        }
+
+        public async Task<IActionResult> StatusBatchs(int batchId)
+        {
+            return await _dataBaseLayer.StatusBatchs(batchId);
         }
     }
 }

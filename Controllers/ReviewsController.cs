@@ -246,6 +246,14 @@ namespace CareerCracker.Controllers
                     return StatusCode(500, new { success = false, message = $"Internal server error!{ex.Message}" });
                 }
             }
+
+        [Route("get-all-review-admin")]
+        [HttpGet]
+        public async Task<IActionResult> getAllReviewByAdmin()
+        {
+            return await _businessLayer.getAllReviewByAdmin();
+            //return Ok(new {Success = true,Message = "Review list successfully", data= data});
+        }
         }
     }
 

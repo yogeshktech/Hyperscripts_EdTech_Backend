@@ -11,6 +11,7 @@ namespace CareerCracker.BusinessLayer
         Task<IActionResult> GetReviews(int courseId);
         Task<IActionResult> DeleteReview(int id);
         Task<IActionResult> ToggleReview(int id);
+        Task<IActionResult> getAllReviewByAdmin();
     }
 
     public partial interface IBusinessLayer : IBusinessLayer_Reviews { }
@@ -48,6 +49,11 @@ namespace CareerCracker.BusinessLayer
         public async Task<IActionResult> ToggleReview(int id)
         {
             return await _dataBaseLayer.ToggleReview(id);
+        }
+
+        public async Task<IActionResult> getAllReviewByAdmin()
+        {
+            return await _dataBaseLayer.getAllReviewByAdmin();
         }
     }
 }

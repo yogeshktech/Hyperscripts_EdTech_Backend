@@ -362,3 +362,12 @@ C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\obj\Debug\net9.0\refint\
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\obj\Debug\net9.0\CareerCracker.pdb
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\obj\Debug\net9.0\CareerCracker.genruntimeconfig.cache
 C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\obj\Debug\net9.0\ref\CareerCracker.dll
+C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\bin\Debug\net9.0\FirebaseAdmin.dll
+C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\bin\Debug\net9.0\Google.Api.Gax.dll
+C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\bin\Debug\net9.0\Google.Api.Gax.Rest.dll
+C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\bin\Debug\net9.0\Google.Apis.dll
+C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\bin\Debug\net9.0\Google.Apis.Auth.dll
+C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\bin\Debug\net9.0\Google.Apis.Core.dll
+C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\bin\Debug\net9.0\System.Management.dll
+C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\bin\Debug\net9.0\System.Net.WebSockets.WebSocketProtocol.dll
+C:\Users\abhi_\source\repos\CareerCracker\CareerCracker\bin\Debug\net9.0\runtimes\win\lib\net7.0\System.Management.dll

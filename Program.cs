@@ -1,4 +1,4 @@
-using CareerCracker.Areas.Identity.Data;
+﻿using CareerCracker.Areas.Identity.Data;
 using CareerCracker.BusinessLayer;
 using CareerCracker.Data;
 using CareerCracker.DataBaseLayer;
