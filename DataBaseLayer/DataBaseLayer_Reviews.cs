@@ -689,6 +689,7 @@ namespace CareerCracker.DataBaseLayer
                     string query = @"
                 SELECT 
                     r.id,
+                    r.course_id,
                     r.rating,
                     r.title,
                     r.review_text,
@@ -696,10 +697,12 @@ namespace CareerCracker.DataBaseLayer
                     r.updated_at,
                     u.""FirstName"" AS first_name,
                     u.""LastName"" AS last_name,
-                    u.""Email"" AS user_email
+                    u.""Email"" AS user_email,
+                    c.course_name AS CousrseName
                 FROM reviews r
                 INNER JOIN ""AspNetUsers"" u 
                     ON r.user_id = u.""Id""
+                LEFT JOIN courses c on r.course_id = c.id 
                 WHERE r.is_active = TRUE
                 ORDER BY r.created_at DESC
             ";
@@ -715,6 +718,7 @@ namespace CareerCracker.DataBaseLayer
                                 reviews.Add(new
                                 {
                                     id = reader["id"],
+                                    courceId = reader["course_id"],
                                     rating = reader["rating"],
                                     title = reader["title"],
                                     review_text = reader["review_text"],
@@ -722,7 +726,8 @@ namespace CareerCracker.DataBaseLayer
                                     updated_at = reader["updated_at"],
                                     first_name = reader["first_name"],
                                     last_name = reader["last_name"],
-                                    user_email = reader["user_email"]
+                                    user_email = reader["user_email"],
+                                    CourseName = reader["CousrseName"]
                                 });
                             }
                         }
