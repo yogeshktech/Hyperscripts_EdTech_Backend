@@ -718,7 +718,7 @@ namespace CareerCracker.DataBaseLayer
                                 reviews.Add(new
                                 {
                                     id = reader["id"],
-                                    courceId = reader["course_id"],
+                                    courseId = reader["course_id"],
                                     rating = reader["rating"],
                                     title = reader["title"],
                                     review_text = reader["review_text"],
