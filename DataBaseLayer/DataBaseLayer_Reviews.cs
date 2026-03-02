@@ -688,15 +688,20 @@ namespace CareerCracker.DataBaseLayer
 
                     string query = @"
                 SELECT 
-                    id,
-                    rating,
-                    title,
-                    review_text,
-                    created_at,
-                    updated_at,
-                    user_id
-                FROM reviews
-                ORDER BY created_at DESC
+                    r.id,
+                    r.rating,
+                    r.title,
+                    r.review_text,
+                    r.created_at,
+                    r.updated_at,
+                    u.""FirstName"" AS first_name,
+                    u.""LastName"" AS last_name,
+                    u.""Email"" AS user_email
+                FROM reviews r
+                INNER JOIN ""AspNetUsers"" u 
+                    ON r.user_id = u.""Id""
+                WHERE r.is_active = TRUE
+                ORDER BY r.created_at DESC
             ";
 
                     using (var cmd = new NpgsqlCommand(query, con))
@@ -715,7 +720,9 @@ namespace CareerCracker.DataBaseLayer
                                     review_text = reader["review_text"],
                                     created_at = reader["created_at"],
                                     updated_at = reader["updated_at"],
-                                    user_id = reader["user_id"]
+                                    first_name = reader["first_name"],
+                                    last_name = reader["last_name"],
+                                    user_email = reader["user_email"]
                                 });
                             }
                         }
@@ -739,6 +746,5 @@ namespace CareerCracker.DataBaseLayer
                 });
             }
         }
-
     }
 }
