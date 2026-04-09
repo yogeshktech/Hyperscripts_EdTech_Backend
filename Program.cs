@@ -244,7 +244,7 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
                 "https://edtech.colaborazia.com",   // ✅ production
-                "http://edtech.colaborazia.com",    // optional
+               
                 "http://localhost",                 // ✅ PHP/XAMPP
                 "http://127.0.0.1",                 // ✅ local
                 "http://localhost:3000",            // React
