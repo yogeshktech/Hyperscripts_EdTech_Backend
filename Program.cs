@@ -1,4 +1,157 @@
-﻿using CareerCracker.Areas.Identity.Data;
+﻿//using CareerCracker.Areas.Identity.Data;
+//using CareerCracker.BusinessLayer;
+//using CareerCracker.Data;
+//using CareerCracker.DataBaseLayer;
+//using CareerCracker.Models;
+//using CareerCracker.UserManagement;
+//using Microsoft.AspNetCore.Authentication.JwtBearer;
+//using Microsoft.AspNetCore.Identity;
+//using Microsoft.EntityFrameworkCore;
+//using Microsoft.IdentityModel.Tokens;
+//using System.Text;
+//var builder = WebApplication.CreateBuilder(args);
+
+//// ======================================================
+//// 1?? Database
+//// ======================================================
+//var connectionString = builder.Configuration.GetConnectionString("AppDbContextConnection")
+//    ?? throw new InvalidOperationException("Connection string not found.");
+
+//builder.Services.AddDbContext<AppDbContext>(options =>
+//    options.UseNpgsql(connectionString));
+
+//// ======================================================
+//// 2?? Identity
+//// ======================================================
+//builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+//{
+//    options.SignIn.RequireConfirmedAccount = false;
+//})
+//.AddEntityFrameworkStores<AppDbContext>()
+//.AddDefaultTokenProviders()
+//.AddDefaultUI();
+
+//// ======================================================
+//// 3?? JWT Authentication (FIXED)
+//// ======================================================
+//var jwt = builder.Configuration.GetSection("Jwt");
+//var jwtKey = Encoding.UTF8.GetBytes(jwt["Key"]);
+
+//builder.Services.Configure<RazorpaySettings>(
+//    builder.Configuration.GetSection("Razorpay"));
+
+
+//builder.Services.AddAuthentication(options =>
+//{
+//    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+//    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+//})
+//.AddJwtBearer(options =>
+//{
+//    options.RequireHttpsMetadata = false;
+//    options.SaveToken = true;
+
+//    options.TokenValidationParameters = new TokenValidationParameters
+//    {
+//        ValidateIssuer = true,
+//        ValidateAudience = true,
+//        ValidateLifetime = true,
+//        ValidateIssuerSigningKey = true,
+
+//        ValidIssuer = jwt["Issuer"],
+//        ValidAudience = jwt["Audience"],
+//        IssuerSigningKey = new SymmetricSecurityKey(jwtKey)
+//    };
+//});
+
+//// ======================================================
+//// 4?? Authorization
+//// ======================================================
+//builder.Services.AddAuthorization();
+
+//// ======================================================
+//// 5?? MVC + Razor
+//// ======================================================
+//builder.Services.AddControllersWithViews();
+//builder.Services.AddRazorPages();
+
+//// ======================================================
+//// 6?? Dependency Injection
+//// ======================================================
+//builder.Services.AddScoped<IBusinessLayer, BusinessLayer>();
+//builder.Services.AddScoped<IDataBaseLayer, DataBaseLayer>();
+//builder.Services.AddScoped<IApplicationUserManagement, ApplicationUserManagement>();
+
+//// ======================================================
+//// 7?? CORS (MUST BE BEFORE AUTH)
+//// ======================================================
+//builder.Services.AddCors(options =>
+//{
+//    options.AddPolicy("CorsPolicy", policy =>
+//    {
+//        policy.AllowAnyOrigin()
+//              .AllowAnyHeader()
+//              .AllowAnyMethod();
+//    });
+//});
+
+//var app = builder.Build();
+
+//// ======================================================
+//// 8?? DB Migrations + Master Initializer
+//// ======================================================
+//using (var scope = app.Services.CreateScope())
+//{
+//    var services = scope.ServiceProvider;
+
+//    var db = services.GetRequiredService<AppDbContext>();
+//    try { db.Database.Migrate(); }
+//    catch { }
+
+//    var master = services.GetRequiredService<IApplicationUserManagement>();
+//    await master.MasterConfiguration();
+//}
+
+//// ======================================================
+//// 9?? Middleware
+//// ======================================================
+//if (!app.Environment.IsDevelopment())
+//{
+//    app.UseExceptionHandler("/Home/Error");
+//    app.UseHsts();
+//}
+
+//app.UseHttpsRedirection();
+//app.UseStaticFiles();
+//app.UseRouting();
+
+//// Must come first
+//app.UseCors("CorsPolicy");
+
+//// Authentication ? Authorization
+//app.UseAuthentication();
+//app.UseAuthorization();
+
+//app.MapStaticAssets();
+
+//// Default route
+//app.MapControllerRoute(
+//    name: "default",
+//    pattern: "{controller=Home}/{action=Index}/{id?}");
+
+//app.MapRazorPages();
+
+//app.Run();
+
+
+
+
+
+
+
+
+
+using CareerCracker.Areas.Identity.Data;
 using CareerCracker.BusinessLayer;
 using CareerCracker.Data;
 using CareerCracker.DataBaseLayer;
@@ -9,10 +162,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // ======================================================
-// 1?? Database
+// 1️⃣ Database
 // ======================================================
 var connectionString = builder.Configuration.GetConnectionString("AppDbContextConnection")
     ?? throw new InvalidOperationException("Connection string not found.");
@@ -21,7 +175,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
 // ======================================================
-// 2?? Identity
+// 2️⃣ Identity
 // ======================================================
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
@@ -32,14 +186,13 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddDefaultUI();
 
 // ======================================================
-// 3?? JWT Authentication (FIXED)
+// 3️⃣ JWT Authentication
 // ======================================================
 var jwt = builder.Configuration.GetSection("Jwt");
 var jwtKey = Encoding.UTF8.GetBytes(jwt["Key"]);
 
 builder.Services.Configure<RazorpaySettings>(
     builder.Configuration.GetSection("Razorpay"));
-
 
 builder.Services.AddAuthentication(options =>
 {
@@ -65,55 +218,62 @@ builder.Services.AddAuthentication(options =>
 });
 
 // ======================================================
-// 4?? Authorization
+// 4️⃣ Authorization
 // ======================================================
 builder.Services.AddAuthorization();
 
 // ======================================================
-// 5?? MVC + Razor
+// 5️⃣ MVC + Razor
 // ======================================================
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
 // ======================================================
-// 6?? Dependency Injection
+// 6️⃣ Dependency Injection
 // ======================================================
 builder.Services.AddScoped<IBusinessLayer, BusinessLayer>();
 builder.Services.AddScoped<IDataBaseLayer, DataBaseLayer>();
 builder.Services.AddScoped<IApplicationUserManagement, ApplicationUserManagement>();
 
 // ======================================================
-// 7?? CORS (MUST BE BEFORE AUTH)
+// 7️⃣ CORS (MULTIPLE DOMAINS ✅)
 // ======================================================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("CorsPolicy", policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        policy.WithOrigins(
+                "https://edtech.colaborazia.com",   // ✅ production
+                "http://edtech.colaborazia.com",    // optional
+                "http://localhost",                 // ✅ PHP/XAMPP
+                "http://127.0.0.1",                 // ✅ local
+                "http://localhost:3000",            // React
+                "http://localhost:4200"             // Angular
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
 var app = builder.Build();
 
 // ======================================================
-// 8?? DB Migrations + Master Initializer
+// 8️⃣ DB Migration + Master Setup
 // ======================================================
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
 
     var db = services.GetRequiredService<AppDbContext>();
-    try { db.Database.Migrate(); }
-    catch { }
+    try { db.Database.Migrate(); } catch { }
 
     var master = services.GetRequiredService<IApplicationUserManagement>();
     await master.MasterConfiguration();
 }
 
 // ======================================================
-// 9?? Middleware
+// 9️⃣ Middleware
 // ======================================================
 if (!app.Environment.IsDevelopment())
 {
@@ -123,18 +283,19 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
 app.UseRouting();
 
-// Must come first
+// ✅ CORS MUST BE HERE
 app.UseCors("CorsPolicy");
 
-// Authentication ? Authorization
+// ✅ Auth
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapStaticAssets();
-
-// Default route
+// ======================================================
+// 🔟 Routing
+// ======================================================
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

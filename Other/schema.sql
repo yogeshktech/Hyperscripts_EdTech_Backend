@@ -136,6 +136,8 @@ CREATE TABLE enquires (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+
+
 CREATE TABLE cart_items (
     id SERIAL PRIMARY KEY,
     user_id UUID NOT NULL,
