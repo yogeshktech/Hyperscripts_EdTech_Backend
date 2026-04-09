@@ -85,6 +85,12 @@ wwwroot\subCategoryImages\60d380e3-4e58-44ca-bb21-e2be5a411e6a.png
 wwwroot\subCategoryImages\76c4e752-95d8-4b0d-bfb2-4c44f8b5d98e.png
 wwwroot\subCategoryImages\ae0f7922-c4f7-40d9-b24d-d2eb423fcc92.png
 wwwroot\subCategoryImages\cd3e6019-8f1a-4dca-9452-1e1c0b691829.png
+wwwroot\uploads\batches\381f527d-41f8-4f50-94e3-243498495f53.png
+wwwroot\uploads\batches\5f455e22-71a9-43bf-b416-2c3701c094b1.png
+wwwroot\uploads\batches\71d74f40-96eb-4f54-aca2-07554f5d76be.png
+wwwroot\uploads\batches\855f5809-f731-40fc-bfea-f536f912b6e9.png
+wwwroot\uploads\batches\ade79430-6819-428b-8aa9-0c601a425096.png
+wwwroot\uploads\batches\efcba91d-e1f9-4f99-b52d-41c6841ccee6.png
 wwwroot\uploads\blogs\085174f4-7f41-40a1-be02-28b7967a2b5c.avif
 wwwroot\uploads\blogs\3baf10e4-1513-4c26-9e5a-3ce74f891b77.avif
 wwwroot\uploads\blogs\454fa840-6394-4b1d-a6ea-b6f07e01444c.avif
@@ -112,8 +118,12 @@ wwwroot\uploads\facultyImages\d1d623d0-42be-41ee-8a2f-5b5c53286b1e.jpg
 wwwroot\uploads\facultyImages\dd801e4b-d629-4d52-9a34-3c3623cb4404.png
 wwwroot\uploads\facultyImages\f98672bd-27b4-4591-bb30-4ac604c636cb.PNG
 wwwroot\uploads\facultyImages\fba76919-c1be-408c-b739-ddfe4d5aeddc.jpg
+wwwroot\uploads\resumes\3578cd37-34b6-4f5e-b4b5-2d1bb391087a.pdf
 wwwroot\uploads\resumes\4edd1bc4-9a7b-4847-be59-8e0015c2d257.pdf
+wwwroot\uploads\resumes\5c93b3e1-30c2-48b9-a06f-12966d3897a1.pdf
+wwwroot\uploads\resumes\686c34b0-1ebc-4eaa-adbf-3a2629af5d85.pdf
 wwwroot\uploads\resumes\98e640ba-5a96-43d6-a4ba-73bc3dafb5bd.pdf
+wwwroot\uploads\resumes\d2a762e3-42b3-4244-8169-e2f4d9c53141.pdf
 wwwroot\uploads\testimonials\1797ba1b-8595-4b4c-a5ac-51b39f48ad41.png
 wwwroot\uploads\testimonials\4d99cc37-a2cc-4543-aaac-27ee52adf3ba.png
 wwwroot\uploads\testimonials\74fac3e7-fb3d-42ad-8cb4-fc2b99d258f8.png
@@ -121,10 +131,6 @@ wwwroot\uploads\testimonials\7689e340-3676-4933-b92c-78ec8384794b.png
 wwwroot\uploads\testimonials\7f100acb-93ec-4f3e-a97a-b4529cd6f265.png
 wwwroot\uploads\testimonials\a0f80c28-d2c9-4bd2-a0cc-13d9f3fc5b86.png
 wwwroot\uploads\testimonials\bc61c6d9-e080-432f-b187-6a511d15dec9.png
-wwwroot\uploads\resumes\686c34b0-1ebc-4eaa-adbf-3a2629af5d85.pdf
-wwwroot\uploads\resumes\3578cd37-34b6-4f5e-b4b5-2d1bb391087a.pdf
-wwwroot\uploads\resumes\d2a762e3-42b3-4244-8169-e2f4d9c53141.pdf
-wwwroot\uploads\resumes\5c93b3e1-30c2-48b9-a06f-12966d3897a1.pdf
 D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\lib\jquery\LICENSE.txt
 D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\lib\jquery\dist\jquery.slim.min.map
 D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\lib\jquery\dist\jquery.slim.min.js

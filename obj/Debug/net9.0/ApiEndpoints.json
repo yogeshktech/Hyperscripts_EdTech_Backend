@@ -321,7 +321,7 @@
   {
     "ContainingType": "CareerCracker.Controllers.BatchController",
     "Method": "DeleteBatchs",
-    "RelativePath": "api/admin/delete-batch/{batchId}",
+    "RelativePath": "api/admin/delete-batches/{batchId}",
     "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,

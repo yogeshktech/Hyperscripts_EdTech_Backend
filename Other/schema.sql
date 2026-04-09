@@ -107,6 +107,7 @@ CREATE TABLE reviews (
 
     CONSTRAINT fk_review_course
         FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
+);
 
 
 

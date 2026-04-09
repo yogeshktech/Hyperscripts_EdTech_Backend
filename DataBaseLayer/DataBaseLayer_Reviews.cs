@@ -24,7 +24,7 @@ namespace CareerCracker.DataBaseLayer
         {
             try
             {
-                if (string.IsNullOrEmpty(userEmail))
+                if (string.IsNullOrWhiteSpace(userEmail))
                 {
                     return BadRequest(new { success = false, message = "User email is required" });
                 }
@@ -32,98 +32,87 @@ namespace CareerCracker.DataBaseLayer
                 // ------------------------------------------
                 // 1️⃣ Get Form Data
                 // ------------------------------------------
-                string courseIdStr = form["course_id"];
-                string ratingStr = form["rating"];
+                if (!int.TryParse(form["course_id"], out int courseId))
+                    return BadRequest(new { success = false, message = "Invalid course_id" });
+
+                if (!int.TryParse(form["rating"], out int rating) || rating < 1 || rating > 5)
+                    return BadRequest(new { success = false, message = "Rating must be between 1 and 5" });
+
                 string title = form["title"];
                 string reviewText = form["review_text"];
 
-                if (!int.TryParse(courseIdStr, out int courseId))
-                    return BadRequest(new { success = false, message = "Invalid course_id" });
+                using var con = new NpgsqlConnection(DbConnection);
+                await con.OpenAsync();
 
-                if (!int.TryParse(ratingStr, out int rating) || rating < 1 || rating > 5)
-                    return BadRequest(new { success = false, message = "Rating must be 1 to 5" });
+                // ------------------------------------------
+                // 2️⃣ Get User ID
+                // ------------------------------------------
+                string userId;
 
-                using (var con = new NpgsqlConnection(DbConnection))
+                using (var userCmd = new NpgsqlCommand(
+                    @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email"" = @Email LIMIT 1", con))
                 {
-                    await con.OpenAsync();
+                    userCmd.Parameters.AddWithValue("@Email", userEmail);
 
-                    // ------------------------------------------
-                    // 2️⃣ GET user_id FROM AspNetUsers BY EMAIL
-                    // ------------------------------------------
-                    string getUserQuery = @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email"" = @Email LIMIT 1";
-
-                    string userId = null;
-
-                    using (var userCmd = new NpgsqlCommand(getUserQuery, con))
+                    var result = await userCmd.ExecuteScalarAsync();
+                    if (result == null)
                     {
-                        userCmd.Parameters.AddWithValue("@Email", userEmail);
-
-                        var result = await userCmd.ExecuteScalarAsync();
-                        if (result == null)
+                        return BadRequest(new
                         {
-                            return BadRequest(new
-                            {
-                                success = false,
-                                message = "User not found for given email"
-                            });
-                        }
-
-                        userId = result.ToString();
-                    }
-
-                    // ------------------------------------------
-                    // 3️⃣ CHECK DUPLICATE REVIEW
-                    // ------------------------------------------
-                    string checkQuery = @"
-                SELECT COUNT(*) FROM reviews 
-                WHERE user_id = @user_id 
-                AND course_id = @course_id";
-
-                    using (var checkCmd = new NpgsqlCommand(checkQuery, con))
-                    {
-                        checkCmd.Parameters.AddWithValue("@user_id", userId);
-                        checkCmd.Parameters.AddWithValue("@course_id", courseId);
-
-                        long exists = (long)await checkCmd.ExecuteScalarAsync();
-
-                        if (exists > 0)
-                        {
-                            return BadRequest(new
-                            {
-                                success = false,
-                                message = "You have already submitted a review for this course"
-                            });
-                        }
-                    }
-
-                    // ------------------------------------------
-                    // 4️⃣ INSERT REVIEW
-                    // ------------------------------------------
-                    string insertQuery = @"
-                INSERT INTO reviews 
-                (user_id, course_id, rating, title, review_text)
-                VALUES 
-                (@user_id, @course_id, @rating, @title, @review_text)
-                RETURNING id;
-            ";
-
-                    using (var cmd = new NpgsqlCommand(insertQuery, con))
-                    {
-                        cmd.Parameters.AddWithValue("@user_id", userId);
-                        cmd.Parameters.AddWithValue("@course_id", courseId);
-                        cmd.Parameters.AddWithValue("@rating", rating);
-                        cmd.Parameters.AddWithValue("@title", (object)title ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@review_text", (object)reviewText ?? DBNull.Value);
-
-                        var insertedId = await cmd.ExecuteScalarAsync();
-
-                        return Ok(new
-                        {
-                            success = true,
-                            id = insertedId,
-                            message = "Review added successfully!"
+                            success = false,
+                            message = "User not found"
                         });
                     }
+
+                    userId = result.ToString();
+                }
+
+                // ------------------------------------------
+                // 3️⃣ Check Duplicate Review (User only)
+                // ------------------------------------------
+                using (var checkCmd = new NpgsqlCommand(
+                    @"SELECT 1 FROM reviews 
+              WHERE user_id = @user_id AND course_id = @course_id LIMIT 1", con))
+                {
+                    checkCmd.Parameters.AddWithValue("@user_id", userId);
+                    checkCmd.Parameters.AddWithValue("@course_id", courseId);
+
+                    var exists = await checkCmd.ExecuteScalarAsync();
+
+                    if (exists != null)
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "You have already submitted a review for this course"
+                        });
+                    }
+                }
+
+                // ------------------------------------------
+                // 4️⃣ Insert Review
+                // ------------------------------------------
+                using (var cmd = new NpgsqlCommand(
+                    @"INSERT INTO reviews 
+              (user_id, course_id, rating, title, review_text)
+              VALUES 
+              (@user_id, @course_id, @rating, @title, @review_text)
+              RETURNING id;", con))
+                {
+                    cmd.Parameters.AddWithValue("@user_id", userId);
+                    cmd.Parameters.AddWithValue("@course_id", courseId);
+                    cmd.Parameters.AddWithValue("@rating", rating);
+                    cmd.Parameters.AddWithValue("@title", (object)title ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@review_text", (object)reviewText ?? DBNull.Value);
+
+                    var insertedId = await cmd.ExecuteScalarAsync();
+
+                    return Ok(new
+                    {
+                        success = true,
+                        id = insertedId,
+                        message = "Review added successfully!"
+                    });
                 }
             }
             catch (Exception ex)
@@ -131,12 +120,12 @@ namespace CareerCracker.DataBaseLayer
                 return StatusCode(500, new
                 {
                     success = false,
-                    message = $"Internal server error: {ex.Message}"
+                    message = ex.Message
                 });
             }
         }
 
-        public async Task<IActionResult> AddReviewByAdmin( IFormCollection form)
+        public async Task<IActionResult> AddReviewByAdmin(IFormCollection form)
         {
             try
             {
@@ -147,9 +136,6 @@ namespace CareerCracker.DataBaseLayer
                     return BadRequest(new { success = false, message = "User email is required" });
                 }
 
-                // ------------------------------------------
-                // 1️⃣ Get Form Data
-                // ------------------------------------------
                 string courseIdStr = form["course_id"];
                 string ratingStr = form["rating"];
                 string title = form["title"];
@@ -165,9 +151,7 @@ namespace CareerCracker.DataBaseLayer
                 {
                     await con.OpenAsync();
 
-                    // ------------------------------------------
-                    // 2️⃣ GET user_id FROM AspNetUsers BY EMAIL
-                    // ------------------------------------------
+                    // Get user_id
                     string getUserQuery = @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email"" = @Email LIMIT 1";
 
                     string userId = null;
@@ -182,41 +166,15 @@ namespace CareerCracker.DataBaseLayer
                             return BadRequest(new
                             {
                                 success = false,
-                                message = "User not found for given email"
+                                message = "User not found"
                             });
                         }
 
                         userId = result.ToString();
                     }
 
-                    // ------------------------------------------
-                    // 3️⃣ CHECK DUPLICATE REVIEW
-                    // ------------------------------------------
-                    string checkQuery = @"
-                SELECT COUNT(*) FROM reviews 
-                WHERE user_id = @user_id 
-                AND course_id = @course_id";
+                    // ✅ NO duplicate check here
 
-                    using (var checkCmd = new NpgsqlCommand(checkQuery, con))
-                    {
-                        checkCmd.Parameters.AddWithValue("@user_id", userId);
-                        checkCmd.Parameters.AddWithValue("@course_id", courseId);
-
-                        long exists = (long)await checkCmd.ExecuteScalarAsync();
-
-                        if (exists > 0)
-                        {
-                            return BadRequest(new
-                            {
-                                success = false,
-                                message = "You have already submitted a review for this course"
-                            });
-                        }
-                    }
-
-                    // ------------------------------------------
-                    // 4️⃣ INSERT REVIEW
-                    // ------------------------------------------
                     string insertQuery = @"
                 INSERT INTO reviews 
                 (user_id, course_id, rating, title, review_text)
@@ -239,7 +197,7 @@ namespace CareerCracker.DataBaseLayer
                         {
                             success = true,
                             id = insertedId,
-                            message = "Review added successfully!"
+                            message = "Admin review added successfully!"
                         });
                     }
                 }
@@ -249,7 +207,7 @@ namespace CareerCracker.DataBaseLayer
                 return StatusCode(500, new
                 {
                     success = false,
-                    message = $"Internal server error: {ex.Message}"
+                    message = ex.Message
                 });
             }
         }
