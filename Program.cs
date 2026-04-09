@@ -161,6 +161,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.HttpOverrides;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -236,14 +237,14 @@ builder.Services.AddScoped<IDataBaseLayer, DataBaseLayer>();
 builder.Services.AddScoped<IApplicationUserManagement, ApplicationUserManagement>();
 
 // ======================================================
-// 7️⃣ CORS (HTTPS ONLY + LOCAL)
+// 7️⃣ CORS (HTTPS ONLY)
 // ======================================================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("CorsPolicy", policy =>
     {
         policy.WithOrigins(
-                "https://edtech.colaborazia.com", // ✅ production HTTPS only
+                "https://edtech.colaborazia.com",
                 "http://localhost",
                 "http://127.0.0.1",
                 "http://localhost:3000",
@@ -255,10 +256,22 @@ builder.Services.AddCors(options =>
     });
 });
 
+// ======================================================
+// 8️⃣ FIX FOR PROXY (IMPORTANT)
+// ======================================================
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 var app = builder.Build();
 
 // ======================================================
-// 8️⃣ DB Migration + Master Setup
+// 9️⃣ DB Migration + Master Setup
 // ======================================================
 using (var scope = app.Services.CreateScope())
 {
@@ -272,7 +285,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 // ======================================================
-// 9️⃣ Middleware
+// 🔟 Middleware
 // ======================================================
 if (!app.Environment.IsDevelopment())
 {
@@ -280,10 +293,13 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+// 🔥 FIX: detect HTTPS behind proxy
+app.UseForwardedHeaders();
+
 // 🔥 Redirect HTTP → HTTPS
 app.UseHttpsRedirection();
 
-// 🔥 BLOCK HTTP COMPLETELY
+// 🔥 BLOCK HTTP
 app.Use(async (context, next) =>
 {
     if (!context.Request.IsHttps)
@@ -303,12 +319,12 @@ app.UseRouting();
 // ✅ CORS
 app.UseCors("CorsPolicy");
 
-// ✅ Authentication
+// ✅ Auth
 app.UseAuthentication();
 app.UseAuthorization();
 
 // ======================================================
-// 🔟 Routing
+// 1️⃣1️⃣ Routing
 // ======================================================
 app.MapControllerRoute(
     name: "default",

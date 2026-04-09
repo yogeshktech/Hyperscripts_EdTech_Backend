@@ -121,6 +121,10 @@ wwwroot\uploads\testimonials\7689e340-3676-4933-b92c-78ec8384794b.png
 wwwroot\uploads\testimonials\7f100acb-93ec-4f3e-a97a-b4529cd6f265.png
 wwwroot\uploads\testimonials\a0f80c28-d2c9-4bd2-a0cc-13d9f3fc5b86.png
 wwwroot\uploads\testimonials\bc61c6d9-e080-432f-b187-6a511d15dec9.png
+wwwroot\uploads\resumes\686c34b0-1ebc-4eaa-adbf-3a2629af5d85.pdf
+wwwroot\uploads\resumes\3578cd37-34b6-4f5e-b4b5-2d1bb391087a.pdf
+wwwroot\uploads\resumes\d2a762e3-42b3-4244-8169-e2f4d9c53141.pdf
+wwwroot\uploads\resumes\5c93b3e1-30c2-48b9-a06f-12966d3897a1.pdf
 D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\lib\jquery\LICENSE.txt
 D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\lib\jquery\dist\jquery.slim.min.map
 D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\lib\jquery\dist\jquery.slim.min.js
