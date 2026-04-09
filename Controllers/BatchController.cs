@@ -116,7 +116,7 @@ namespace CareerCracker.Controllers
             }
         }
 
-        [Route("delete-batch/{batchId}")]
+        [Route("delete-batches/{batchId}")]
         [HttpDelete]
         public async Task<IActionResult> DeleteBatchs(int batchId)
         {
