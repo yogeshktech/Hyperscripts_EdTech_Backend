@@ -236,19 +236,18 @@ builder.Services.AddScoped<IDataBaseLayer, DataBaseLayer>();
 builder.Services.AddScoped<IApplicationUserManagement, ApplicationUserManagement>();
 
 // ======================================================
-// 7️⃣ CORS (MULTIPLE DOMAINS ✅)
+// 7️⃣ CORS (HTTPS ONLY + LOCAL)
 // ======================================================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("CorsPolicy", policy =>
     {
         policy.WithOrigins(
-                "https://edtech.colaborazia.com",   // ✅ production
-               
-                "http://localhost",                 // ✅ PHP/XAMPP
-                "http://127.0.0.1",                 // ✅ local
-                "http://localhost:3000",            // React
-                "http://localhost:4200"             // Angular
+                "https://edtech.colaborazia.com", // ✅ production HTTPS only
+                "http://localhost",
+                "http://127.0.0.1",
+                "http://localhost:3000",
+                "http://localhost:4200"
             )
             .AllowAnyHeader()
             .AllowAnyMethod()
@@ -281,15 +280,30 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+// 🔥 Redirect HTTP → HTTPS
 app.UseHttpsRedirection();
+
+// 🔥 BLOCK HTTP COMPLETELY
+app.Use(async (context, next) =>
+{
+    if (!context.Request.IsHttps)
+    {
+        context.Response.StatusCode = 403;
+        await context.Response.WriteAsync("HTTPS Required");
+        return;
+    }
+
+    await next();
+});
+
 app.UseStaticFiles();
 
 app.UseRouting();
 
-// ✅ CORS MUST BE HERE
+// ✅ CORS
 app.UseCors("CorsPolicy");
 
-// ✅ Auth
+// ✅ Authentication
 app.UseAuthentication();
 app.UseAuthorization();
 
