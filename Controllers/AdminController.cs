@@ -238,7 +238,7 @@ namespace CareerCracker.Controllers
                 // ===============================
                 if (image != null && image.Length > 0)
                 {
-                    var allowedExt = new[] { ".jpg", ".jpeg", ".png" };
+                    var allowedExt = new[] { ".jpg", ".jpeg", ".png",".svg",".webp" };
                     var ext = Path.GetExtension(image.FileName).ToLower();
 
                     if (!allowedExt.Contains(ext))

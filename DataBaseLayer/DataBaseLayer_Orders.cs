@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Npgsql;
 using Razorpay.Api;
+using System.Data;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -857,29 +858,31 @@ namespace CareerCracker.DataBaseLayer
                 // ==================================================
                 // 1️⃣ ORDER + USER DETAILS
                 // ==================================================
+              
                 await using (var cmd = new NpgsqlCommand(@"
-                            SELECT
-                    o.id AS order_id,
-                    o.subtotal,
-                    o.discount_amount,
-                    o.total_amount,
-                    o.payment_status,
-                    o.order_status,
-
-                    u.""Id""          AS user_id,
-                    u.""UserName""    AS name,
-                    u.""Email""       AS email,
-                    u.""PhoneNumber"" AS mobile
-                FROM orders o
-                JOIN ""AspNetUsers"" u
-                    ON u.""Id""::uuid = o.user_id
-                WHERE o.id = @orderId;
-
-        ", con))
+                    SELECT
+                        o.id AS order_id,
+                        o.subtotal,
+                        o.discount_amount,
+                        o.total_amount,
+                        o.payment_status,
+                        o.order_status,
+                        u.""Id"" AS user_id,
+                        u.""UserName"" AS username,
+                        u.""FirstName"",
+                        u.""LastName"",
+                        u.""Email"" AS email,
+                        u.""PhoneNumber"" AS mobile,
+                        CONCAT(u.""FirstName"", ' ', u.""LastName"") AS full_name   -- Combined full name
+                    FROM orders o
+                    LEFT JOIN ""AspNetUsers"" u
+                        ON u.""Id"" = o.user_id::text          -- Safe & recommended cast (uuid → text)
+                    WHERE o.id = @orderId;
+                ", con))
                 {
                     cmd.Parameters.AddWithValue("@orderId", orderId);
-
                     await using var reader = await cmd.ExecuteReaderAsync();
+
                     if (!await reader.ReadAsync())
                         return NotFound(new { success = false, message = "Order not found" });
 
@@ -891,7 +894,10 @@ namespace CareerCracker.DataBaseLayer
                     order["order_status"] = reader["order_status"];
 
                     user["id"] = reader["user_id"];
-                    user["name"] = reader["name"];
+                    user["username"] = reader["username"];
+                    user["firstName"] = reader["FirstName"];
+                    user["lastName"] = reader["LastName"];
+                    user["fullName"] = reader["full_name"];        // Best for display
                     user["email"] = reader["email"];
                     user["mobile"] = reader["mobile"];
                 }
@@ -1041,10 +1047,12 @@ namespace CareerCracker.DataBaseLayer
                 -- User Info
                 u.""Id"" AS user_id_str,
                 u.""UserName"" AS username,
+                u.""FirstName"",
+                u.""LastName"",
                 u.""Email"" AS email,
                 u.""PhoneNumber"" AS mobile,
 
-                -- Course / Order Items (aggregated)
+                -- Order Items + Course Details
                 oi.quantity,
                 oi.price,
                 oi.discount,
@@ -1058,9 +1066,12 @@ namespace CareerCracker.DataBaseLayer
                 c.duration,
                 c.course_slug
             FROM orders o
-            LEFT JOIN ""AspNetUsers"" u ON u.""Id"" = o.user_id::text
-            LEFT JOIN order_items oi ON oi.order_id = o.id
-            LEFT JOIN courses c ON c.id = oi.course_id
+            LEFT JOIN ""AspNetUsers"" u 
+                ON u.""Id"" = o.user_id::text
+            LEFT JOIN order_items oi 
+                ON oi.order_id = o.id
+            LEFT JOIN courses c 
+                ON c.id = oi.course_id
             WHERE o.order_status = 'CONFIRMED'
               AND o.payment_status = 'PAID'
             ORDER BY o.id DESC, oi.id;";
@@ -1083,17 +1094,21 @@ namespace CareerCracker.DataBaseLayer
                         ["order_status"] = reader["order_status"],
                         ["created_at"] = reader["created_at"],
 
-                        // User Info
+                        // User Info - Updated with FirstName & LastName
                         ["user"] = new Dictionary<string, object>
                         {
                             ["id"] = reader["user_id_str"],
                             ["username"] = reader["username"],
-                            ["name"] = reader["username"],           // Change to full name column if you have one
+                            ["firstName"] = reader["FirstName"],
+                            ["lastName"] = reader["LastName"],
+                            ["fullName"] = reader.IsDBNull("FirstName") && reader.IsDBNull("LastName")
+                                ? reader["username"]?.ToString()
+                                : $"{reader["FirstName"]} {reader["LastName"]}".Trim(),
                             ["email"] = reader["email"],
                             ["mobile"] = reader["mobile"]
                         },
 
-                        // Course/Item Info (for this row)
+                        // Course / Item Info (one row per item)
                         ["items"] = new List<Dictionary<string, object>>
                 {
                     new Dictionary<string, object>
