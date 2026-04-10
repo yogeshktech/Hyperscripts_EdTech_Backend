@@ -116,8 +116,10 @@ namespace CareerCracker.Models
 
     public class AdminOrderModel
     {
-        public int OrderId { get; set; }
-        public Guid UserId { get; set; }   // ✅ FIXED
+        public int Id { get; set; }
+        public string UserId { get; set; }
+
+        public int? CouponId { get; set; }
 
         public decimal Subtotal { get; set; }
         public decimal DiscountAmount { get; set; }
@@ -125,11 +127,12 @@ namespace CareerCracker.Models
 
         public string PaymentStatus { get; set; }
         public string OrderStatus { get; set; }
+
         public DateTime CreatedAt { get; set; }
 
+        // ✅ user info
         public string Name { get; set; }
         public string Email { get; set; }
         public string Mobile { get; set; }
     }
-
 }

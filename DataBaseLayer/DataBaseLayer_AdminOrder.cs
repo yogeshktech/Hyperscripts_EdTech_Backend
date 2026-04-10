@@ -2,6 +2,7 @@
 using CareerCracker.Models;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
+using System.Data;
 namespace CareerCracker.DataBaseLayer
 {
     public interface IDataBaseLayer_AdminOrder
@@ -23,26 +24,24 @@ namespace CareerCracker.DataBaseLayer
                 await con.OpenAsync();
 
                 var query = @"
-        SELECT
-    o.id AS order_id,
-    o.subtotal,
-    o.discount_amount,
-    o.total_amount,
-    o.payment_status,
-    o.order_status,
-    o.created_at,
-
-    u.""Id""          AS user_id,
-    u.""UserName""    AS name,
-    u.""Email""       AS email,
-    u.""PhoneNumber"" AS mobile
-
-FROM orders o
-JOIN ""AspNetUsers"" u
-    ON u.""Id"" = o.user_id::uuid   -- ✅ MUST CAST
-
-ORDER BY o.created_at DESC;
-        ";
+            SELECT
+                o.id,
+                o.user_id,
+                o.coupon_id,
+                o.subtotal,
+                o.discount_amount,
+                o.total_amount,
+                o.payment_status,
+                o.order_status,
+                o.created_at,
+                u.""UserName"",
+                u.""Email"",
+                u.""PhoneNumber""
+            FROM orders o
+            LEFT JOIN ""AspNetUsers"" u
+                ON u.""Id"" = o.user_id::text          -- Cast uuid → text (safer for Identity table)
+            WHERE o.user_id IS NOT NULL
+            ORDER BY o.created_at DESC;";
 
                 using var cmd = new NpgsqlCommand(query, con);
                 using var reader = await cmd.ExecuteReaderAsync();
@@ -51,27 +50,29 @@ ORDER BY o.created_at DESC;
                 {
                     list.Add(new AdminOrderModel
                     {
-                        OrderId = reader.GetInt32(reader.GetOrdinal("order_id")),
-                        UserId = reader.GetGuid(reader.GetOrdinal("user_id")), // ✅ correct
-
-                        Subtotal = reader.GetDecimal(reader.GetOrdinal("subtotal")),
-                        DiscountAmount = reader.GetDecimal(reader.GetOrdinal("discount_amount")),
-                        TotalAmount = reader.GetDecimal(reader.GetOrdinal("total_amount")),
-
+                        Id = reader.GetInt32("id"),
+                        UserId = reader["user_id"]?.ToString(),
+                        CouponId = reader.IsDBNull("coupon_id")
+                            ? null
+                            : reader.GetInt32("coupon_id"),
+                        Subtotal = reader.GetDecimal("subtotal"),
+                        DiscountAmount = reader.GetDecimal("discount_amount"),
+                        TotalAmount = reader.GetDecimal("total_amount"),
                         PaymentStatus = reader["payment_status"]?.ToString(),
                         OrderStatus = reader["order_status"]?.ToString(),
+                        CreatedAt = reader.GetDateTime("created_at"),
 
-                        CreatedAt = reader.GetDateTime(reader.GetOrdinal("created_at")),
-
-                        Name = reader["name"]?.ToString(),
-                        Email = reader["email"]?.ToString(),
-                        Mobile = reader["mobile"]?.ToString()
+                        // User Info from AspNetUsers
+                        Name = reader["UserName"]?.ToString(),
+                        Email = reader["Email"]?.ToString(),
+                        Mobile = reader["PhoneNumber"]?.ToString()
                     });
                 }
             }
             catch (Exception ex)
             {
-                throw new Exception("DB Error: " + ex.Message);
+                // Log the full exception in production (don't just throw generic message)
+                throw new Exception($"DB Error in GetAllAdminOrders: {ex.Message}", ex);
             }
 
             return list;

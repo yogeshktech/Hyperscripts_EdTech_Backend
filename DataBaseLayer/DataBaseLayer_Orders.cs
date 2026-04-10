@@ -974,49 +974,155 @@ namespace CareerCracker.DataBaseLayer
                 });
             }
         }
-            
+
+        //public async Task<IActionResult> GetAllOrders()
+        //{
+        //    try
+        //    {
+        //        using var con = new NpgsqlConnection(DbConnection);
+        //        await con.OpenAsync();
+
+        //        string query = @"
+        //            SELECT *
+        //            FROM orders
+        //            WHERE order_status = 'CONFIRMED'
+        //              AND payment_status = 'PAID'
+        //            ORDER BY id DESC
+        //        ";
+
+
+        //        var list = new List<Dictionary<string, object>>();
+
+        //        using var cmd = new NpgsqlCommand(query, con);
+        //        using var reader = await cmd.ExecuteReaderAsync();
+
+        //        while (await reader.ReadAsync())
+        //        {
+        //            list.Add(new Dictionary<string, object>
+        //    {
+        //        { "id", reader["id"] },
+        //        { "user_id", reader["user_id"] },
+        //        { "subtotal", reader["subtotal"] },
+        //        { "discount_amount", reader["discount_amount"] },
+        //        { "total_amount", reader["total_amount"] },
+        //        { "payment_status", reader["payment_status"] },
+        //        { "order_status", reader["order_status"] },
+        //        { "created_at", reader["created_at"] }
+        //    });
+        //        }
+
+        //        return new OkObjectResult(new { success = true, data = list });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return new BadRequestObjectResult(new { success = false, message = ex.Message });
+        //    }
+        //}
+
+
         public async Task<IActionResult> GetAllOrders()
         {
             try
             {
-                using var con = new NpgsqlConnection(DbConnection);
+                await using var con = new NpgsqlConnection(DbConnection);
                 await con.OpenAsync();
 
                 string query = @"
-                    SELECT *
-                    FROM orders
-                    WHERE order_status = 'CONFIRMED'
-                      AND payment_status = 'PAID'
-                    ORDER BY id DESC
-                ";
+            SELECT
+                o.id AS order_id,
+                o.user_id,
+                o.subtotal,
+                o.discount_amount,
+                o.total_amount,
+                o.payment_status,
+                o.order_status,
+                o.created_at,
 
+                -- User Info
+                u.""Id"" AS user_id_str,
+                u.""UserName"" AS username,
+                u.""Email"" AS email,
+                u.""PhoneNumber"" AS mobile,
+
+                -- Course / Order Items (aggregated)
+                oi.quantity,
+                oi.price,
+                oi.discount,
+                oi.total AS item_total,
+                c.id AS course_id,
+                c.course_name,
+                c.course_image,
+                c.course_discription,
+                c.saling_price,
+                c.mrp_price,
+                c.duration,
+                c.course_slug
+            FROM orders o
+            LEFT JOIN ""AspNetUsers"" u ON u.""Id"" = o.user_id::text
+            LEFT JOIN order_items oi ON oi.order_id = o.id
+            LEFT JOIN courses c ON c.id = oi.course_id
+            WHERE o.order_status = 'CONFIRMED'
+              AND o.payment_status = 'PAID'
+            ORDER BY o.id DESC, oi.id;";
 
                 var list = new List<Dictionary<string, object>>();
 
-                using var cmd = new NpgsqlCommand(query, con);
-                using var reader = await cmd.ExecuteReaderAsync();
+                await using var cmd = new NpgsqlCommand(query, con);
+                await using var reader = await cmd.ExecuteReaderAsync();
 
                 while (await reader.ReadAsync())
                 {
-                    list.Add(new Dictionary<string, object>
-            {
-                { "id", reader["id"] },
-                { "user_id", reader["user_id"] },
-                { "subtotal", reader["subtotal"] },
-                { "discount_amount", reader["discount_amount"] },
-                { "total_amount", reader["total_amount"] },
-                { "payment_status", reader["payment_status"] },
-                { "order_status", reader["order_status"] }
-            });
+                    var orderDict = new Dictionary<string, object>
+                    {
+                        ["id"] = reader["order_id"],
+                        ["user_id"] = reader["user_id"],
+                        ["subtotal"] = reader["subtotal"],
+                        ["discount_amount"] = reader["discount_amount"],
+                        ["total_amount"] = reader["total_amount"],
+                        ["payment_status"] = reader["payment_status"],
+                        ["order_status"] = reader["order_status"],
+                        ["created_at"] = reader["created_at"],
+
+                        // User Info
+                        ["user"] = new Dictionary<string, object>
+                        {
+                            ["id"] = reader["user_id_str"],
+                            ["username"] = reader["username"],
+                            ["name"] = reader["username"],           // Change to full name column if you have one
+                            ["email"] = reader["email"],
+                            ["mobile"] = reader["mobile"]
+                        },
+
+                        // Course/Item Info (for this row)
+                        ["items"] = new List<Dictionary<string, object>>
+                {
+                    new Dictionary<string, object>
+                    {
+                        ["course_id"] = reader["course_id"],
+                        ["course_name"] = reader["course_name"],
+                        ["course_image"] = reader["course_image"],
+                        ["course_discription"] = reader["course_discription"],
+                        ["quantity"] = reader["quantity"],
+                        ["price"] = reader["price"],
+                        ["discount"] = reader["discount"],
+                        ["total"] = reader["item_total"],
+                        ["saling_price"] = reader["saling_price"],
+                        ["mrp_price"] = reader["mrp_price"],
+                        ["duration"] = reader["duration"],
+                        ["course_slug"] = reader["course_slug"]
+                    }
+                }
+                    };
+
+                    list.Add(orderDict);
                 }
 
-                return new OkObjectResult(new { success = true, data = list });
+                return Ok(new { success = true, data = list });
             }
             catch (Exception ex)
             {
-                return new BadRequestObjectResult(new { success = false, message = ex.Message });
+                return BadRequest(new { success = false, message = $"DB Error in GetAllOrders: {ex.Message}" });
             }
         }
-
     }
 }
