@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using CareerCracker.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using System.Text.RegularExpressions;
@@ -27,7 +28,10 @@ namespace CareerCracker.DataBaseLayer
 
     }
 
-    public partial interface IDataBaseLayer : IDataBaseLayer_Category { }
+    public partial interface IDataBaseLayer : IDataBaseLayer_Category
+    {
+        Task<List<AdminOrderModel>> GetAllAdminOrders();
+    }
 
     public partial class DataBaseLayer : ControllerBase
     {

@@ -114,5 +114,22 @@ namespace CareerCracker.Models
         public decimal Discount { get; set; } = 0;
     }
 
+    public class AdminOrderModel
+    {
+        public int OrderId { get; set; }
+        public Guid UserId { get; set; }   // ✅ FIXED
+
+        public decimal Subtotal { get; set; }
+        public decimal DiscountAmount { get; set; }
+        public decimal TotalAmount { get; set; }
+
+        public string PaymentStatus { get; set; }
+        public string OrderStatus { get; set; }
+        public DateTime CreatedAt { get; set; }
+
+        public string Name { get; set; }
+        public string Email { get; set; }
+        public string Mobile { get; set; }
+    }
 
 }

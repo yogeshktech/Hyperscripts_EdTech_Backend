@@ -493,6 +493,16 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.AdminOrderController",
+    "Method": "GetAllAdminOrders",
+    "RelativePath": "api/admin/get-admin-orders",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.BlogsController",
     "Method": "GetAllBlogs",
     "RelativePath": "api/admin/get-all-blogs",

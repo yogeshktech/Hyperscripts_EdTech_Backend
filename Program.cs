@@ -78,7 +78,7 @@ builder.Services.AddRazorPages();
 // ======================================================
 // 6?? Dependency Injection
 // ======================================================
-builder.Services.AddScoped<IBusinessLayer, BusinessLayer>();
+builder.Services.AddScoped<CareerCracker.BusinessLayer.IBusinessLayer, BusinessLayer>();
 builder.Services.AddScoped<IDataBaseLayer, DataBaseLayer>();
 builder.Services.AddScoped<IApplicationUserManagement, ApplicationUserManagement>();
 
