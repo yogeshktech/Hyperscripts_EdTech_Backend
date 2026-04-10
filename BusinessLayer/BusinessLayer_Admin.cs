@@ -64,8 +64,8 @@ namespace CareerCracker.BusinessLayer
                     EmailConfirmed = true,
                     IsActive = true,
                     CreateDate = DateTime.UtcNow,
-                    userType = 1,
-                    sourcetype = "internal"
+                    //userType = 1,
+                    //sourcetype = "internal"
                 };
 
                 var result = await _userManager.CreateAsync(user, password);

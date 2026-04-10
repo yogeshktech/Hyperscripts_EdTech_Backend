@@ -1,9 +1,13 @@
 {
   "version": 2,
-  "dgSpecHash": "mOuooB9BOCs=",
+  "dgSpecHash": "yJ9mif8Z6hE=",
   "success": true,
   "projectFilePath": "D:\\DotNet_Project_HyperScripts\\Backend\\Hyperscripts_EdTech_Backend\\CareerCracker.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\yoges\\.nuget\\packages\\awssdk.core\\4.0.3.28\\awssdk.core.4.0.3.28.nupkg.sha512",
+    "C:\\Users\\yoges\\.nuget\\packages\\awssdk.polly\\4.0.6.6\\awssdk.polly.4.0.6.6.nupkg.sha512",
+    "C:\\Users\\yoges\\.nuget\\packages\\awssdk.s3\\3.7.1\\awssdk.s3.3.7.1.nupkg.sha512",
+    "C:\\Users\\yoges\\.nuget\\packages\\bouncycastle.cryptography\\2.6.2\\bouncycastle.cryptography.2.6.2.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\dapper\\2.1.66\\dapper.2.1.66.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\firebaseadmin\\3.4.0\\firebaseadmin.3.4.0.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\google.api.gax\\4.8.0\\google.api.gax.4.8.0.nupkg.sha512",
@@ -141,6 +145,7 @@
     "C:\\Users\\yoges\\.nuget\\packages\\microsoft.visualstudio.web.codegeneration.templating\\9.0.0\\microsoft.visualstudio.web.codegeneration.templating.9.0.0.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\microsoft.visualstudio.web.codegeneration.utils\\9.0.0\\microsoft.visualstudio.web.codegeneration.utils.9.0.0.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\microsoft.visualstudio.web.codegenerators.mvc\\9.0.0\\microsoft.visualstudio.web.codegenerators.mvc.9.0.0.nupkg.sha512",
+    "C:\\Users\\yoges\\.nuget\\packages\\mimekit\\4.15.1\\mimekit.4.15.1.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\mono.texttemplating\\3.0.0\\mono.texttemplating.3.0.0.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\newtonsoft.json\\13.0.3\\newtonsoft.json.13.0.3.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\npgsql\\8.0.8\\npgsql.8.0.8.nupkg.sha512",
@@ -177,7 +182,7 @@
     "C:\\Users\\yoges\\.nuget\\packages\\system.reflection.metadata\\8.0.0\\system.reflection.metadata.8.0.0.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\system.reflection.metadataloadcontext\\8.0.0\\system.reflection.metadataloadcontext.8.0.0.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\system.runtime.compilerservices.unsafe\\6.0.0\\system.runtime.compilerservices.unsafe.6.0.0.nupkg.sha512",
-    "C:\\Users\\yoges\\.nuget\\packages\\system.security.cryptography.pkcs\\6.0.4\\system.security.cryptography.pkcs.6.0.4.nupkg.sha512",
+    "C:\\Users\\yoges\\.nuget\\packages\\system.security.cryptography.pkcs\\8.0.1\\system.security.cryptography.pkcs.8.0.1.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\system.security.cryptography.protecteddata\\8.0.0\\system.security.cryptography.protecteddata.8.0.0.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\system.security.principal.windows\\5.0.0\\system.security.principal.windows.5.0.0.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\system.text.encodings.web\\8.0.0\\system.text.encodings.web.8.0.0.nupkg.sha512",
@@ -185,5 +190,30 @@
     "C:\\Users\\yoges\\.nuget\\packages\\system.threading.channels\\8.0.0\\system.threading.channels.8.0.0.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\system.threading.tasks.dataflow\\8.0.0\\system.threading.tasks.dataflow.8.0.0.nupkg.sha512"
   ],
-  "logs": []
+  "logs": [
+    {
+      "code": "NU1603",
+      "level": "Warning",
+      "message": "CareerCracker depends on AWSSDK.S3 (>= 3.7.0.71) but AWSSDK.S3 3.7.0.71 was not found. AWSSDK.S3 3.7.1 was resolved instead.",
+      "projectPath": "D:\\DotNet_Project_HyperScripts\\Backend\\Hyperscripts_EdTech_Backend\\CareerCracker.csproj",
+      "warningLevel": 1,
+      "filePath": "D:\\DotNet_Project_HyperScripts\\Backend\\Hyperscripts_EdTech_Backend\\CareerCracker.csproj",
+      "libraryId": "AWSSDK.S3",
+      "targetGraphs": [
+        "net9.0"
+      ]
+    },
+    {
+      "code": "NU1608",
+      "level": "Warning",
+      "message": "Detected package version outside of dependency constraint: AWSSDK.S3 3.7.1 requires AWSSDK.Core (>= 3.7.0.31 && < 4.0.0) but version AWSSDK.Core 4.0.3.28 was resolved.",
+      "projectPath": "D:\\DotNet_Project_HyperScripts\\Backend\\Hyperscripts_EdTech_Backend\\CareerCracker.csproj",
+      "warningLevel": 1,
+      "filePath": "D:\\DotNet_Project_HyperScripts\\Backend\\Hyperscripts_EdTech_Backend\\CareerCracker.csproj",
+      "libraryId": "AWSSDK.Core",
+      "targetGraphs": [
+        "net9.0"
+      ]
+    }
+  ]
 }

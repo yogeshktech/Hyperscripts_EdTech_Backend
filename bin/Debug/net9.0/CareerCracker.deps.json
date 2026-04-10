@@ -8,6 +8,8 @@
     ".NETCoreApp,Version=v9.0": {
       "CareerCracker/1.0.0": {
         "dependencies": {
+          "AWSSDK.Polly": "4.0.6.6",
+          "AWSSDK.S3": "3.7.1",
           "Dapper": "2.1.66",
           "FirebaseAdmin": "3.4.0",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "8.0.10",
@@ -19,6 +21,7 @@
           "Microsoft.EntityFrameworkCore.Tools": "8.0.10",
           "Microsoft.IdentityModel.Tokens": "8.15.0",
           "Microsoft.VisualStudio.Web.CodeGeneration.Design": "9.0.0",
+          "MimeKit": "4.15.1",
           "Npgsql": "8.0.8",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "8.0.8",
           "Razorpay": "3.3.2",
@@ -26,6 +29,44 @@
         },
         "runtime": {
           "CareerCracker.dll": {}
+        }
+      },
+      "AWSSDK.Core/4.0.3.28": {
+        "runtime": {
+          "lib/net8.0/AWSSDK.Core.dll": {
+            "assemblyVersion": "4.0.0.0",
+            "fileVersion": "4.0.3.28"
+          }
+        }
+      },
+      "AWSSDK.Polly/4.0.6.6": {
+        "dependencies": {
+          "AWSSDK.Core": "4.0.3.28"
+        },
+        "runtime": {
+          "lib/net8.0/AWSSDK.Polly.dll": {
+            "assemblyVersion": "4.0.0.0",
+            "fileVersion": "4.0.6.6"
+          }
+        }
+      },
+      "AWSSDK.S3/3.7.1": {
+        "dependencies": {
+          "AWSSDK.Core": "4.0.3.28"
+        },
+        "runtime": {
+          "lib/netcoreapp3.1/AWSSDK.S3.dll": {
+            "assemblyVersion": "3.3.0.0",
+            "fileVersion": "3.7.1.0"
+          }
+        }
+      },
+      "BouncyCastle.Cryptography/2.6.2": {
+        "runtime": {
+          "lib/net6.0/BouncyCastle.Cryptography.dll": {
+            "assemblyVersion": "2.0.0.0",
+            "fileVersion": "2.6.2.46322"
+          }
         }
       },
       "Dapper/2.1.66": {
@@ -1761,6 +1802,18 @@
           }
         }
       },
+      "MimeKit/4.15.1": {
+        "dependencies": {
+          "BouncyCastle.Cryptography": "2.6.2",
+          "System.Security.Cryptography.Pkcs": "8.0.1"
+        },
+        "runtime": {
+          "lib/net8.0/MimeKit.dll": {
+            "assemblyVersion": "4.15.0.0",
+            "fileVersion": "4.15.1.0"
+          }
+        }
+      },
       "Mono.TextTemplating/3.0.0": {
         "dependencies": {
           "System.CodeDom": "7.0.0"
@@ -1866,7 +1919,7 @@
           "Newtonsoft.Json": "13.0.3",
           "NuGet.Configuration": "6.11.0",
           "NuGet.Versioning": "6.11.0",
-          "System.Security.Cryptography.Pkcs": "6.0.4"
+          "System.Security.Cryptography.Pkcs": "8.0.1"
         },
         "runtime": {
           "lib/net5.0/NuGet.Packaging.dll": {
@@ -2069,11 +2122,7 @@
         }
       },
       "System.Runtime.CompilerServices.Unsafe/6.0.0": {},
-      "System.Security.Cryptography.Pkcs/6.0.4": {
-        "dependencies": {
-          "System.Formats.Asn1": "9.0.0-rc.2.24473.5"
-        }
-      },
+      "System.Security.Cryptography.Pkcs/8.0.1": {},
       "System.Security.Cryptography.ProtectedData/8.0.0": {
         "runtime": {
           "lib/net8.0/System.Security.Cryptography.ProtectedData.dll": {
@@ -2098,6 +2147,34 @@
       "type": "project",
       "serviceable": false,
       "sha512": ""
+    },
+    "AWSSDK.Core/4.0.3.28": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-OKvL+4Z/SFpOo7lbDbsT7bgcZY03fZkIQNFVV5LDZAt9hVhpX9z1Xn2MsGKSpXo4hwxXeiINv2j5Bb4n1KrVaQ==",
+      "path": "awssdk.core/4.0.3.28",
+      "hashPath": "awssdk.core.4.0.3.28.nupkg.sha512"
+    },
+    "AWSSDK.Polly/4.0.6.6": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-iQl9BdhyAakRoKtaelOWnnZ3wbN4xcdokR60bo1VYxYL62MPe8I43yiLSNoGi7P1HQZOzmZ3w1UneysfOX8WHA==",
+      "path": "awssdk.polly/4.0.6.6",
+      "hashPath": "awssdk.polly.4.0.6.6.nupkg.sha512"
+    },
+    "AWSSDK.S3/3.7.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-GhUxyqLDVNj0qubAmHuytZ5P68yT1PTnV5Phig6WziPgOTVrGJfgSx9cw6L5KSZxEGIZNXwuIaVCYA6N8v5kLQ==",
+      "path": "awssdk.s3/3.7.1",
+      "hashPath": "awssdk.s3.3.7.1.nupkg.sha512"
+    },
+    "BouncyCastle.Cryptography/2.6.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-7oWOcvnntmMKNzDLsdxAYqApt+AjpRpP2CShjMfIa3umZ42UQMvH0tl1qAliYPNYO6vTdcGMqnRrCPmsfzTI1w==",
+      "path": "bouncycastle.cryptography/2.6.2",
+      "hashPath": "bouncycastle.cryptography.2.6.2.nupkg.sha512"
     },
     "Dapper/2.1.66": {
       "type": "package",
@@ -3058,6 +3135,13 @@
       "path": "microsoft.visualstudio.web.codegenerators.mvc/9.0.0",
       "hashPath": "microsoft.visualstudio.web.codegenerators.mvc.9.0.0.nupkg.sha512"
     },
+    "MimeKit/4.15.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-cxCcQhD0zhboFoG136jJuJtQjNRDJ+BxBm3f2vWn+53bff/CRo+K1mAkWjsW4Wuyy5O22F40MdMG2nRzQu1cJw==",
+      "path": "mimekit/4.15.1",
+      "hashPath": "mimekit.4.15.1.nupkg.sha512"
+    },
     "Mono.TextTemplating/3.0.0": {
       "type": "package",
       "serviceable": true,
@@ -3310,12 +3394,12 @@
       "path": "system.runtime.compilerservices.unsafe/6.0.0",
       "hashPath": "system.runtime.compilerservices.unsafe.6.0.0.nupkg.sha512"
     },
-    "System.Security.Cryptography.Pkcs/6.0.4": {
+    "System.Security.Cryptography.Pkcs/8.0.1": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-LGbXi1oUJ9QgCNGXRO9ndzBL/GZgANcsURpMhNR8uO+rca47SZmciS3RSQUvlQRwK3QHZSHNOXzoMUASKA+Anw==",
-      "path": "system.security.cryptography.pkcs/6.0.4",
-      "hashPath": "system.security.cryptography.pkcs.6.0.4.nupkg.sha512"
+      "sha512": "sha512-CoCRHFym33aUSf/NtWSVSZa99dkd0Hm7OCZUxORBjRB16LNhIEOf8THPqzIYlvKM0nNDAPTRBa1FxEECrgaxxA==",
+      "path": "system.security.cryptography.pkcs/8.0.1",
+      "hashPath": "system.security.cryptography.pkcs.8.0.1.nupkg.sha512"
     },
     "System.Security.Cryptography.ProtectedData/8.0.0": {
       "type": "package",

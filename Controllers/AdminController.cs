@@ -189,20 +189,20 @@ namespace CareerCracker.Controllers
                 // ===============================
                 // 2️⃣ Experience Logic (TEXT)
                 // ===============================
-                if (!string.IsNullOrWhiteSpace(experienceInput) &&
-                    decimal.TryParse(experienceInput, out decimal exp))
-                {
-                    if (exp < 1)
-                        user.experience = $"{exp * 12} Months";
-                    else if (exp == 1)
-                        user.experience = "1 Year";
-                    else
-                        user.experience = $"{exp} Years";
-                }
-                else
-                {
-                    user.experience = experienceInput?.Trim();
-                }
+                //if (!string.IsNullOrWhiteSpace(experienceInput) &&
+                //    decimal.TryParse(experienceInput, out decimal exp))
+                //{
+                //    if (exp < 1)
+                //        user.experience = $"{exp * 12} Months";
+                //    else if (exp == 1)
+                //        user.experience = "1 Year";
+                //    else
+                //        user.experience = $"{exp} Years";
+                //}
+                //else
+                //{
+                //    user.experience = experienceInput?.Trim();
+                //}
 
                 // ===============================
                 // 3️⃣ Salary (numeric)
@@ -226,7 +226,7 @@ namespace CareerCracker.Controllers
                 // ===============================
                 user.FirstName = firstName?.Trim();
                 user.LastName = lastName?.Trim();
-                user.position = position?.Trim();
+                //user.position = position?.Trim();
                 user.specialization = specialization?.Trim();
                 user.Gender = gender?.Trim();
                 user.Address = address?.Trim();
@@ -377,7 +377,7 @@ namespace CareerCracker.Controllers
         {
             try
             {
-                // ================= GET BY EMAIL =================
+                // GET BY EMAIL
                 if (!string.IsNullOrWhiteSpace(email))
                 {
                     var user = await _userManager.FindByEmailAsync(email);
@@ -385,18 +385,13 @@ namespace CareerCracker.Controllers
                         return NotFound(new { success = false, message = "User not found" });
 
                     var roles = await _userManager.GetRolesAsync(user);
-
                     if (!roles.Contains("USER"))
                         return NotFound(new { success = false, message = "User is not USER role" });
 
-                    return Ok(new
-                    {
-                        success = true,
-                        user = MapUser(user, roles)
-                    });
+                    return Ok(new { success = true, user = MapUser(user, roles) });
                 }
 
-                // ================= GET BY ID =================
+                // GET BY ID
                 if (!string.IsNullOrWhiteSpace(id))
                 {
                     var user = await _userManager.FindByIdAsync(id);
@@ -404,44 +399,43 @@ namespace CareerCracker.Controllers
                         return NotFound(new { success = false, message = "User not found" });
 
                     var roles = await _userManager.GetRolesAsync(user);
-
                     if (!roles.Contains("USER"))
                         return NotFound(new { success = false, message = "User is not USER role" });
 
-                    return Ok(new
-                    {
-                        success = true,
-                        user = MapUser(user, roles)
-                    });
+                    return Ok(new { success = true, user = MapUser(user, roles) });
                 }
 
-                // ================= GET ALL USERS WITH ROLE = USER =================
+                // GET ALL USERS
                 var usersInRole = await _userManager.GetUsersInRoleAsync("USER");
 
                 var userList = usersInRole.Select(u => new
                 {
-                    u.Id,
-                    u.FirstName,
-                    u.LastName,
-                    u.Email,
-                    u.UserName,
-                    u.PhoneNumber,
-                    u.OrgId,
-                    u.AccessKey,
-                    u.IsActive,
-                    Roles = new[] { "USER" }
+                    id = u.Id,
+                    firstName = u.FirstName ?? "",
+                    lastName = u.LastName ?? "",
+                    fullName = string.IsNullOrWhiteSpace(u.FirstName) && string.IsNullOrWhiteSpace(u.LastName)
+                                ? (u.UserName ?? u.Email ?? "N/A")
+                                : $"{u.FirstName} {u.LastName}".Trim(),
+                    email = u.Email,
+                    userName = u.UserName,
+                    phoneNumber = u.PhoneNumber,
+                    orgId = u.OrgId,
+                    accessKey = u.AccessKey,
+                    isActive = u.IsActive,
+                    roles = new[] { "USER" }
                 }).ToList();
 
-                return Ok(new
-                {
-                    success = true,
-                    users = userList
-                });
+                return Ok(new { success = true, users = userList });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Exception while fetching users");
-                return StatusCode(500, new { success = false, message = ex.Message });
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                    // You can temporarily add: , detail = ex.InnerException?.Message 
+                });
             }
         }
 
@@ -450,20 +444,21 @@ namespace CareerCracker.Controllers
         {
             return new
             {
-                user.Id,
-                user.FirstName,
-                user.LastName,
-                user.Email,
-                user.UserName,
-                user.PhoneNumber,
-                user.OrgId,
-                user.AccessKey,
-                user.IsActive,
-                Roles = roles
+                id = user.Id,
+                firstName = user.FirstName ?? "",
+                lastName = user.LastName ?? "",
+                fullName = string.IsNullOrWhiteSpace(user.FirstName) && string.IsNullOrWhiteSpace(user.LastName)
+                            ? (user.UserName ?? user.Email ?? "N/A")
+                            : $"{user.FirstName} {user.LastName}".Trim(),
+                email = user.Email,
+                userName = user.UserName,
+                phoneNumber = user.PhoneNumber,
+                orgId = user.OrgId,
+                accessKey = user.AccessKey,
+                isActive = user.IsActive,
+                roles = roles
             };
         }
-
-
 
 
         [Route("user-get/{id}")]

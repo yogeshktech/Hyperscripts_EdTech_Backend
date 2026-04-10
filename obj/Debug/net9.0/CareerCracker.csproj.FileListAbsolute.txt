@@ -744,3 +744,8 @@ D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\obj\Debug\net
 D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\obj\Debug\net9.0\CareerCracker.pdb
 D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\obj\Debug\net9.0\CareerCracker.genruntimeconfig.cache
 D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\obj\Debug\net9.0\ref\CareerCracker.dll
+D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\bin\Debug\net9.0\AWSSDK.Core.dll
+D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\bin\Debug\net9.0\AWSSDK.Polly.dll
+D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\bin\Debug\net9.0\AWSSDK.S3.dll
+D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\bin\Debug\net9.0\BouncyCastle.Cryptography.dll
+D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\bin\Debug\net9.0\MimeKit.dll
