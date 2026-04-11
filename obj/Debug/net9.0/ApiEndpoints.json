@@ -1492,6 +1492,67 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.CoursesCatalogController",
+    "Method": "Filter",
+    "RelativePath": "api/courses/filter",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "categoryId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "categorySlug",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "languageId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "languageSlug",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "minAverageRating",
+        "Type": "System.Nullable\u00601[[System.Decimal, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "minReviewCount",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "search",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "q",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "page",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "pageSize",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.AuthController",
     "Method": "ForgotPassword",
     "RelativePath": "api/forgotpassword",
@@ -1803,6 +1864,16 @@
         "IsRequired": true
       }
     ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.UserController",
+    "Method": "PurchaseHistory",
+    "RelativePath": "api/user/purchase-history",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
     "ReturnTypes": []
   },
   {

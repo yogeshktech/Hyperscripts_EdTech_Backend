@@ -15,6 +15,7 @@ namespace CareerCracker.BusinessLayer
 
         Task<IActionResult> GetOrder(int orderId);
         Task<IActionResult> GetAllOrders();
+        Task<IActionResult> GetPurchaseHistory(string userEmail);
     }
 
     public partial interface IBusinessLayer : IBusinessLayer_Orders { }
@@ -63,6 +64,11 @@ namespace CareerCracker.BusinessLayer
         public async Task<IActionResult> GetAllOrders()
         {
             return await _dataBaseLayer.GetAllOrders();
+        }
+
+        public async Task<IActionResult> GetPurchaseHistory(string userEmail)
+        {
+            return await _dataBaseLayer.GetPurchaseHistory(userEmail);
         }
 
     }

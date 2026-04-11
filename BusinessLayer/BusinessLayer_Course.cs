@@ -7,6 +7,16 @@ namespace CareerCracker.BusinessLayer
         Task<IActionResult> AddCourse(IFormCollection form);
         Task<IActionResult> UpdateCourse(int id, IFormCollection form);
         Task<IActionResult> GetAllCourses();
+        Task<IActionResult> GetCoursesWithFilters(
+            int? categoryId,
+            string? categorySlug,
+            int? languageId,
+            string? languageSlug,
+            decimal? minAverageRating,
+            int? minReviewCount,
+            string? search,
+            int page,
+            int pageSize);
         Task<IActionResult> GetCourseById(int id);
         Task<IActionResult> DeleteCourse(int id);
         Task<IActionResult> ToggleCourseStatus(int id);
@@ -28,6 +38,23 @@ namespace CareerCracker.BusinessLayer
         {
             return await _dataBaseLayer.GetAllCourses();
         }
+
+        public async Task<IActionResult> GetCoursesWithFilters(
+            int? categoryId,
+            string? categorySlug,
+            int? languageId,
+            string? languageSlug,
+            decimal? minAverageRating,
+            int? minReviewCount,
+            string? search,
+            int page,
+            int pageSize)
+        {
+            return await _dataBaseLayer.GetCoursesWithFilters(
+                categoryId, categorySlug, languageId, languageSlug,
+                minAverageRating, minReviewCount, search, page, pageSize);
+        }
+
         public async Task<IActionResult> GetCourseById(int id)
         {
             return await _dataBaseLayer.GetCourseById(id);

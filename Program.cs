@@ -139,7 +139,10 @@ app.UseAuthorization();
 
 app.MapStaticAssets();
 
-// Default route
+// Attribute-routed API controllers (e.g. [Route("api/courses")], [Route("api/admin")])
+app.MapControllers();
+
+// MVC conventional route (Razor views / Home)
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

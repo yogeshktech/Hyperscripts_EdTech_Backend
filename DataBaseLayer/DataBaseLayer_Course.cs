@@ -1,6 +1,7 @@
 ﻿using CareerCracker.S3Services;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
+using NpgsqlTypes;
 
 namespace CareerCracker.DataBaseLayer
 {
@@ -9,6 +10,16 @@ namespace CareerCracker.DataBaseLayer
         Task<IActionResult> AddCourse(IFormCollection form);
         Task<IActionResult> UpdateCourse(int id, IFormCollection form);
         Task<IActionResult> GetAllCourses();
+        Task<IActionResult> GetCoursesWithFilters(
+            int? categoryId,
+            string? categorySlug,
+            int? languageId,
+            string? languageSlug,
+            decimal? minAverageRating,
+            int? minReviewCount,
+            string? search,
+            int page,
+            int pageSize);
         Task<IActionResult> GetCourseById(int id);
         Task<IActionResult> DeleteCourse(int id);
         Task<IActionResult> ToggleCourseStatus(int id);
@@ -485,6 +496,202 @@ ORDER BY c.id DESC";
                         return Ok(new { success = true, data = list });
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = $"Internal server error: {ex.Message}" });
+            }
+        }
+
+        public async Task<IActionResult> GetCoursesWithFilters(
+            int? categoryId,
+            string? categorySlug,
+            int? languageId,
+            string? languageSlug,
+            decimal? minAverageRating,
+            int? minReviewCount,
+            string? search,
+            int page,
+            int pageSize)
+        {
+            try
+            {
+                page = Math.Max(1, page);
+                pageSize = Math.Clamp(pageSize, 1, 100);
+                var offset = (page - 1) * pageSize;
+
+                var catSlug = string.IsNullOrWhiteSpace(categorySlug) ? null : categorySlug.Trim();
+                var langSlug = string.IsNullOrWhiteSpace(languageSlug) ? null : languageSlug.Trim();
+                if (categoryId.HasValue)
+                    catSlug = null;
+                if (languageId.HasValue)
+                    langSlug = null;
+
+                var searchTrim = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
+                var safeSearch = searchTrim == null ? null : searchTrim.Replace("%", "").Replace("_", "");
+                var likePattern = safeSearch == null ? null : $"%{safeSearch}%";
+
+                using var con = new NpgsqlConnection(DbConnection);
+                await con.OpenAsync();
+
+                const string query = @"
+SELECT
+    c.id, c.course_name, c.course_discription, c.course_slug, c.is_active, c.course_image,
+    c.category_id, c.start_class_date, c.maximum_lpa, c.minimum_lpa,
+    c.demo_start_date, c.demo_end_date, c.mrp_price, c.saling_price,
+    c.course_level, c.duration, c.total_lectures, c.course_language,
+    c.overview, c.course_highlights, c.course_details, c.why_choose_us,
+    c.progress, c.updated_at,
+
+    cat.category_name,
+    cat.category_discription,
+    cat.category_slug,
+    cat.category_image,
+    cat.is_active AS category_is_active,
+    cat.updated_at AS category_updated_at,
+
+    lang.language_name,
+    lang.language_discription,
+    lang.language_slug,
+    lang.is_active AS language_is_active,
+    lang.updated_at AS language_updated_at,
+
+    rev.avg_rating,
+    rev.review_count,
+    COUNT(*) OVER() AS _full_count
+
+FROM courses c
+LEFT JOIN categories cat ON c.category_id = cat.id
+LEFT JOIN languages lang ON c.course_language = lang.id
+LEFT JOIN (
+    SELECT course_id,
+           ROUND(AVG(rating)::numeric, 2) AS avg_rating,
+           COUNT(*)::int AS review_count
+    FROM reviews
+    WHERE is_active = TRUE
+    GROUP BY course_id
+) rev ON rev.course_id = c.id
+
+WHERE c.is_active = TRUE
+  AND (@category_id IS NULL OR c.category_id = @category_id)
+  AND (@category_slug IS NULL OR LOWER(cat.category_slug) = LOWER(@category_slug))
+  AND (@language_id IS NULL OR c.course_language = @language_id)
+  AND (@language_slug IS NULL OR LOWER(lang.language_slug) = LOWER(@language_slug))
+  AND (@min_avg_rating IS NULL OR COALESCE(rev.avg_rating, 0) >= @min_avg_rating)
+  AND (@min_review_count IS NULL OR COALESCE(rev.review_count, 0) >= @min_review_count)
+  AND (
+        @search_pattern IS NULL
+        OR c.course_name ILIKE @search_pattern
+        OR c.course_discription ILIKE @search_pattern
+        OR c.course_slug ILIKE @search_pattern
+        OR c.overview ILIKE @search_pattern
+        OR c.course_highlights ILIKE @search_pattern
+        OR c.course_details ILIKE @search_pattern
+        OR cat.category_name ILIKE @search_pattern
+        OR lang.language_name ILIKE @search_pattern
+      )
+
+ORDER BY c.id DESC
+LIMIT @page_size OFFSET @offset;
+";
+
+                using var cmd = new NpgsqlCommand(query, con);
+                // Typed NULLs — PostgreSQL 42P08 otherwise ("could not determine data type of parameter")
+                cmd.Parameters.Add(new NpgsqlParameter("@category_id", NpgsqlDbType.Integer)
+                { Value = categoryId.HasValue ? categoryId.Value : DBNull.Value });
+                cmd.Parameters.Add(new NpgsqlParameter("@category_slug", NpgsqlDbType.Text)
+                { Value = catSlug ?? (object)DBNull.Value });
+                cmd.Parameters.Add(new NpgsqlParameter("@language_id", NpgsqlDbType.Integer)
+                { Value = languageId.HasValue ? languageId.Value : DBNull.Value });
+                cmd.Parameters.Add(new NpgsqlParameter("@language_slug", NpgsqlDbType.Text)
+                { Value = langSlug ?? (object)DBNull.Value });
+                cmd.Parameters.Add(new NpgsqlParameter("@min_avg_rating", NpgsqlDbType.Numeric)
+                { Value = minAverageRating.HasValue ? minAverageRating.Value : DBNull.Value });
+                cmd.Parameters.Add(new NpgsqlParameter("@min_review_count", NpgsqlDbType.Integer)
+                { Value = minReviewCount.HasValue ? minReviewCount.Value : DBNull.Value });
+                cmd.Parameters.Add(new NpgsqlParameter("@search_pattern", NpgsqlDbType.Text)
+                { Value = likePattern ?? (object)DBNull.Value });
+                cmd.Parameters.Add(new NpgsqlParameter("@page_size", NpgsqlDbType.Integer) { Value = pageSize });
+                cmd.Parameters.Add(new NpgsqlParameter("@offset", NpgsqlDbType.Integer) { Value = offset });
+
+                var list = new List<object>();
+                int totalCount = 0;
+
+                await using (var reader = await cmd.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        if (totalCount == 0)
+                            totalCount = reader["_full_count"] == DBNull.Value ? 0 : Convert.ToInt32(reader["_full_count"]);
+
+                        list.Add(new
+                        {
+                            id = reader["id"],
+                            course_name = reader["course_name"],
+                            course_discription = reader["course_discription"],
+                            course_slug = reader["course_slug"],
+                            is_active = reader["is_active"],
+                            course_image = reader["course_image"],
+                            category_id = reader["category_id"],
+                            start_class_date = reader["start_class_date"],
+                            maximum_lpa = reader["maximum_lpa"],
+                            minimum_lpa = reader["minimum_lpa"],
+                            demo_start_date = reader["demo_start_date"],
+                            demo_end_date = reader["demo_end_date"],
+                            mrp_price = reader["mrp_price"],
+                            saling_price = reader["saling_price"],
+                            course_level = reader["course_level"],
+                            duration = reader["duration"],
+                            total_lectures = reader["total_lectures"],
+                            course_language_id = reader["course_language"],
+                            overview = reader["overview"],
+                            course_highlights = reader["course_highlights"],
+                            course_details = reader["course_details"],
+                            why_choose_us = reader["why_choose_us"],
+                            progress = reader["progress"],
+                            updated_at = reader["updated_at"],
+                            average_rating = reader["avg_rating"] == DBNull.Value ? null : reader["avg_rating"],
+                            review_count = reader["review_count"] == DBNull.Value ? 0 : reader["review_count"],
+                            category = new
+                            {
+                                category_name = reader["category_name"],
+                                category_discription = reader["category_discription"],
+                                category_slug = reader["category_slug"],
+                                category_image = reader["category_image"],
+                                is_active = reader["category_is_active"],
+                                updated_at = reader["category_updated_at"]
+                            },
+                            courseLanguage = new
+                            {
+                                language_name = reader["language_name"],
+                                language_discription = reader["language_discription"],
+                                language_slug = reader["language_slug"],
+                                is_active = reader["language_is_active"],
+                                updated_at = reader["language_updated_at"]
+                            }
+                        });
+                    }
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    page,
+                    pageSize,
+                    totalCount,
+                    totalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+                    filters = new
+                    {
+                        categoryId,
+                        categorySlug = catSlug,
+                        languageId,
+                        languageSlug = langSlug,
+                        minAverageRating,
+                        minReviewCount,
+                        search = searchTrim
+                    },
+                    data = list
+                });
             }
             catch (Exception ex)
             {

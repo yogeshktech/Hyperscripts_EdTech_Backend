@@ -263,6 +263,21 @@ namespace CareerCracker.Controllers
             return Ok(new { success = true, message = "Password changed successfully" });
         }
 
+        /// <summary>Paid, confirmed orders for the logged-in user (purchase history).</summary>
+        [HttpGet("purchase-history")]
+        public async Task<IActionResult> PurchaseHistory()
+        {
+            var userEmail =
+                User.FindFirst(ClaimTypes.Email)?.Value
+                ?? User.FindFirst("UserEmail")?.Value
+                ?? User.FindFirst("email")?.Value;
+
+            if (string.IsNullOrEmpty(userEmail))
+                return Unauthorized(new { success = false, message = "Email claim not found in token" });
+
+            return await _businessLayer.GetPurchaseHistory(userEmail);
+        }
+
         [Route("my-course")]
         [HttpGet]
         public async Task<IActionResult> MyCourses()

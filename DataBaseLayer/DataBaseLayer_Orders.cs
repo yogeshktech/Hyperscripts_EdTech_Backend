@@ -21,6 +21,7 @@ namespace CareerCracker.DataBaseLayer
         Task<IActionResult> MarkPaymentPaid(int orderId);
         Task<IActionResult> GetOrder(int orderId);
         Task<IActionResult> GetAllOrders();
+        Task<IActionResult> GetPurchaseHistory(string userEmail);
     }
 
     public partial interface IDataBaseLayer : IDataBaseLayer_Orders
@@ -1137,6 +1138,122 @@ namespace CareerCracker.DataBaseLayer
             catch (Exception ex)
             {
                 return BadRequest(new { success = false, message = $"DB Error in GetAllOrders: {ex.Message}" });
+            }
+        }
+
+        /// <summary>Completed orders (paid + confirmed) for the given account email, grouped with line items.</summary>
+        public async Task<IActionResult> GetPurchaseHistory(string userEmail)
+        {
+            if (string.IsNullOrWhiteSpace(userEmail))
+                return new BadRequestObjectResult(new { success = false, message = "User email is required" });
+
+            try
+            {
+                await using var con = new NpgsqlConnection(DbConnection);
+                await con.OpenAsync();
+
+                Guid userId;
+                await using (var userCmd = new NpgsqlCommand(
+                    @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE LOWER(""Email"") = LOWER(@Email) LIMIT 1", con))
+                {
+                    userCmd.Parameters.AddWithValue("@Email", userEmail.Trim());
+                    var idObj = await userCmd.ExecuteScalarAsync();
+                    if (idObj == null)
+                        return new NotFoundObjectResult(new { success = false, message = "User not found" });
+                    userId = Guid.Parse(idObj.ToString()!);
+                }
+
+                const string query = @"
+SELECT
+    o.id AS order_id,
+    o.created_at,
+    o.subtotal,
+    o.discount_amount,
+    o.total_amount,
+    o.payment_status,
+    o.order_status,
+    o.razorpay_order_id,
+    o.razorpay_payment_id,
+    oi.id AS order_item_id,
+    oi.course_id,
+    oi.price AS item_price,
+    oi.discount AS item_discount,
+    oi.quantity,
+    oi.total AS line_total,
+    c.course_name,
+    c.course_image,
+    c.course_slug,
+    c.duration
+FROM orders o
+INNER JOIN order_items oi ON oi.order_id = o.id
+LEFT JOIN courses c ON c.id = oi.course_id
+WHERE o.user_id = @userId
+  AND o.order_status = 'CONFIRMED'
+  AND (o.payment_status = 'PAID' OR o.payment_status = 'CONFIRMED')
+ORDER BY o.created_at DESC, oi.id;";
+
+                var orderMeta = new Dictionary<int, Dictionary<string, object?>>();
+                var orderItems = new Dictionary<int, List<object>>();
+
+                await using (var cmd = new NpgsqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@userId", userId);
+                    await using var reader = await cmd.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        var orderId = Convert.ToInt32(reader["order_id"]);
+                        if (!orderMeta.ContainsKey(orderId))
+                        {
+                            orderMeta[orderId] = new Dictionary<string, object?>
+                            {
+                                ["orderId"] = orderId,
+                                ["createdAt"] = reader["created_at"],
+                                ["subtotal"] = reader["subtotal"],
+                                ["discountAmount"] = reader["discount_amount"],
+                                ["totalAmount"] = reader["total_amount"],
+                                ["paymentStatus"] = reader["payment_status"],
+                                ["orderStatus"] = reader["order_status"],
+                                ["razorpayOrderId"] = reader.IsDBNull(reader.GetOrdinal("razorpay_order_id")) ? null : reader["razorpay_order_id"],
+                                ["razorpayPaymentId"] = reader.IsDBNull(reader.GetOrdinal("razorpay_payment_id")) ? null : reader["razorpay_payment_id"]
+                            };
+                            orderItems[orderId] = new List<object>();
+                        }
+
+                        orderItems[orderId].Add(new
+                        {
+                            orderItemId = reader["order_item_id"],
+                            courseId = reader["course_id"],
+                            courseName = reader.IsDBNull(reader.GetOrdinal("course_name")) ? null : reader["course_name"],
+                            courseImage = reader.IsDBNull(reader.GetOrdinal("course_image")) ? null : reader["course_image"],
+                            courseSlug = reader.IsDBNull(reader.GetOrdinal("course_slug")) ? null : reader["course_slug"],
+                            duration = reader.IsDBNull(reader.GetOrdinal("duration")) ? null : reader["duration"],
+                            quantity = reader["quantity"],
+                            price = reader["item_price"],
+                            discount = reader["item_discount"],
+                            lineTotal = reader["line_total"]
+                        });
+                    }
+                }
+
+                var purchases = orderMeta
+                    .OrderByDescending(kv => Convert.ToDateTime(kv.Value["createdAt"]))
+                    .Select(kv => new
+                    {
+                        order = kv.Value,
+                        items = orderItems[kv.Key]
+                    })
+                    .ToList();
+
+                return new OkObjectResult(new
+                {
+                    success = true,
+                    totalOrders = purchases.Count,
+                    purchases
+                });
+            }
+            catch (Exception ex)
+            {
+                return new BadRequestObjectResult(new { success = false, message = ex.Message });
             }
         }
     }
