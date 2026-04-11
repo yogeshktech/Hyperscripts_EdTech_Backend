@@ -173,5 +173,10 @@ namespace CareerCracker.S3Services
 
             return null;
         }
+
+        internal static async Task DeleteFileAsync(string oldImage)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using CareerCracker.S3Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
@@ -32,7 +33,7 @@ namespace CareerCracker.DataBaseLayer
                     return BadRequest(new { success = false, message = "Name is required" });
 
                 // --------------------------------------------
-                // 1️⃣ CHECK SLUG UNIQUE & MAKE IT UNIQUE
+                // 1️⃣ CHECK SLUG UNIQUE
                 // --------------------------------------------
                 using (var con = new NpgsqlConnection(DbConnection))
                 {
@@ -48,34 +49,33 @@ namespace CareerCracker.DataBaseLayer
 
                         if (count > 0)
                         {
-                            // If slug exists, append number
                             slug = $"{slug}-{count + 1}";
                         }
                     }
                 }
 
                 // --------------------------------------------
-                // IMAGE UPLOAD
+                // ✅ IMAGE UPLOAD TO S3 (UPDATED)
                 // --------------------------------------------
                 string imagePath = null;
+
                 if (form.Files.Count > 0)
                 {
                     var file = form.Files[0];
-                    string fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
 
-                    string folderPath = Path.Combine("wwwroot", "uploads", "testimonials");
-
-                    if (!Directory.Exists(folderPath))
-                        Directory.CreateDirectory(folderPath);
-
-                    string savePath = Path.Combine(folderPath, fileName);
-
-                    using (var stream = new FileStream(savePath, FileMode.Create))
+                    if (file != null && file.Length > 0)
                     {
-                        await file.CopyToAsync(stream);
-                    }
+                        imagePath = await S3StorageHelper.UploadFileAsync(file, "testimonials");
 
-                    imagePath = "/uploads/testimonials/" + fileName;
+                        if (string.IsNullOrEmpty(imagePath))
+                        {
+                            return BadRequest(new
+                            {
+                                success = false,
+                                message = "Failed to upload testimonial image"
+                            });
+                        }
+                    }
                 }
 
                 // --------------------------------------------
@@ -84,10 +84,11 @@ namespace CareerCracker.DataBaseLayer
                 using (var con = new NpgsqlConnection(DbConnection))
                 {
                     await con.OpenAsync();
+
                     string query = @"
-                INSERT INTO testimonial(test_name, discription, test_content, slug, image, is_active)
-                VALUES(@name, @desc, @content, @slug, @image, TRUE)
-                RETURNING id";
+            INSERT INTO testimonial(test_name, discription, test_content, slug, image, is_active)
+            VALUES(@name, @desc, @content, @slug, @image, TRUE)
+            RETURNING id";
 
                     using (var cmd = new NpgsqlCommand(query, con))
                     {
@@ -98,11 +99,13 @@ namespace CareerCracker.DataBaseLayer
                         cmd.Parameters.AddWithValue("@image", (object)imagePath ?? DBNull.Value);
 
                         var insertedId = await cmd.ExecuteScalarAsync();
+
                         return Ok(new
                         {
                             success = true,
                             id = insertedId,
                             slug = slug,
+                            image = imagePath, // ✅ return image URL
                             message = "Testimonial added successfully"
                         });
                     }
@@ -110,7 +113,11 @@ namespace CareerCracker.DataBaseLayer
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = ex.Message });
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }
 
@@ -213,10 +220,10 @@ namespace CareerCracker.DataBaseLayer
                     await con.OpenAsync();
 
                     // -------------------------------------------------
-                    // 🔍 1️⃣ CHECK IF SLUG ALREADY EXISTS (EXCEPT CURRENT ID)
+                    // 🔍 1️⃣ CHECK SLUG UNIQUE
                     // -------------------------------------------------
                     string checkSlugQuery = @"SELECT COUNT(*) FROM testimonial 
-                                      WHERE slug=@slug AND id<>@id";
+                                     WHERE slug=@slug AND id<>@id";
 
                     using (var checkCmd = new NpgsqlCommand(checkSlugQuery, con))
                     {
@@ -224,6 +231,7 @@ namespace CareerCracker.DataBaseLayer
                         checkCmd.Parameters.AddWithValue("@id", id);
 
                         long exists = (long)await checkCmd.ExecuteScalarAsync();
+
                         if (exists > 0)
                         {
                             newSlug += "-" + Guid.NewGuid().ToString().Substring(0, 8);
@@ -231,43 +239,60 @@ namespace CareerCracker.DataBaseLayer
                     }
 
                     // -------------------------------------------------
-                    // 2️⃣ Image Upload (optional)
+                    // 📥 2️⃣ GET OLD IMAGE (OPTIONAL - for delete)
+                    // -------------------------------------------------
+                    string oldImage = null;
+                    string getOldQuery = "SELECT image FROM testimonial WHERE id=@id";
+
+                    using (var oldCmd = new NpgsqlCommand(getOldQuery, con))
+                    {
+                        oldCmd.Parameters.AddWithValue("@id", id);
+                        var result = await oldCmd.ExecuteScalarAsync();
+                        oldImage = result?.ToString();
+                    }
+
+                    // -------------------------------------------------
+                    // ✅ 3️⃣ IMAGE UPLOAD TO S3
                     // -------------------------------------------------
                     string imagePath = null;
 
                     if (form.Files.Count > 0)
                     {
                         var file = form.Files[0];
-                        string fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
 
-                        string folderPath = Path.Combine("wwwroot", "uploads", "testimonials");
-
-                        if (!Directory.Exists(folderPath))
-                            Directory.CreateDirectory(folderPath);
-
-                        string savePath = Path.Combine(folderPath, fileName);
-
-                        using (var stream = new FileStream(savePath, FileMode.Create))
+                        if (file != null && file.Length > 0)
                         {
-                            await file.CopyToAsync(stream);
-                        }
+                            imagePath = await S3StorageHelper.UploadFileAsync(file, "testimonials");
 
-                        imagePath = "/uploads/testimonials/" + fileName;
+                            if (string.IsNullOrEmpty(imagePath))
+                            {
+                                return BadRequest(new
+                                {
+                                    success = false,
+                                    message = "Failed to upload testimonial image"
+                                });
+                            }
+
+                            // 🧹 OPTIONAL: Delete old image from S3
+                            if (!string.IsNullOrEmpty(oldImage))
+                            {
+                                await S3StorageHelper.DeleteFileAsync(oldImage);
+                            }
+                        }
                     }
 
                     // -------------------------------------------------
-                    // 3️⃣ Update Testimonial
+                    // 📝 4️⃣ UPDATE DATA
                     // -------------------------------------------------
-
                     string query = @"
-            UPDATE testimonial
-            SET test_name=@name,
-                discription=@desc,
-                test_content=@content,
-                slug=@slug,
-                image = COALESCE(@image, image), 
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id=@id";
+                UPDATE testimonial
+                SET test_name=@name,
+                    discription=@desc,
+                    test_content=@content,
+                    slug=@slug,
+                    image = COALESCE(@image, image),
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id=@id";
 
                     using (var cmd = new NpgsqlCommand(query, con))
                     {
@@ -281,12 +306,21 @@ namespace CareerCracker.DataBaseLayer
                         await cmd.ExecuteNonQueryAsync();
                     }
 
-                    return Ok(new { success = true, message = "Testimonial updated successfully!" });
+                    return Ok(new
+                    {
+                        success = true,
+                        image = imagePath, // new image (if updated)
+                        message = "Testimonial updated successfully!"
+                    });
                 }
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = ex.Message });
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }
 
@@ -379,6 +413,8 @@ namespace CareerCracker.DataBaseLayer
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
+
+
 
     }
 }
