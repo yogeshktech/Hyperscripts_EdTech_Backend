@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace CareerCracker.Controllers
 {
@@ -15,6 +16,11 @@ namespace CareerCracker.Controllers
     [Authorize(Roles = "USER,SUPERADMIN")]
     public class UserController : ControllerBase
     {
+        private static readonly JsonSerializerOptions ProfileJsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
         private readonly IBusinessLayer _businessLayer;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IWebHostEnvironment _env;
@@ -59,6 +65,12 @@ namespace CareerCracker.Controllers
             return $"{Request.Scheme}://{Request.Host.Value}/{s.TrimStart('/')}";
         }
 
+        private static string? BuildDisplayName(ApplicationUser user)
+        {
+            var n = $"{user.FirstName} {user.LastName}".Trim();
+            return string.IsNullOrEmpty(n) ? null : n;
+        }
+
         private static object MapProfilePayload(ApplicationUser user, string? profileImageUrl, IEnumerable<string> roles)
         {
             return new
@@ -66,6 +78,7 @@ namespace CareerCracker.Controllers
                 id = user.Id,
                 email = user.Email,
                 userName = user.UserName,
+                displayName = BuildDisplayName(user),
                 firstName = user.FirstName,
                 lastName = user.LastName,
                 phoneNumber = user.PhoneNumber,
@@ -161,18 +174,31 @@ namespace CareerCracker.Controllers
             return Ok(new { success = true, user = MapProfilePayload(user, url, roles) });
         }
 
-        /// <summary>Update profile fields (JSON body).</summary>
+        /// <summary>Update profile fields (JSON). Accepts either a flat object or the same shape as GET profile: <c>{ "user": { ... } }</c>.</summary>
         [HttpPut("profile")]
-        public async Task<IActionResult> UpdateProfileJson([FromBody] UpdateProfileRequest body)
+        public async Task<IActionResult> UpdateProfileJson([FromBody] JsonElement body)
         {
-            if (body == null)
-                return BadRequest(new { success = false, message = "Request body is required" });
+            if (body.ValueKind != JsonValueKind.Object)
+                return BadRequest(new { success = false, message = "JSON object body is required" });
+
+            UpdateProfileRequest? dto = null;
+            if (body.TryGetProperty("user", out var userNode) && userNode.ValueKind == JsonValueKind.Object)
+            {
+                dto = JsonSerializer.Deserialize<UpdateProfileRequest>(userNode.GetRawText(), ProfileJsonOptions);
+            }
+            else
+            {
+                dto = JsonSerializer.Deserialize<UpdateProfileRequest>(body.GetRawText(), ProfileJsonOptions);
+            }
+
+            if (dto == null)
+                return BadRequest(new { success = false, message = "Could not read profile fields from JSON" });
 
             var user = await GetCurrentUserAsync();
             if (user == null)
                 return Unauthorized(new { success = false, message = "User not found in token" });
 
-            ApplyUpdateProfileRequest(user, body);
+            ApplyUpdateProfileRequest(user, dto);
 
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
@@ -185,12 +211,13 @@ namespace CareerCracker.Controllers
                 });
             }
 
-            var roles = await _userManager.GetRolesAsync(user);
+            var refreshed = await _userManager.FindByIdAsync(user.Id) ?? user;
+            var roles = await _userManager.GetRolesAsync(refreshed);
             return Ok(new
             {
                 success = true,
                 message = "Profile updated",
-                user = MapProfilePayload(user, ResolveProfileImageUrl(user.profile_image), roles)
+                user = MapProfilePayload(refreshed, ResolveProfileImageUrl(refreshed.profile_image), roles)
             });
         }
 

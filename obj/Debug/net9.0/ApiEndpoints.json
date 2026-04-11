@@ -1799,7 +1799,7 @@
     "Parameters": [
       {
         "Name": "body",
-        "Type": "CareerCracker.Models.UpdateProfileRequest",
+        "Type": "System.Text.Json.JsonElement",
         "IsRequired": true
       }
     ],
