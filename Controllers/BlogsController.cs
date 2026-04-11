@@ -18,35 +18,77 @@ namespace CareerCracker.Controllers
             _businessLayer = businessLayer;
         }
 
+        //[HttpPost("add-blogs")]
+        //public async Task<IActionResult> AddBlogs(IFormCollection form)
+        //{
+        //    try
+        //    {
+        //        var name = form["blogName"];
+
+        //        if (string.IsNullOrWhiteSpace(name))
+        //        {
+        //            return BadRequest(new
+        //            {
+        //                success = false,
+        //                message = "blog name is required"
+        //            });
+        //        }
+
+        //        //return Ok(form);
+
+        //        return await _businessLayer.AddBlogs(form);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, new
+        //        {
+        //            success = false,
+        //            message = $"Internal server error! {ex.Message}"
+        //        });
+        //    }
+        //}
+
+
+
         [HttpPost("add-blogs")]
         public async Task<IActionResult> AddBlogs(IFormCollection form)
         {
             try
             {
-                var name = form["blogName"];
+                // Safe extraction from IFormCollection
+                string name = form["blogName"].ToString().Trim();
 
                 if (string.IsNullOrWhiteSpace(name))
                 {
                     return BadRequest(new
                     {
                         success = false,
-                        message = "blog name is required"
+                        message = "Blog name is required"
                     });
                 }
 
-                //return Ok(form);
+                // Optional: You can add more validation here
+                string description = form["blogDescription"].ToString().Trim();
 
+                // Delegate the heavy logic to Business Layer
                 return await _businessLayer.AddBlogs(form);
             }
             catch (Exception ex)
             {
+                // Better logging (if you have ILogger injected)
+                // _logger.LogError(ex, "Error in AddBlogs controller");
+
                 return StatusCode(500, new
                 {
                     success = false,
-                    message = $"Internal server error! {ex.Message}"
+                    message = "Internal server error while adding blog",
+                    // error = ex.Message   // Uncomment only for development
                 });
             }
         }
+
+
+
         [HttpPost("update-blog/{id}")]
         public async Task<IActionResult> UpdateBlogs(int id, IFormCollection form)
         {

@@ -422,6 +422,8 @@ namespace CareerCracker.Controllers
                     orgId = u.OrgId,
                     accessKey = u.AccessKey,
                     isActive = u.IsActive,
+                    profileImage = u.profile_image,
+                    profileImageUrl = ResolveProfileImageUrl(u.profile_image),
                     roles = new[] { "USER" }
                 }).ToList();
 
@@ -440,6 +442,18 @@ namespace CareerCracker.Controllers
         }
 
         // ================= HELPER =================
+        private string? ResolveProfileImageUrl(string? stored)
+        {
+            if (string.IsNullOrWhiteSpace(stored)) return null;
+            var s = stored.Trim();
+            if (s.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                s.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                return s;
+            if (s.StartsWith('/'))
+                return $"{Request.Scheme}://{Request.Host.Value}{s}";
+            return $"{Request.Scheme}://{Request.Host.Value}/{s.TrimStart('/')}";
+        }
+
         private object MapUser(ApplicationUser user, IList<string> roles)
         {
             return new
@@ -456,6 +470,8 @@ namespace CareerCracker.Controllers
                 orgId = user.OrgId,
                 accessKey = user.AccessKey,
                 isActive = user.IsActive,
+                profileImage = user.profile_image,
+                profileImageUrl = ResolveProfileImageUrl(user.profile_image),
                 roles = roles
             };
         }
@@ -498,7 +514,9 @@ namespace CareerCracker.Controllers
 
                         // Audit fields (if added)
                         u.created_at,
-                        u.updated_at
+                        u.updated_at,
+
+                        profileImage = u.profile_image
                     })
                     .FirstOrDefaultAsync();
 
@@ -511,10 +529,33 @@ namespace CareerCracker.Controllers
                     await _userManager.FindByIdAsync(id)
                 );
 
+                var profileImageUrl = ResolveProfileImageUrl(user.profileImage);
+
                 return Ok(new
                 {
                     success = true,
-                    user,
+                    user = new
+                    {
+                        user.Id,
+                        user.UserName,
+                        user.Email,
+                        user.EmailConfirmed,
+                        user.PhoneNumber,
+                        user.PhoneNumberConfirmed,
+                        user.TwoFactorEnabled,
+                        user.LockoutEnabled,
+                        user.LockoutEnd,
+                        user.AccessFailedCount,
+                        user.FirstName,
+                        user.LastName,
+                        user.OrgId,
+                        user.AccessKey,
+                        user.IsActive,
+                        user.created_at,
+                        user.updated_at,
+                        user.profileImage,
+                        profileImageUrl
+                    },
                     roles
                 });
             }

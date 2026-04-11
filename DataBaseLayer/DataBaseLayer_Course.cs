@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using CareerCracker.S3Services;
+using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 
 namespace CareerCracker.DataBaseLayer
@@ -77,24 +78,14 @@ namespace CareerCracker.DataBaseLayer
                 string courseDetails = form["courseDetails"];
                 string whyChooseUs = form["whyChooseUs"];
 
-                // -----------------------------
-                // Image Upload Handling
-                // -----------------------------
-                string savedImagePath = null;
-                IFormFile courseImageFile = form.Files["courseImage"];
+                string? savedImageUrl = null;
+                IFormFile? courseImageFile = form.Files["courseImage"];
 
                 if (courseImageFile != null && courseImageFile.Length > 0)
                 {
-                    string uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/courseImages");
-                    if (!Directory.Exists(uploadFolder)) Directory.CreateDirectory(uploadFolder);
-
-                    string fileName = Guid.NewGuid().ToString() + Path.GetExtension(courseImageFile.FileName);
-                    string savePath = Path.Combine(uploadFolder, fileName);
-
-                    using (var stream = new FileStream(savePath, FileMode.Create))
-                        await courseImageFile.CopyToAsync(stream);
-
-                    savedImagePath = "/uploads/courseImages/" + fileName;
+                    savedImageUrl = await S3StorageHelper.UploadFileAsync(courseImageFile, "courses");
+                    if (string.IsNullOrEmpty(savedImageUrl))
+                        return BadRequest(new { success = false, message = "Failed to upload course image" });
                 }
 
                 using (var con = new NpgsqlConnection(DbConnection))
@@ -153,7 +144,7 @@ namespace CareerCracker.DataBaseLayer
                         cmd.Parameters.AddWithValue("@desc", string.IsNullOrEmpty(courseDescription) ? (object)DBNull.Value : courseDescription);
                         cmd.Parameters.AddWithValue("@slug", courseSlug);
                         cmd.Parameters.AddWithValue("@active", isActive);
-                        cmd.Parameters.AddWithValue("@img", (object?)savedImagePath ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@img", (object?)savedImageUrl ?? DBNull.Value);
 
                         cmd.Parameters.AddWithValue("@categoryId", (object?)categoryId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@startClass", (object?)startClassDate ?? DBNull.Value);
@@ -253,25 +244,14 @@ namespace CareerCracker.DataBaseLayer
                 string courseDetails = form["courseDetails"];
                 string whyChooseUs = form["whyChooseUs"];
 
-                // -----------------------------
-                // Image Upload Handling
-                // -----------------------------
-                string newImagePath = null;
-                IFormFile courseImageFile = form.Files["courseImage"];
+                string? newImageUrl = null;
+                IFormFile? courseImageFile = form.Files["courseImage"];
 
                 if (courseImageFile != null && courseImageFile.Length > 0)
                 {
-                    string uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/courseImages");
-                    if (!Directory.Exists(uploadFolder))
-                        Directory.CreateDirectory(uploadFolder);
-
-                    string fileName = Guid.NewGuid().ToString() + Path.GetExtension(courseImageFile.FileName);
-                    string savePath = Path.Combine(uploadFolder, fileName);
-
-                    using (var stream = new FileStream(savePath, FileMode.Create))
-                        await courseImageFile.CopyToAsync(stream);
-
-                    newImagePath = "/uploads/courseImages/" + fileName;
+                    newImageUrl = await S3StorageHelper.UploadFileAsync(courseImageFile, "courses");
+                    if (string.IsNullOrEmpty(newImageUrl))
+                        return BadRequest(new { success = false, message = "Failed to upload course image" });
                 }
 
                 using (var con = new NpgsqlConnection(DbConnection))
@@ -282,7 +262,7 @@ namespace CareerCracker.DataBaseLayer
                     // Check if course exists
                     // -----------------------------
                     string fetchQuery = "SELECT course_image FROM courses WHERE id = @id";
-                    string oldImagePath = null;
+                    string? oldImagePath = null;
 
                     using (var cmd0 = new NpgsqlCommand(fetchQuery, con))
                     {
@@ -327,8 +307,7 @@ namespace CareerCracker.DataBaseLayer
                             return BadRequest(new { success = false, message = "Course slug already exists" });
                     }
 
-                    // Keep old image if new one not uploaded
-                    string finalImagePath = newImagePath ?? oldImagePath;
+                    string finalImagePath = newImageUrl ?? oldImagePath;
 
                     // -----------------------------
                     // UPDATE QUERY
@@ -397,6 +376,9 @@ namespace CareerCracker.DataBaseLayer
 
                         await cmd.ExecuteNonQueryAsync();
                     }
+
+                    if (!string.IsNullOrEmpty(newImageUrl) && !string.IsNullOrEmpty(oldImagePath))
+                        await S3StorageHelper.DeleteByPathAsync(oldImagePath);
                 }
 
                 return Ok(new { success = true, message = "Course updated successfully" });
@@ -638,7 +620,15 @@ ORDER BY c.id DESC";
                             return NotFound(new { success = false, message = "Course not found" });
                     }
 
-                    // Step 2: Delete course
+                    string? courseImage = null;
+                    using (var imgCmd = new NpgsqlCommand("SELECT course_image FROM courses WHERE id = @Id", con))
+                    {
+                        imgCmd.Parameters.AddWithValue("@Id", id);
+                        var imgResult = await imgCmd.ExecuteScalarAsync();
+                        if (imgResult != null && imgResult != DBNull.Value)
+                            courseImage = imgResult.ToString();
+                    }
+
                     string deleteQuery = "DELETE FROM courses WHERE id = @Id";
 
                     using (var deleteCmd = new NpgsqlCommand(deleteQuery, con))
@@ -646,6 +636,9 @@ ORDER BY c.id DESC";
                         deleteCmd.Parameters.AddWithValue("@Id", id);
                         await deleteCmd.ExecuteNonQueryAsync();
                     }
+
+                    if (!string.IsNullOrEmpty(courseImage))
+                        await S3StorageHelper.DeleteStoredMediaAsync(courseImage);
                 }
 
                 return Ok(new { success = true, message = "Course deleted successfully" });

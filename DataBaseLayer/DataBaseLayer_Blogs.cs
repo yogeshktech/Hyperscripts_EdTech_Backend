@@ -1,9 +1,11 @@
 ﻿using CareerCracker.Models;
+using CareerCracker.S3Services;
 using Humanizer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.Elfie.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+
 
 namespace CareerCracker.DataBaseLayer
 {
@@ -38,101 +40,192 @@ namespace CareerCracker.DataBaseLayer
 
     public partial class DataBaseLayer
     {
+        //public async Task<IActionResult> AddBlogs(IFormCollection form)
+        //{
+        //    try
+        //    {
+        //        string name = form["blogName"];
+        //        string slug = GenerateSlug(name);
+        //        string blogDescription = form["blogDescription"];
+        //        bool isActive = form.ContainsKey("is_active") && form["is_active"] == "true";
+
+        //        if (string.IsNullOrEmpty(name))
+        //        {
+        //            return BadRequest(new { success = false, message = "Blog name is required!" });
+        //        }
+
+        //        // -------------------------
+        //        // IMAGE UPLOAD
+        //        // -------------------------
+        //        string savedImagePath = null;
+        //        IFormFile blogImageFile = form.Files["blogImage"];
+
+        //        if (blogImageFile != null && blogImageFile.Length > 0)
+        //        {
+        //            string uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/blogs");
+        //            if (!Directory.Exists(uploadFolder)) Directory.CreateDirectory(uploadFolder);
+
+        //            string fileName = Guid.NewGuid().ToString() + Path.GetExtension(blogImageFile.FileName);
+        //            string savePath = Path.Combine(uploadFolder, fileName);
+
+        //            using (var stream = new FileStream(savePath, FileMode.Create))
+        //            {
+        //                await blogImageFile.CopyToAsync(stream);
+        //            }
+
+        //            savedImagePath = "/uploads/blogs/" + fileName;
+        //        }
+
+        //        using (var conn = new NpgsqlConnection(DbConnection))
+        //        {
+        //            await conn.OpenAsync();
+
+        //            // -------------------------
+        //            // Check for duplicate name
+        //            // -------------------------
+        //            string checkQuery = @"SELECT COUNT(*) FROM blogs WHERE LOWER(blogs_name) = LOWER(@name)";
+        //            using (var checkCmd = new NpgsqlCommand(checkQuery, conn))
+        //            {
+        //                checkCmd.Parameters.AddWithValue("@name", name);
+        //                long exists = (long)await checkCmd.ExecuteScalarAsync();
+
+        //                if (exists > 0)
+        //                {
+        //                    return Conflict(new
+        //                    {
+        //                        success = false,
+        //                        message = "Blog name already exists"
+        //                    });
+        //                }
+        //            }
+
+        //            // -------------------------
+        //            // Insert blog record
+        //            // -------------------------
+        //            string insertQuery = @"
+        //        INSERT INTO blogs 
+        //        (blogs_name, blogs_discription, blogs_slug, blogs_image, is_active, updated_at)
+        //        VALUES 
+        //        (@name, @desc, @slug, @image, @active, CURRENT_TIMESTAMP)
+        //        RETURNING id";
+
+        //            using (var insertCmd = new NpgsqlCommand(insertQuery, conn))
+        //            {
+        //                insertCmd.Parameters.AddWithValue("@name", name);
+        //                insertCmd.Parameters.AddWithValue("@desc", (object)blogDescription ?? DBNull.Value);
+        //                insertCmd.Parameters.AddWithValue("@slug", slug);
+        //                insertCmd.Parameters.AddWithValue("@image", (object)savedImagePath ?? DBNull.Value);
+        //                insertCmd.Parameters.AddWithValue("@active", isActive);
+
+        //                int newId = (int)await insertCmd.ExecuteScalarAsync();
+
+        //                return Ok(new
+        //                {
+        //                    success = true,
+        //                    message = "Blog added successfully",
+        //                    id = newId,
+        //                    image = savedImagePath
+        //                });
+        //            }
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return BadRequest(new { success = false, message = ex.Message });
+        //    }
+        //}
+
+
         public async Task<IActionResult> AddBlogs(IFormCollection form)
         {
             try
             {
-                string name = form["blogName"];
-                string slug = GenerateSlug(name);
-                string blogDescription = form["blogDescription"];
-                bool isActive = form.ContainsKey("is_active") && form["is_active"] == "true";
+                // Safe conversion from StringValues to string
+                string name = form["blogName"].ToString().Trim();
+                string blogDescription = form["blogDescription"].ToString().Trim();
+                bool isActive = form.ContainsKey("is_active") &&
+                                form["is_active"].ToString().Equals("true", StringComparison.OrdinalIgnoreCase);
 
-                if (string.IsNullOrEmpty(name))
+                if (string.IsNullOrWhiteSpace(name))
                 {
                     return BadRequest(new { success = false, message = "Blog name is required!" });
                 }
 
-                // -------------------------
-                // IMAGE UPLOAD
-                // -------------------------
-                string savedImagePath = null;
-                IFormFile blogImageFile = form.Files["blogImage"];
+                string slug = GenerateSlug(name);
+
+                // ====================== IMAGE UPLOAD TO MINIO/S3 ======================
+                string? savedImageUrl = null;
+                IFormFile? blogImageFile = form.Files["blogImage"];
 
                 if (blogImageFile != null && blogImageFile.Length > 0)
                 {
-                    string uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/blogs");
-                    if (!Directory.Exists(uploadFolder)) Directory.CreateDirectory(uploadFolder);
+                    savedImageUrl = await S3StorageHelper.UploadFileAsync(blogImageFile, "blogs");
 
-                    string fileName = Guid.NewGuid().ToString() + Path.GetExtension(blogImageFile.FileName);
-                    string savePath = Path.Combine(uploadFolder, fileName);
-
-                    using (var stream = new FileStream(savePath, FileMode.Create))
+                    if (string.IsNullOrEmpty(savedImageUrl))
                     {
-                        await blogImageFile.CopyToAsync(stream);
+                        return BadRequest(new { success = false, message = "Failed to upload blog image" });
                     }
-
-                    savedImagePath = "/uploads/blogs/" + fileName;
                 }
 
-                using (var conn = new NpgsqlConnection(DbConnection))
+                using var conn = new NpgsqlConnection(DbConnection);
+                await conn.OpenAsync();
+
+                // Check duplicate blog name
+                string checkQuery = @"SELECT COUNT(*) FROM blogs WHERE LOWER(blogs_name) = LOWER(@name)";
+                using (var checkCmd = new NpgsqlCommand(checkQuery, conn))
                 {
-                    await conn.OpenAsync();
+                    checkCmd.Parameters.AddWithValue("@name", name);
+                    long count = (long)await checkCmd.ExecuteScalarAsync();
 
-                    // -------------------------
-                    // Check for duplicate name
-                    // -------------------------
-                    string checkQuery = @"SELECT COUNT(*) FROM blogs WHERE LOWER(blogs_name) = LOWER(@name)";
-                    using (var checkCmd = new NpgsqlCommand(checkQuery, conn))
+                    if (count > 0)
                     {
-                        checkCmd.Parameters.AddWithValue("@name", name);
-                        long exists = (long)await checkCmd.ExecuteScalarAsync();
-
-                        if (exists > 0)
-                        {
-                            return Conflict(new
-                            {
-                                success = false,
-                                message = "Blog name already exists"
-                            });
-                        }
-                    }
-
-                    // -------------------------
-                    // Insert blog record
-                    // -------------------------
-                    string insertQuery = @"
-                INSERT INTO blogs 
-                (blogs_name, blogs_discription, blogs_slug, blogs_image, is_active, updated_at)
-                VALUES 
-                (@name, @desc, @slug, @image, @active, CURRENT_TIMESTAMP)
-                RETURNING id";
-
-                    using (var insertCmd = new NpgsqlCommand(insertQuery, conn))
-                    {
-                        insertCmd.Parameters.AddWithValue("@name", name);
-                        insertCmd.Parameters.AddWithValue("@desc", (object)blogDescription ?? DBNull.Value);
-                        insertCmd.Parameters.AddWithValue("@slug", slug);
-                        insertCmd.Parameters.AddWithValue("@image", (object)savedImagePath ?? DBNull.Value);
-                        insertCmd.Parameters.AddWithValue("@active", isActive);
-
-                        int newId = (int)await insertCmd.ExecuteScalarAsync();
-
-                        return Ok(new
-                        {
-                            success = true,
-                            message = "Blog added successfully",
-                            id = newId,
-                            image = savedImagePath
-                        });
+                        return Conflict(new { success = false, message = "Blog name already exists" });
                     }
                 }
+
+                // Insert Blog
+                string insertQuery = @"
+            INSERT INTO blogs 
+            (blogs_name, blogs_discription, blogs_slug, blogs_image, is_active, updated_at)
+            VALUES 
+            (@name, @desc, @slug, @image, @active, CURRENT_TIMESTAMP)
+            RETURNING id";
+
+                using var insertCmd = new NpgsqlCommand(insertQuery, conn);
+
+                insertCmd.Parameters.AddWithValue("@name", name);
+                insertCmd.Parameters.AddWithValue("@desc", string.IsNullOrWhiteSpace(blogDescription) ? DBNull.Value : blogDescription);
+                insertCmd.Parameters.AddWithValue("@slug", slug);
+                insertCmd.Parameters.AddWithValue("@image", (object?)savedImageUrl ?? DBNull.Value);
+                insertCmd.Parameters.AddWithValue("@active", isActive);
+
+                int newId = (int)await insertCmd.ExecuteScalarAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Blog added successfully",
+                    blog = new
+                    {
+                        id = newId,
+                        name = name,
+                        description = blogDescription,
+                        slug = slug,
+                        image = savedImageUrl ?? "",           // Full MinIO URL
+                        isActive = isActive,
+                        updatedAt = DateTime.UtcNow
+                    }
+                });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }
-
         public async Task<IActionResult> UpdateBlogs(int id, IFormCollection form)
         {
             try
@@ -147,44 +240,36 @@ namespace CareerCracker.DataBaseLayer
                     return BadRequest(new { success = false, message = "Blog name is required!" });
                 }
 
-                // -------------------------
-                // IMAGE UPLOAD
-                // -------------------------
-                string savedImagePath = null;
-                IFormFile blogImageFile = form.Files["blogImage"];
+                string? newImageUrl = null;
+                IFormFile? blogImageFile = form.Files["blogImage"];
 
                 if (blogImageFile != null && blogImageFile.Length > 0)
                 {
-                    string uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/blogs");
-                    if (!Directory.Exists(uploadFolder)) Directory.CreateDirectory(uploadFolder);
-
-                    string fileName = Guid.NewGuid().ToString() + Path.GetExtension(blogImageFile.FileName);
-                    string savePath = Path.Combine(uploadFolder, fileName);
-
-                    using (var stream = new FileStream(savePath, FileMode.Create))
+                    newImageUrl = await S3StorageHelper.UploadFileAsync(blogImageFile, "blogs");
+                    if (string.IsNullOrEmpty(newImageUrl))
                     {
-                        await blogImageFile.CopyToAsync(stream);
+                        return BadRequest(new { success = false, message = "Failed to upload blog image" });
                     }
-
-                    savedImagePath = "/uploads/blogs/" + fileName;
                 }
 
                 using (var conn = new NpgsqlConnection(DbConnection))
                 {
                     await conn.OpenAsync();
 
-                    // -------------------------
-                    // Check if blog exists
-                    // -------------------------
-                    string existsQuery = @"SELECT COUNT(*) FROM blogs WHERE id = @id";
-                    using (var existsCmd = new NpgsqlCommand(existsQuery, conn))
+                    string? oldImageUrl = null;
+                    string fetchQuery = @"SELECT blogs_image FROM blogs WHERE id = @id";
+                    using (var fetchCmd = new NpgsqlCommand(fetchQuery, conn))
                     {
-                        existsCmd.Parameters.AddWithValue("@id", id);
-                        long exists = (long)await existsCmd.ExecuteScalarAsync();
-
-                        if (exists == 0)
+                        fetchCmd.Parameters.AddWithValue("@id", id);
+                        using (var reader = await fetchCmd.ExecuteReaderAsync())
                         {
-                            return NotFound(new { success = false, message = "Blog not found" });
+                            if (!await reader.ReadAsync())
+                            {
+                                return NotFound(new { success = false, message = "Blog not found" });
+                            }
+
+                            if (!reader.IsDBNull(0))
+                                oldImageUrl = reader.GetString(0);
                         }
                     }
 
@@ -226,18 +311,21 @@ namespace CareerCracker.DataBaseLayer
                         updateCmd.Parameters.AddWithValue("@name", name);
                         updateCmd.Parameters.AddWithValue("@desc", (object)blogDescription ?? DBNull.Value);
                         updateCmd.Parameters.AddWithValue("@slug", slug);
-                        updateCmd.Parameters.AddWithValue("@image", (object)savedImagePath ?? DBNull.Value);
+                        updateCmd.Parameters.AddWithValue("@image", (object?)newImageUrl ?? DBNull.Value);
                         updateCmd.Parameters.AddWithValue("@active", isActive);
                         updateCmd.Parameters.AddWithValue("@id", id);
 
                         await updateCmd.ExecuteNonQueryAsync();
+
+                        if (!string.IsNullOrEmpty(newImageUrl) && !string.IsNullOrEmpty(oldImageUrl))
+                            await S3StorageHelper.DeleteByPathAsync(oldImageUrl);
 
                         return Ok(new
                         {
                             success = true,
                             message = "Blog updated successfully",
                             id = id,
-                            image = savedImagePath
+                            image = newImageUrl ?? oldImageUrl
                         });
                     }
                 }
@@ -374,18 +462,8 @@ namespace CareerCracker.DataBaseLayer
                         await deleteCmd.ExecuteNonQueryAsync();
                     }
 
-                    // -------------------------
-                    // Optionally delete image file
-                    // -------------------------
                     if (!string.IsNullOrEmpty(imagePath))
-                    {
-                        string fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", imagePath.TrimStart('/'));
-
-                        if (System.IO.File.Exists(fullPath))
-                        {
-                            System.IO.File.Delete(fullPath);
-                        }
-                    }
+                        await S3StorageHelper.DeleteStoredMediaAsync(imagePath);
 
                     return Ok(new
                     {

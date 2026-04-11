@@ -149,7 +149,7 @@ namespace HyperDroid.CloudKit
                     {
                         Key = obj.Key,
                         SizeBytes = (long)obj.Size,
-                        LastModifiedUtc = obj.LastModified.ToUniversalTime(),   // ← Fixed
+                        LastModifiedUtc = (obj.LastModified ?? DateTime.UtcNow).ToUniversalTime(),
                         ETag = obj.ETag,
                         StorageClass = obj.StorageClass?.Value
                     };
@@ -160,7 +160,7 @@ namespace HyperDroid.CloudKit
                     results.Add(file);
                 }
 
-                continuationToken = response.IsTruncated ? response.NextContinuationToken : null;
+                continuationToken = response.IsTruncated is true ? response.NextContinuationToken : null;
             }
             while (continuationToken != null && results.Count < maxKeys);
 
@@ -241,7 +241,7 @@ namespace HyperDroid.CloudKit
                 {
                     Key = key,
                     SizeBytes = meta.ContentLength,
-                    LastModifiedUtc = meta.LastModified.ToUniversalTime(),   // ← Fixed
+                    LastModifiedUtc = (meta.LastModified ?? DateTime.UtcNow).ToUniversalTime(),
                     ETag = meta.ETag,
                     StorageClass = meta.StorageClass?.Value
                 };

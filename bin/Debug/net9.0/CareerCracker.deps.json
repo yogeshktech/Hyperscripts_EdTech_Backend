@@ -9,7 +9,7 @@
       "CareerCracker/1.0.0": {
         "dependencies": {
           "AWSSDK.Polly": "4.0.6.6",
-          "AWSSDK.S3": "3.7.1",
+          "AWSSDK.S3": "4.0.6.6",
           "Dapper": "2.1.66",
           "FirebaseAdmin": "3.4.0",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "8.0.10",
@@ -50,14 +50,14 @@
           }
         }
       },
-      "AWSSDK.S3/3.7.1": {
+      "AWSSDK.S3/4.0.6.6": {
         "dependencies": {
           "AWSSDK.Core": "4.0.3.28"
         },
         "runtime": {
-          "lib/netcoreapp3.1/AWSSDK.S3.dll": {
-            "assemblyVersion": "3.3.0.0",
-            "fileVersion": "3.7.1.0"
+          "lib/net8.0/AWSSDK.S3.dll": {
+            "assemblyVersion": "4.0.0.0",
+            "fileVersion": "4.0.6.6"
           }
         }
       },
@@ -2162,12 +2162,12 @@
       "path": "awssdk.polly/4.0.6.6",
       "hashPath": "awssdk.polly.4.0.6.6.nupkg.sha512"
     },
-    "AWSSDK.S3/3.7.1": {
+    "AWSSDK.S3/4.0.6.6": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-GhUxyqLDVNj0qubAmHuytZ5P68yT1PTnV5Phig6WziPgOTVrGJfgSx9cw6L5KSZxEGIZNXwuIaVCYA6N8v5kLQ==",
-      "path": "awssdk.s3/3.7.1",
-      "hashPath": "awssdk.s3.3.7.1.nupkg.sha512"
+      "sha512": "sha512-bDWXXUEbwG3F4zpD3BQtLFGGl70ixc2Jgffdq39auCQj8o8We7SvwI5f3ORL/Gex7PsvjWtU7kr0mQ8DoPx+HA==",
+      "path": "awssdk.s3/4.0.6.6",
+      "hashPath": "awssdk.s3.4.0.6.6.nupkg.sha512"
     },
     "BouncyCastle.Cryptography/2.6.2": {
       "type": "package",

@@ -3,6 +3,7 @@ using CareerCracker.BusinessLayer;
 using CareerCracker.Data;
 using CareerCracker.DataBaseLayer;
 using CareerCracker.Models;
+using CareerCracker.S3Services;
 using CareerCracker.UserManagement;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -10,7 +11,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 var builder = WebApplication.CreateBuilder(args);
-
+// ======================================================
+// ✅ S3 Initialization (ADD HERE)
+// ======================================================
+//S3StorageHelper.Initialize(builder.Configuration);
+S3StorageHelper.Initialize(builder.Configuration);
 // ======================================================
 // 1?? Database
 // ======================================================

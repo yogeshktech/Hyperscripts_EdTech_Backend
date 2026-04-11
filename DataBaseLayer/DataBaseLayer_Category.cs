@@ -1,4 +1,5 @@
 ﻿using CareerCracker.Models;
+using CareerCracker.S3Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
@@ -56,19 +57,11 @@ namespace CareerCracker.DataBaseLayer
                 if (string.IsNullOrWhiteSpace(categorySlug))
                     return BadRequest(new { success = false, message = "Category slug is required" });
 
-                // Save Image
                 if (categoryImageFile != null && categoryImageFile.Length > 0)
                 {
-                    string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/categoryImages");
-                    if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
-
-                    string uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(categoryImageFile.FileName);
-                    string filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                    using (var stream = new FileStream(filePath, FileMode.Create))
-                        await categoryImageFile.CopyToAsync(stream);
-
-                    savedImagePath = $"/categoryImages/{uniqueFileName}";
+                    savedImagePath = await S3StorageHelper.UploadFileAsync(categoryImageFile, "categories");
+                    if (string.IsNullOrEmpty(savedImagePath))
+                        return BadRequest(new { success = false, message = "Failed to upload category image" });
                 }
 
                 using (var con = new NpgsqlConnection(DbConnection))
@@ -165,23 +158,15 @@ namespace CareerCracker.DataBaseLayer
                         reader.Close();
                     }
 
-                    // Upload new image
                     if (categoryImageFile != null && categoryImageFile.Length > 0)
                     {
-                        string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/categoryImages");
-                        if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
-
-                        string uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(categoryImageFile.FileName);
-                        string filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                        using (var stream = new FileStream(filePath, FileMode.Create))
-                            await categoryImageFile.CopyToAsync(stream);
-
-                        savedImagePath = $"/categoryImages/{uniqueFileName}";
+                        savedImagePath = await S3StorageHelper.UploadFileAsync(categoryImageFile, "categories");
+                        if (string.IsNullOrEmpty(savedImagePath))
+                            return BadRequest(new { success = false, message = "Failed to upload category image" });
                     }
                     else
                     {
-                        savedImagePath = oldImagePath; // keep old image
+                        savedImagePath = oldImagePath;
                     }
 
                     // Check duplicate name (exclude current)
@@ -230,9 +215,15 @@ namespace CareerCracker.DataBaseLayer
 
                         int rows = await cmd.ExecuteNonQueryAsync();
                         if (rows > 0)
+                        {
+                            if (categoryImageFile != null && categoryImageFile.Length > 0 &&
+                                !string.IsNullOrEmpty(oldImagePath))
+                                await S3StorageHelper.DeleteByPathAsync(oldImagePath);
+
                             return Ok(new { success = true, message = "Category updated successfully" });
-                        else
-                            return BadRequest(new { success = false, message = "Category update failed" });
+                        }
+
+                        return BadRequest(new { success = false, message = "Category update failed" });
                     }
                 }
             }
@@ -397,19 +388,11 @@ namespace CareerCracker.DataBaseLayer
                         }
                     }
 
-                    // ------------------------------
-                    // 3. Delete image from server (optional)
-                    // ------------------------------
                     if (!string.IsNullOrEmpty(imagePath))
                     {
                         try
                         {
-                            string fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", imagePath.TrimStart('/'));
-
-                            if (System.IO.File.Exists(fullPath))
-                            {
-                                System.IO.File.Delete(fullPath);
-                            }
+                            await S3StorageHelper.DeleteStoredMediaAsync(imagePath);
                         }
                         catch
                         {

@@ -1,12 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "yJ9mif8Z6hE=",
+  "dgSpecHash": "hlnf/U5t0dU=",
   "success": true,
   "projectFilePath": "D:\\DotNet_Project_HyperScripts\\Backend\\Hyperscripts_EdTech_Backend\\CareerCracker.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\yoges\\.nuget\\packages\\awssdk.core\\4.0.3.28\\awssdk.core.4.0.3.28.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\awssdk.polly\\4.0.6.6\\awssdk.polly.4.0.6.6.nupkg.sha512",
-    "C:\\Users\\yoges\\.nuget\\packages\\awssdk.s3\\3.7.1\\awssdk.s3.3.7.1.nupkg.sha512",
+    "C:\\Users\\yoges\\.nuget\\packages\\awssdk.s3\\4.0.6.6\\awssdk.s3.4.0.6.6.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\bouncycastle.cryptography\\2.6.2\\bouncycastle.cryptography.2.6.2.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\dapper\\2.1.66\\dapper.2.1.66.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\firebaseadmin\\3.4.0\\firebaseadmin.3.4.0.nupkg.sha512",
@@ -190,30 +190,5 @@
     "C:\\Users\\yoges\\.nuget\\packages\\system.threading.channels\\8.0.0\\system.threading.channels.8.0.0.nupkg.sha512",
     "C:\\Users\\yoges\\.nuget\\packages\\system.threading.tasks.dataflow\\8.0.0\\system.threading.tasks.dataflow.8.0.0.nupkg.sha512"
   ],
-  "logs": [
-    {
-      "code": "NU1603",
-      "level": "Warning",
-      "message": "CareerCracker depends on AWSSDK.S3 (>= 3.7.0.71) but AWSSDK.S3 3.7.0.71 was not found. AWSSDK.S3 3.7.1 was resolved instead.",
-      "projectPath": "D:\\DotNet_Project_HyperScripts\\Backend\\Hyperscripts_EdTech_Backend\\CareerCracker.csproj",
-      "warningLevel": 1,
-      "filePath": "D:\\DotNet_Project_HyperScripts\\Backend\\Hyperscripts_EdTech_Backend\\CareerCracker.csproj",
-      "libraryId": "AWSSDK.S3",
-      "targetGraphs": [
-        "net9.0"
-      ]
-    },
-    {
-      "code": "NU1608",
-      "level": "Warning",
-      "message": "Detected package version outside of dependency constraint: AWSSDK.S3 3.7.1 requires AWSSDK.Core (>= 3.7.0.31 && < 4.0.0) but version AWSSDK.Core 4.0.3.28 was resolved.",
-      "projectPath": "D:\\DotNet_Project_HyperScripts\\Backend\\Hyperscripts_EdTech_Backend\\CareerCracker.csproj",
-      "warningLevel": 1,
-      "filePath": "D:\\DotNet_Project_HyperScripts\\Backend\\Hyperscripts_EdTech_Backend\\CareerCracker.csproj",
-      "libraryId": "AWSSDK.Core",
-      "targetGraphs": [
-        "net9.0"
-      ]
-    }
-  ]
+  "logs": []
 }
