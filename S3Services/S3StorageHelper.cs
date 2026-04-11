@@ -1,4 +1,4 @@
-using HyperDroid.CloudKit;
+﻿using HyperDroid.CloudKit;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using POPI_TRACKER_BACKEND.S3Services;
@@ -62,6 +62,45 @@ namespace CareerCracker.S3Services
                    || ex.Message.Contains("Connection refused", StringComparison.OrdinalIgnoreCase);
         }
 
+        //public static async Task<string?> UploadFileAsync(IFormFile file, string folderPrefix = "uploads")
+        //{
+        //    if (file == null || file.Length == 0) return null;
+
+        //    using var client = CreateClient();
+        //    if (client == null) return null;
+
+        //    var ext = Path.GetExtension(file.FileName)?.ToLowerInvariant() ?? "";
+        //    var key = $"{folderPrefix.TrimEnd('/')}/{DateTime.UtcNow:yyyy/MM/dd}/{Guid.NewGuid()}{ext}";
+
+        //    await using var stream = file.OpenReadStream();
+
+        //    try
+        //    {
+        //        var result = await client.UploadStreamAsync(
+        //            stream,
+        //            key,
+        //            file.FileName,
+        //            file.ContentType,
+        //            file.Length);
+
+        //        return result?.Url;
+        //    }
+        //    catch (Exception ex) when (LooksLikeConnectionFailure(ex))
+        //    {
+        //        var endpoint = _config?["S3:ServiceUrl"] ?? "(S3:ServiceUrl not set)";
+        //        var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+        //        throw new InvalidOperationException(
+        //            $"Object storage is not reachable at '{endpoint}' (environment: {env}). " +
+        //            "Local: start MinIO on port 9000, or change S3:ServiceUrl in appsettings.Development.json. " +
+        //            "Server: set environment variables S3__ServiceUrl and S3__PublicBaseUrl to your MinIO/S3 address " +
+        //            "(use the Docker service name like http://minio:9000 from another container, or your public MinIO URL). " +
+        //            "Do not use localhost in production unless MinIO runs on the same machine as this API. " +
+        //            $"Underlying error: {ex.Message}",
+        //            ex);
+        //    }
+        //}
+
+
         public static async Task<string?> UploadFileAsync(IFormFile file, string folderPrefix = "uploads")
         {
             if (file == null || file.Length == 0) return null;
@@ -76,27 +115,24 @@ namespace CareerCracker.S3Services
 
             try
             {
-                var result = await client.UploadStreamAsync(
+                await client.UploadStreamAsync(
                     stream,
                     key,
                     file.FileName,
                     file.ContentType,
                     file.Length);
 
-                return result?.Url;
+                // ✅ FIXED URL
+                var s3 = _config?.GetSection("S3");
+
+                string publicBase = s3?["PublicBaseUrl"] ?? "";
+                string bucket = s3?["BucketName"] ?? "";
+
+                return $"{publicBase.TrimEnd('/')}/{bucket}/{key}";
             }
             catch (Exception ex) when (LooksLikeConnectionFailure(ex))
             {
-                var endpoint = _config?["S3:ServiceUrl"] ?? "(S3:ServiceUrl not set)";
-                var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
-                throw new InvalidOperationException(
-                    $"Object storage is not reachable at '{endpoint}' (environment: {env}). " +
-                    "Local: start MinIO on port 9000, or change S3:ServiceUrl in appsettings.Development.json. " +
-                    "Server: set environment variables S3__ServiceUrl and S3__PublicBaseUrl to your MinIO/S3 address " +
-                    "(use the Docker service name like http://minio:9000 from another container, or your public MinIO URL). " +
-                    "Do not use localhost in production unless MinIO runs on the same machine as this API. " +
-                    $"Underlying error: {ex.Message}",
-                    ex);
+                throw;
             }
         }
 
