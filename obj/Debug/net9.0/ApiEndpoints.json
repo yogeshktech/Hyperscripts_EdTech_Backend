@@ -1681,6 +1681,22 @@
   },
   {
     "ContainingType": "CareerCracker.Controllers.UserController",
+    "Method": "ChangePassword",
+    "RelativePath": "api/user/change-password",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "model",
+        "Type": "CareerCracker.Models.ChangePasswordRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.UserController",
     "Method": "GetLiveClassesByBatch",
     "RelativePath": "api/user/get-all-live-class/{batchId}",
     "HttpMethod": "GET",
@@ -1761,6 +1777,32 @@
     "IsController": true,
     "Order": 0,
     "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.UserController",
+    "Method": "GetProfile",
+    "RelativePath": "api/user/profile",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.UserController",
+    "Method": "UpdateProfileJson",
+    "RelativePath": "api/user/profile",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "body",
+        "Type": "CareerCracker.Models.UpdateProfileRequest",
+        "IsRequired": true
+      }
+    ],
     "ReturnTypes": []
   },
   {

@@ -98,6 +98,8 @@ namespace CareerCracker.Controllers
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
             var claims = new List<Claim>
 {
+    new Claim(JwtRegisteredClaimNames.Sub, userInfo.Id),
+    new Claim(ClaimTypes.NameIdentifier, userInfo.Id),
     new Claim(JwtRegisteredClaimNames.Name, userInfo.FirstName ?? ""),
     new Claim(JwtRegisteredClaimNames.Email, userInfo.Email ?? ""),
     new Claim("UserName", userInfo.UserName ?? ""),
