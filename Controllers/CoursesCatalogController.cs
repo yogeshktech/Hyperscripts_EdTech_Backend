@@ -1,11 +1,10 @@
-using CareerCracker.BusinessLayer;
+﻿using CareerCracker.BusinessLayer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CareerCracker.Controllers
 {
-    /// <summary>Public course catalog for students (no admin role required).</summary>
     [EnableCors("CorsPolicy")]
     [ApiController]
     [Route("api/courses")]
@@ -19,10 +18,6 @@ namespace CareerCracker.Controllers
             _businessLayer = businessLayer;
         }
 
-        /// <summary>
-        /// Filter and search courses: categoryId or categorySlug, languageId or languageSlug,
-        /// minAverageRating and minReviewCount from active reviews, global search on course text, category name, language name.
-        /// </summary>
         [HttpGet("filter")]
         public async Task<IActionResult> Filter(
             [FromQuery] int? categoryId,
@@ -43,11 +38,38 @@ namespace CareerCracker.Controllers
             try
             {
                 var term = search ?? q;
+
+                // ===============================
+                // ✅ CATEGORY FIX (SUPPORT BOTH)
+                // ===============================
                 var parsedCategoryIds = ParseCsvInts(categoryIds);
+
+                if (categoryId.HasValue)
+                {
+                    parsedCategoryIds ??= new List<int>();
+                    parsedCategoryIds.Add(categoryId.Value);
+                }
+
+                // ===============================
+                // ✅ LANGUAGE FIX (SUPPORT BOTH)
+                // ===============================
                 var parsedLanguageIds = ParseCsvInts(languageIds);
+
+                if (languageId.HasValue)
+                {
+                    parsedLanguageIds ??= new List<int>();
+                    parsedLanguageIds.Add(languageId.Value);
+                }
+
+                // ===============================
+                // SLUG PARSING
+                // ===============================
                 var parsedCategorySlugs = ParseCsvStrings(categorySlugs);
                 var parsedLanguageSlugs = ParseCsvStrings(languageSlugs);
 
+                // ===============================
+                // CALL BUSINESS LAYER
+                // ===============================
                 return await _businessLayer.GetCoursesWithFilters(
                     categoryId,
                     parsedCategoryIds,
@@ -65,30 +87,44 @@ namespace CareerCracker.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = $"Internal server error: {ex.Message}" });
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = $"Internal server error: {ex.Message}"
+                });
             }
         }
 
+        // ===============================
+        // CSV INT PARSER
+        // ===============================
         private static List<int>? ParseCsvInts(string? csv)
         {
             if (string.IsNullOrWhiteSpace(csv)) return null;
+
             var list = csv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Select(v => int.TryParse(v, out var n) ? (int?)n : null)
                 .Where(v => v.HasValue)
                 .Select(v => v!.Value)
                 .Distinct()
                 .ToList();
+
             return list.Count == 0 ? null : list;
         }
 
+        // ===============================
+        // CSV STRING PARSER
+        // ===============================
         private static List<string>? ParseCsvStrings(string? csv)
         {
             if (string.IsNullOrWhiteSpace(csv)) return null;
+
             var list = csv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Select(v => v.Trim())
                 .Where(v => !string.IsNullOrWhiteSpace(v))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
+
             return list.Count == 0 ? null : list;
         }
     }
