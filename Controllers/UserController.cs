@@ -178,35 +178,55 @@ namespace CareerCracker.Controllers
                     return Unauthorized(new { success = false, message = "User not found in token" });
 
                 // ===============================
-                // ✅ GET FORM VALUES
+                // ✅ BASIC FIELDS
                 // ===============================
-                string? firstName = form["firstName"];
-                string? lastName = form["lastName"];
-                string? phoneNumber = form["phoneNumber"];
-                string? position = form["position"];
-                string? experience = form["experience"];
-                string? specialization = form["specialization"];
+                if (!string.IsNullOrWhiteSpace(form["FirstName"]))
+                    user.FirstName = form["FirstName"];
+
+                if (!string.IsNullOrWhiteSpace(form["LastName"]))
+                    user.LastName = form["LastName"];
+
+                if (!string.IsNullOrWhiteSpace(form["Email"]))
+                {
+                    user.Email = form["Email"];
+                    user.UserName = form["Email"]; // keep username same as email
+                }
+
+                if (!string.IsNullOrWhiteSpace(form["PhoneNumber"]))
+                    user.PhoneNumber = form["PhoneNumber"];
 
                 // ===============================
-                // ✅ UPDATE BASIC FIELDS
+                // ✅ PROFILE FIELDS
                 // ===============================
-                if (!string.IsNullOrWhiteSpace(firstName))
-                    user.FirstName = firstName;
+                if (!string.IsNullOrWhiteSpace(form["position"]))
+                    user.position = form["position"];
 
-                if (!string.IsNullOrWhiteSpace(lastName))
-                    user.LastName = lastName;
+                if (!string.IsNullOrWhiteSpace(form["experience"]))
+                    user.experience = form["experience"];
 
-                if (!string.IsNullOrWhiteSpace(phoneNumber))
-                    user.PhoneNumber = phoneNumber;
+                if (!string.IsNullOrWhiteSpace(form["specialization"]))
+                    user.specialization = form["specialization"];
 
-                if (!string.IsNullOrWhiteSpace(position))
-                    user.position = position;
+                if (!string.IsNullOrWhiteSpace(form["Gender"]))
+                    user.Gender = form["Gender"];
 
-                if (!string.IsNullOrWhiteSpace(experience))
-                    user.experience = experience;
+                if (!string.IsNullOrWhiteSpace(form["Address"]))
+                    user.Address = form["Address"];
 
-                if (!string.IsNullOrWhiteSpace(specialization))
-                    user.specialization = specialization;
+                if (!string.IsNullOrWhiteSpace(form["Subject"]))
+                    user.Subject = form["Subject"];
+
+                // ===============================
+                // ✅ SALARY
+                // ===============================
+                if (decimal.TryParse(form["Salary"], out var salary))
+                    user.Salary = salary;
+
+                // ===============================
+                // ✅ DATE OF BIRTH
+                // ===============================
+                if (DateTime.TryParse(form["DateOfBirth"], out var dob))
+                    user.DateOfBirth = dob;
 
                 // ===============================
                 // ✅ IMAGE UPLOAD (S3)
@@ -215,7 +235,6 @@ namespace CareerCracker.Controllers
 
                 if (file != null && file.Length > 0)
                 {
-                    // Upload to S3
                     var imagePath = await S3StorageHelper.UploadFileAsync(file, "users");
 
                     if (string.IsNullOrEmpty(imagePath))
@@ -227,7 +246,7 @@ namespace CareerCracker.Controllers
                         });
                     }
 
-                    // Delete old image
+                    // delete old image
                     if (!string.IsNullOrEmpty(user.profile_image))
                     {
                         await S3StorageHelper.DeleteFileAsync(user.profile_image);
@@ -237,7 +256,12 @@ namespace CareerCracker.Controllers
                 }
 
                 // ===============================
-                // ✅ SAVE USER
+                // ✅ UPDATE TIMESTAMP
+                // ===============================
+                user.updated_at = DateTime.UtcNow;
+
+                // ===============================
+                // ✅ SAVE
                 // ===============================
                 var result = await _userManager.UpdateAsync(user);
 
