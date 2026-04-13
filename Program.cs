@@ -16,6 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 // ======================================================
 //S3StorageHelper.Initialize(builder.Configuration);
 S3StorageHelper.Initialize(builder.Configuration);
+
 // ======================================================
 // 1?? Database
 // ======================================================

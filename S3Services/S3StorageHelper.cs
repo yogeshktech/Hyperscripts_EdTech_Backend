@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using POPI_TRACKER_BACKEND.S3Services;
 using System;
 using System.IO;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 
 namespace CareerCracker.S3Services
@@ -12,109 +13,169 @@ namespace CareerCracker.S3Services
     {
         private static IConfiguration? _config;
 
-        // ✅ Initialize in Program.cs
+        // Call this in Program.cs after builder.Configuration is ready
         public static void Initialize(IConfiguration configuration)
         {
             _config = configuration;
         }
 
-        // ✅ Create S3 / MinIO Client
         private static CloudStorage? CreateClient()
         {
-            var s3 = _config?.GetSection("S3");
-            if (s3 == null) return null;
+            var s3Section = _config?.GetSection("S3");
+            if (s3Section == null) return null;
+
+            var bucket = s3Section["BucketName"];
+            var accessKey = s3Section["AccessKey"];
+            var secretKey = s3Section["SecretKey"];
+
+            if (string.IsNullOrWhiteSpace(bucket) ||
+                string.IsNullOrWhiteSpace(accessKey) ||
+                string.IsNullOrWhiteSpace(secretKey))
+                return null;
 
             var cfg = new CloudStorageConfig
             {
-                BucketName = s3["BucketName"],
-                AccessKey = s3["AccessKey"],
-                SecretKey = s3["SecretKey"],
-                ServiceUrl = s3["ServiceUrl"],          // http://116.203.133.249:9000
-                PublicBaseUrl = s3["PublicBaseUrl"],    // same as above
-                Region = s3["Region"],                  // keep for AWS compatibility
-                ForcePathStyle = s3.GetValue<bool>("ForcePathStyle")
+                BucketName = bucket,
+                AccessKey = accessKey,
+                SecretKey = secretKey,
+                ServiceUrl = s3Section["ServiceUrl"],
+                PublicBaseUrl = s3Section["PublicBaseUrl"],
+                Region = s3Section["Region"],
+                ForcePathStyle = s3Section.GetValue<bool>("ForcePathStyle")
             };
 
             return new CloudStorage(cfg);
         }
 
-        // =====================================================
-        // ✅ UPLOAD FILE
-        // =====================================================
-        public static async Task<string?> UploadFileAsync(IFormFile file, string folder = "uploads")
+        private static bool LooksLikeConnectionFailure(Exception ex)
         {
-            if (file == null || file.Length == 0)
-                return null;
+            for (var cur = ex; cur != null; cur = cur.InnerException)
+            {
+                if (cur is SocketException se &&
+                    (se.SocketErrorCode == SocketError.ConnectionRefused ||
+                     se.SocketErrorCode == SocketError.HostNotFound ||
+                     se.SocketErrorCode == SocketError.TimedOut))
+                    return true;
+            }
+
+            return ex.Message.Contains("actively refused", StringComparison.OrdinalIgnoreCase)
+                   || ex.Message.Contains("Connection refused", StringComparison.OrdinalIgnoreCase);
+        }
+
+       
+
+        public static async Task<string?> UploadFileAsync(IFormFile file, string folderPrefix = "uploads")
+        {
+            if (file == null || file.Length == 0) return null;
 
             using var client = CreateClient();
-            if (client == null)
-                throw new Exception("S3 client not initialized");
+            if (client == null) return null;
 
-            var ext = Path.GetExtension(file.FileName)?.ToLowerInvariant();
-            var key = $"{folder}/{DateTime.UtcNow:yyyy/MM/dd}/{Guid.NewGuid()}{ext}";
+            var ext = Path.GetExtension(file.FileName)?.ToLowerInvariant() ?? "";
+            var key = $"{folderPrefix.TrimEnd('/')}/{DateTime.UtcNow:yyyy/MM/dd}/{Guid.NewGuid()}{ext}";
 
             await using var stream = file.OpenReadStream();
 
-            await client.UploadStreamAsync(
-                stream,
-                key,
-                file.FileName,
-                file.ContentType,
-                file.Length
-            );
+            try
+            {
+                await client.UploadStreamAsync(
+                    stream,
+                    key,
+                    file.FileName,
+                    file.ContentType,
+                    file.Length);
 
-            var baseUrl = _config?["S3:PublicBaseUrl"]?.TrimEnd('/');
-            var bucket = _config?["S3:BucketName"];
+                // ✅ FIXED URL
+                var s3 = _config?.GetSection("S3");
 
-            return $"{baseUrl}/{bucket}/{key}";
+                string publicBase = s3?["PublicBaseUrl"] ?? "";
+                string bucket = s3?["BucketName"] ?? "";
+
+                return $"{publicBase.TrimEnd('/')}/{bucket}/{key}";
+            }
+            catch (Exception ex) when (LooksLikeConnectionFailure(ex))
+            {
+                throw;
+            }
         }
 
-        // =====================================================
-        // ✅ DELETE FILE (FIXED)
-        // =====================================================
-        public static async Task DeleteFileAsync(string? pathOrUrl)
+        public static async Task<bool> DeleteByPathAsync(string? pathOrUrl)
         {
-            if (string.IsNullOrWhiteSpace(pathOrUrl))
-                return;
+            if (string.IsNullOrWhiteSpace(pathOrUrl)) return true;
 
             using var client = CreateClient();
-            if (client == null)
-                return;
+            if (client == null) return true;
 
-            var key = ExtractKey(pathOrUrl);
-            if (string.IsNullOrEmpty(key))
-                return;
+            var key = ExtractKeyFromUrl(pathOrUrl);
+            if (string.IsNullOrWhiteSpace(key)) return true;
 
-            await client.DeleteFileAsync(key);
+            return await client.DeleteFileAsync(key);
         }
 
-        // =====================================================
-        // ✅ EXTRACT KEY FROM URL
-        // =====================================================
-        private static string? ExtractKey(string url)
+        /// <summary>
+        /// Removes legacy files under wwwroot (e.g. /uploads/blogs/...) or deletes the object when <paramref name="pathOrUrl"/> is an http(s) URL from S3/MinIO.
+        /// </summary>
+        public static async Task DeleteStoredMediaAsync(string? pathOrUrl)
         {
-            if (string.IsNullOrWhiteSpace(url))
-                return null;
+            if (string.IsNullOrWhiteSpace(pathOrUrl)) return;
 
-            var baseUrl = _config?["S3:PublicBaseUrl"]?.TrimEnd('/');
-            var bucket = _config?["S3:BucketName"];
-
-            // Example:
-            // http://116.203.133.249:9000/hyperdroid-storage/folder/file.jpg
-
-            if (!string.IsNullOrEmpty(baseUrl) && url.StartsWith(baseUrl))
+            var s = pathOrUrl.Trim();
+            if (s.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                s.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
             {
-                var path = url.Replace(baseUrl + "/", "");
+                await DeleteByPathAsync(s);
+                return;
+            }
 
-                if (!string.IsNullOrEmpty(bucket) && path.StartsWith(bucket + "/"))
+            var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", s.TrimStart('/', '\\'));
+            if (File.Exists(fullPath))
+                File.Delete(fullPath);
+        }
+
+        private static string? ExtractKeyFromUrl(string urlOrPath)
+        {
+            if (string.IsNullOrWhiteSpace(urlOrPath)) return null;
+
+            var s3Section = _config?.GetSection("S3");
+            var publicBase = s3Section?["PublicBaseUrl"];
+            var serviceUrl = s3Section?["ServiceUrl"];
+            var bucket = s3Section?["BucketName"];
+            var forcePathStyle = s3Section?.GetValue<bool>("ForcePathStyle") ?? true;
+
+            // Already a key
+            if (!urlOrPath.StartsWith("http", StringComparison.OrdinalIgnoreCase) &&
+                !urlOrPath.StartsWith("/"))
+                return urlOrPath;
+
+            // Match PublicBaseUrl
+            if (!string.IsNullOrWhiteSpace(publicBase) &&
+                urlOrPath.StartsWith(publicBase.TrimEnd('/'), StringComparison.OrdinalIgnoreCase))
+            {
+                var prefix = publicBase.TrimEnd('/') + "/";
+                return urlOrPath.Substring(prefix.Length);
+            }
+
+            // Match ServiceUrl (MinIO style)
+            if (!string.IsNullOrWhiteSpace(serviceUrl) &&
+                urlOrPath.StartsWith(serviceUrl.TrimEnd('/'), StringComparison.OrdinalIgnoreCase))
+            {
+                var baseUrl = serviceUrl.TrimEnd('/');
+                var remainder = urlOrPath.Substring(baseUrl.Length).TrimStart('/');
+
+                if (forcePathStyle && !string.IsNullOrWhiteSpace(bucket) &&
+                    remainder.StartsWith(bucket + "/"))
                 {
-                    return path.Substring(bucket.Length + 1);
+                    return remainder.Substring(bucket.Length + 1);
                 }
-
-                return path;
+                return remainder;
             }
 
             return null;
+        }
+
+        internal static async Task DeleteFileAsync(string oldImage)
+        {
+            throw new NotImplementedException();
         }
     }
 }

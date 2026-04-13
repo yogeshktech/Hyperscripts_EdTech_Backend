@@ -133,6 +133,8 @@ wwwroot\categoryImages\28398317-a2aa-4e8c-9bbb-dffe810c8dec.png
 wwwroot\categoryImages\2191ad0d-5ca7-485a-bb71-e4d9963705d3.png
 wwwroot\categoryImages\0a7a7b2e-93f6-495d-b406-35bb3fe51296.png
 wwwroot\uploads\testimonials\20675282-634d-402c-854e-766a25945cce.png
+wwwroot\uploads\batches\a6e8f916-77f8-46c8-90af-95db93a371b7.png
+wwwroot\uploads\batches\73bffee1-ec77-487b-ad8f-797803047ac0.png
 D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\css\site.css
 D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\favicon.ico
 D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\js\site.js
