@@ -99,6 +99,10 @@ SELECT
 
     -- Categories
     (SELECT COUNT(*) FROM categories) AS total_categories,
+    (SELECT COUNT(*) FROM languages) AS total_languages,
+    (SELECT COUNT(*) FROM faculties) AS total_faculties,
+    (SELECT COUNT(*) FROM batches) AS total_batches,
+    (SELECT COUNT(*) FROM live_classes) AS total_live_classes,
 
     -- Purchased courses (distinct mapped courses)
     (SELECT COUNT(DISTINCT course_id) FROM user_courses WHERE is_active = TRUE) AS total_purchased_courses
@@ -120,7 +124,14 @@ WHERE UPPER(r.""Name"") = 'USER';";
                 var totalOrders = Convert.ToInt32(reader["total_orders"]);
                 var totalConfirmedOrders = Convert.ToInt32(reader["total_confirmed_orders"]);
                 var totalCategories = Convert.ToInt32(reader["total_categories"]);
+                var totalLanguages = Convert.ToInt32(reader["total_languages"]);
+                var totalFaculties = Convert.ToInt32(reader["total_faculties"]);
+                var totalBatches = Convert.ToInt32(reader["total_batches"]);
+                var totalLiveClasses = Convert.ToInt32(reader["total_live_classes"]);
                 var totalPurchasedCourses = Convert.ToInt32(reader["total_purchased_courses"]);
+                var grandTotalEntities =
+                    totalStudents + totalOrders + totalCategories + totalLanguages +
+                    totalFaculties + totalBatches + totalLiveClasses + totalPurchasedCourses;
 
                 return new OkObjectResult(new
                 {
@@ -142,9 +153,29 @@ WHERE UPPER(r.""Name"") = 'USER';";
                         {
                             total = totalCategories
                         },
+                        languages = new
+                        {
+                            total = totalLanguages
+                        },
+                        faculties = new
+                        {
+                            total = totalFaculties
+                        },
+                        batches = new
+                        {
+                            total = totalBatches
+                        },
+                        liveClasses = new
+                        {
+                            total = totalLiveClasses
+                        },
                         purchasedCourses = new
                         {
                             total = totalPurchasedCourses
+                        },
+                        totals = new
+                        {
+                            grandTotal = grandTotalEntities
                         }
                     }
                 });

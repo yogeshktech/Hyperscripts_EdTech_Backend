@@ -90,6 +90,13 @@ namespace CareerCracker.S3Services
 
                 string baseUrl = s3?["PublicBaseUrl"]?.TrimEnd('/') ?? "";
                 string bucket = s3?["BucketName"] ?? "";
+                if (string.IsNullOrWhiteSpace(baseUrl))
+                    return $"{bucket}/{key}";
+
+                // Avoid duplicate bucket in URL when PublicBaseUrl already contains "/{bucket}"
+                if (!string.IsNullOrWhiteSpace(bucket) &&
+                    baseUrl.EndsWith("/" + bucket, StringComparison.OrdinalIgnoreCase))
+                    return $"{baseUrl}/{key}";
 
                 return $"{baseUrl}/{bucket}/{key}";
             }
@@ -153,7 +160,13 @@ namespace CareerCracker.S3Services
                 urlOrPath.StartsWith(publicBase.TrimEnd('/'), StringComparison.OrdinalIgnoreCase))
             {
                 var prefix = publicBase.TrimEnd('/') + "/";
-                return urlOrPath.Substring(prefix.Length);
+                var remainder = urlOrPath.Substring(prefix.Length);
+                if (!string.IsNullOrWhiteSpace(bucket) &&
+                    remainder.StartsWith(bucket + "/", StringComparison.OrdinalIgnoreCase))
+                {
+                    return remainder.Substring(bucket.Length + 1);
+                }
+                return remainder;
             }
 
             // Match ServiceUrl (MinIO style)
