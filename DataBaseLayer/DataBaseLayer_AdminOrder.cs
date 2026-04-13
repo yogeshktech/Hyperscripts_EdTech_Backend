@@ -170,7 +170,8 @@ SELECT
     o.payment_status,
     o.order_status,
     o.created_at,
-    u.""UserName"",
+    u.""FirstName"",
+    u.""LastName"",
     u.""Email""
 FROM orders o
 LEFT JOIN ""AspNetUsers"" u ON u.""Id"" = o.user_id::text
@@ -185,7 +186,7 @@ LIMIT 5;";
                         recentOrders.Add(new
                         {
                             id = orderReader["id"],
-                            user = orderReader["UserName"]?.ToString(),
+                            user = $"{orderReader["FirstName"]} {orderReader["LastName"]}", // ✅ FIXED
                             email = orderReader["Email"]?.ToString(),
                             amount = orderReader["total_amount"],
                             payment_status = orderReader["payment_status"]?.ToString(),
@@ -194,7 +195,6 @@ LIMIT 5;";
                         });
                     }
                 }
-
                 // =========================================
                 // 3️⃣ RECENT STUDENTS
                 // =========================================
