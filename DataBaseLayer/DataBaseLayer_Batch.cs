@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using CareerCracker.S3Services;
+using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using System.Data.Common;
 using System.Globalization;
@@ -221,23 +222,16 @@ namespace CareerCracker.DataBaseLayer
 
                 if (file != null && file.Length > 0)
                 {
-                    var uploadDir = Path.Combine(
-                        Directory.GetCurrentDirectory(),
-                        "wwwroot",
-                        "uploads",
-                        "batches"
-                    );
+                    imagePath = await S3StorageHelper.UploadFileAsync(file, "batches");
 
-                    if (!Directory.Exists(uploadDir))
-                        Directory.CreateDirectory(uploadDir);
-
-                    var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
-                    var fullPath = Path.Combine(uploadDir, fileName);
-
-                    using var stream = new FileStream(fullPath, FileMode.Create);
-                    await file.CopyToAsync(stream);
-
-                    imagePath = $"/uploads/batches/{fileName}";
+                    if (string.IsNullOrEmpty(imagePath))
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Failed to upload batch image"
+                        });
+                    }
                 }
 
                 await using var con = new NpgsqlConnection(DbConnection);
@@ -522,74 +516,69 @@ namespace CareerCracker.DataBaseLayer
                 parameters.Add(new NpgsqlParameter("@is_active", active));
             }
 
-            // ===============================
-            // 5️⃣ IMAGE UPDATE
-            // ===============================
-            var file = form.Files["batch_image"];
-            if (file != null && file.Length > 0)
-            {
-                string? oldImage = null;
-
-                await using (var imgCmd = new NpgsqlCommand(
-                    "SELECT batch_image FROM batches WHERE id = @id", con))
+                // ===============================
+                // 5️⃣ IMAGE UPDATE
+                // ===============================
+                var file = form.Files["batch_image"];
+                if (file != null && file.Length > 0)
                 {
-                    imgCmd.Parameters.AddWithValue("@id", batchId);
-                    var result = await imgCmd.ExecuteScalarAsync();
-                    oldImage = result == DBNull.Value ? null : result?.ToString();
-                }
+                    // ✅ Validate file
+                    var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+                    var allowedExt = new[] { ".jpg", ".jpeg", ".png", ".webp" };
 
-                if (!string.IsNullOrEmpty(oldImage))
-                {
-                    var oldPath = Path.Combine(
-                        Directory.GetCurrentDirectory(),
-                        "wwwroot",
-                        oldImage.TrimStart('/')
-                    );
-
-                    if (System.IO.File.Exists(oldPath))
-                        System.IO.File.Delete(oldPath);
-                }
-
-                var uploadDir = Path.Combine("wwwroot", "uploads", "batches");
-                Directory.CreateDirectory(uploadDir);
-
-                var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-                var allowedExt = new[] { ".jpg", ".jpeg", ".png", ".webp" };
-
-                if (!allowedExt.Contains(ext))
-                {
-                    return BadRequest(new
+                    if (!allowedExt.Contains(ext))
                     {
-                        success = false,
-                        message = "Only JPG, PNG, WEBP images allowed"
-                    });
-                }
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Only JPG, PNG, WEBP images allowed"
+                        });
+                    }
 
-                if (file.Length > 2 * 1024 * 1024)
-                {
-                    return BadRequest(new
+                    if (file.Length > 2 * 1024 * 1024)
                     {
-                        success = false,
-                        message = "Image size must be less than 2MB"
-                    });
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Image size must be less than 2MB"
+                        });
+                    }
+
+                    // ✅ (Optional) Get old image from DB
+                    string? oldImage = null;
+                    await using (var imgCmd = new NpgsqlCommand(
+                        "SELECT batch_image FROM batches WHERE id = @id", con))
+                    {
+                        imgCmd.Parameters.AddWithValue("@id", batchId);
+                        var result = await imgCmd.ExecuteScalarAsync();
+                        oldImage = result == DBNull.Value ? null : result?.ToString();
+                    }
+
+                    // ✅ Upload new image to S3
+                    string? newImagePath = await S3StorageHelper.UploadFileAsync(file, "batches");
+
+                    if (string.IsNullOrEmpty(newImagePath))
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Failed to upload batch image"
+                        });
+                    }
+
+                    // ✅ (Optional) Delete old image from S3
+                    if (!string.IsNullOrEmpty(oldImage))
+                    {
+                        await S3StorageHelper.DeleteFileAsync(oldImage);
+                    }
+
+                    updates.Add("batch_image = @batch_image");
+                    parameters.Add(new NpgsqlParameter("@batch_image", newImagePath));
                 }
-
-                var fileName = $"{Guid.NewGuid()}{ext}";
-                var fullPath = Path.Combine(uploadDir, fileName);
-
-                using var stream = new FileStream(fullPath, FileMode.Create);
-                await file.CopyToAsync(stream);
-
-                updates.Add("batch_image = @batch_image");
-                parameters.Add(
-                    new NpgsqlParameter("@batch_image", $"/uploads/batches/{fileName}")
-                );
-            }
-
-            // ===============================
-            // 6️⃣ NO UPDATE CHECK
-            // ===============================
-            if (updates.Count == 0)
+                // ===============================
+                // 6️⃣ NO UPDATE CHECK
+                // ===============================
+                if (updates.Count == 0)
             {
                 return BadRequest(new
                 {

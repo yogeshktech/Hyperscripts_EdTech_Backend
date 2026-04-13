@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using CareerCracker.S3Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
@@ -216,24 +217,53 @@ namespace CareerCracker.DataBaseLayer
                 }
 
                 // 🔹 IMAGE UPLOAD
+                // 🔹 IMAGE UPLOAD (S3)
                 if (imageFile != null && imageFile.Length > 0)
                 {
-                    string folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/facultyImages");
-                    Directory.CreateDirectory(folder);
+                    // ✅ Validate file
+                    var ext = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
+                    var allowedExt = new[] { ".jpg", ".jpeg", ".png", ".webp" };
 
-                    string fileName = Guid.NewGuid() + Path.GetExtension(imageFile.FileName);
-                    string path = Path.Combine(folder, fileName);
+                    if (!allowedExt.Contains(ext))
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Only JPG, PNG, WEBP images allowed"
+                        });
+                    }
 
-                    using var stream = new FileStream(path, FileMode.Create);
-                    await imageFile.CopyToAsync(stream);
+                    if (imageFile.Length > 2 * 1024 * 1024)
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Image size must be less than 2MB"
+                        });
+                    }
 
-                    newImagePath = "/uploads/facultyImages/" + fileName;
+                    // ✅ Upload to S3
+                    newImagePath = await S3StorageHelper.UploadFileAsync(imageFile, "faculty");
+
+                    if (string.IsNullOrEmpty(newImagePath))
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Failed to upload faculty image"
+                        });
+                    }
+
+                    // ✅ Delete old image from S3 (optional but recommended)
+                    if (!string.IsNullOrEmpty(oldImagePath))
+                    {
+                        await S3StorageHelper.DeleteFileAsync(oldImagePath);
+                    }
                 }
                 else
                 {
                     newImagePath = oldImagePath;
                 }
-
                 // 🔹 UPDATE
                 string updateQuery = @"
             UPDATE ""AspNetUsers""
