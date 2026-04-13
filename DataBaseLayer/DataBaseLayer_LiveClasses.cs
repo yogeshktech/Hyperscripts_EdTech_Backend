@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using CareerCracker.S3Services;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.CodeAnalysis.Elfie.Diagnostics;
 using Npgsql;
 
@@ -78,27 +79,35 @@ namespace CareerCracker.DataBaseLayer
                 // ===============================
                 // 3️⃣ IMAGE (OPTIONAL)
                 // ===============================
+                // ===============================
+                // 3️⃣ IMAGE (S3 UPLOAD)
+                // ===============================
                 string imagePath = null;
                 var image = form.Files.FirstOrDefault(f => f.Name == "image");
 
                 if (image != null && image.Length > 0)
                 {
+                    // ✅ Validate
                     var ext = Path.GetExtension(image.FileName).ToLower();
                     var allowed = new[] { ".jpg", ".jpeg", ".png", ".webp" };
 
                     if (!allowed.Contains(ext))
                         return BadRequest(new { success = false, message = "Invalid image type" });
 
-                    var fileName = $"{Guid.NewGuid()}{ext}";
-                    var folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads/live-classes");
+                    if (image.Length > 2 * 1024 * 1024)
+                        return BadRequest(new { success = false, message = "Image must be less than 2MB" });
 
-                    Directory.CreateDirectory(folder);
+                    // ✅ Upload to S3
+                    imagePath = await S3StorageHelper.UploadFileAsync(image, "live-classes");
 
-                    var path = Path.Combine(folder, fileName);
-                    await using var fs = new FileStream(path, FileMode.Create);
-                    await image.CopyToAsync(fs);
-
-                    imagePath = $"/uploads/live-classes/{fileName}";
+                    if (string.IsNullOrEmpty(imagePath))
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Failed to upload live class image"
+                        });
+                    }
                 }
 
                 // ===============================
@@ -225,47 +234,41 @@ namespace CareerCracker.DataBaseLayer
                 }
 
                 // ===============================
-                // 4️⃣ IMAGE UPLOAD (OPTIONAL)
+                // 4️⃣ IMAGE UPLOAD (S3)
                 // ===============================
                 string newImagePath = oldImagePath;
                 var image = form.Files.FirstOrDefault(f => f.Name == "image");
 
                 if (image != null && image.Length > 0)
                 {
+                    // ✅ Validate
                     var ext = Path.GetExtension(image.FileName).ToLower();
                     var allowed = new[] { ".jpg", ".jpeg", ".png", ".webp" };
 
                     if (!allowed.Contains(ext))
                         return BadRequest(new { success = false, message = "Invalid image type" });
 
-                    var fileName = $"{Guid.NewGuid()}{ext}";
-                    var folder = Path.Combine(
-                        Directory.GetCurrentDirectory(),
-                        "wwwroot/uploads/live-classes"
-                    );
+                    if (image.Length > 2 * 1024 * 1024)
+                        return BadRequest(new { success = false, message = "Image must be less than 2MB" });
 
-                    Directory.CreateDirectory(folder);
+                    // ✅ Upload to S3
+                    newImagePath = await S3StorageHelper.UploadFileAsync(image, "live-classes");
 
-                    var path = Path.Combine(folder, fileName);
-                    await using var fs = new FileStream(path, FileMode.Create);
-                    await image.CopyToAsync(fs);
+                    if (string.IsNullOrEmpty(newImagePath))
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Failed to upload live class image"
+                        });
+                    }
 
-                    newImagePath = $"/uploads/live-classes/{fileName}";
-
-                    // delete old image
+                    // ✅ Delete old image from S3
                     if (!string.IsNullOrWhiteSpace(oldImagePath))
                     {
-                        var oldPath = Path.Combine(
-                            Directory.GetCurrentDirectory(),
-                            "wwwroot",
-                            oldImagePath.TrimStart('/')
-                        );
-
-                        if (System.IO.File.Exists(oldPath))
-                            System.IO.File.Delete(oldPath);
+                        await S3StorageHelper.DeleteFileAsync(oldImagePath);
                     }
                 }
-
                 // ===============================
                 // 5️⃣ UPDATE LIVE CLASS
                 // ===============================
