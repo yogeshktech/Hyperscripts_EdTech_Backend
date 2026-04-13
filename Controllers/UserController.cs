@@ -169,49 +169,113 @@ namespace CareerCracker.Controllers
 
         /// <summary>Update profile fields (JSON). Accepts either a flat object or the same shape as GET profile: <c>{ "user": { ... } }</c>.</summary>
         [HttpPut("profile")]
-        public async Task<IActionResult> UpdateProfileJson([FromBody] JsonElement body)
+        public async Task<IActionResult> UpdateProfileForm([FromForm] IFormCollection form)
         {
-            if (body.ValueKind != JsonValueKind.Object)
-                return BadRequest(new { success = false, message = "JSON object body is required" });
-
-            UpdateProfileRequest? dto = null;
-            if (body.TryGetProperty("user", out var userNode) && userNode.ValueKind == JsonValueKind.Object)
+            try
             {
-                dto = JsonSerializer.Deserialize<UpdateProfileRequest>(userNode.GetRawText(), ProfileJsonOptions);
-            }
-            else
-            {
-                dto = JsonSerializer.Deserialize<UpdateProfileRequest>(body.GetRawText(), ProfileJsonOptions);
-            }
+                var user = await GetCurrentUserAsync();
+                if (user == null)
+                    return Unauthorized(new { success = false, message = "User not found in token" });
 
-            if (dto == null)
-                return BadRequest(new { success = false, message = "Could not read profile fields from JSON" });
+                // ===============================
+                // ✅ GET FORM VALUES
+                // ===============================
+                string? firstName = form["firstName"];
+                string? lastName = form["lastName"];
+                string? phoneNumber = form["phoneNumber"];
+                string? position = form["position"];
+                string? experience = form["experience"];
+                string? specialization = form["specialization"];
 
-            var user = await GetCurrentUserAsync();
-            if (user == null)
-                return Unauthorized(new { success = false, message = "User not found in token" });
+                // ===============================
+                // ✅ UPDATE BASIC FIELDS
+                // ===============================
+                if (!string.IsNullOrWhiteSpace(firstName))
+                    user.FirstName = firstName;
 
-            ApplyUpdateProfileRequest(user, dto);
+                if (!string.IsNullOrWhiteSpace(lastName))
+                    user.LastName = lastName;
 
-            var result = await _userManager.UpdateAsync(user);
-            if (!result.Succeeded)
-            {
-                return BadRequest(new
+                if (!string.IsNullOrWhiteSpace(phoneNumber))
+                    user.PhoneNumber = phoneNumber;
+
+                if (!string.IsNullOrWhiteSpace(position))
+                    user.position = position;
+
+                if (!string.IsNullOrWhiteSpace(experience))
+                    user.experience = experience;
+
+                if (!string.IsNullOrWhiteSpace(specialization))
+                    user.specialization = specialization;
+
+                // ===============================
+                // ✅ IMAGE UPLOAD (S3)
+                // ===============================
+                var file = form.Files["profile_image"];
+
+                if (file != null && file.Length > 0)
                 {
-                    success = false,
-                    message = "Profile update failed",
-                    errors = result.Errors.Select(e => e.Description).ToList()
+                    // Upload to S3
+                    var imagePath = await S3StorageHelper.UploadFileAsync(file, "users");
+
+                    if (string.IsNullOrEmpty(imagePath))
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Image upload failed"
+                        });
+                    }
+
+                    // Delete old image
+                    if (!string.IsNullOrEmpty(user.profile_image))
+                    {
+                        await S3StorageHelper.DeleteFileAsync(user.profile_image);
+                    }
+
+                    user.profile_image = imagePath;
+                }
+
+                // ===============================
+                // ✅ SAVE USER
+                // ===============================
+                var result = await _userManager.UpdateAsync(user);
+
+                if (!result.Succeeded)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Profile update failed",
+                        errors = result.Errors.Select(e => e.Description).ToList()
+                    });
+                }
+
+                // ===============================
+                // ✅ RESPONSE
+                // ===============================
+                var refreshed = await _userManager.FindByIdAsync(user.Id) ?? user;
+                var roles = await _userManager.GetRolesAsync(refreshed);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Profile updated",
+                    user = MapProfilePayload(
+                        refreshed,
+                        ResolveProfileImageUrl(refreshed.profile_image),
+                        roles
+                    )
                 });
             }
-
-            var refreshed = await _userManager.FindByIdAsync(user.Id) ?? user;
-            var roles = await _userManager.GetRolesAsync(refreshed);
-            return Ok(new
+            catch (Exception ex)
             {
-                success = true,
-                message = "Profile updated",
-                user = MapProfilePayload(refreshed, ResolveProfileImageUrl(refreshed.profile_image), roles)
-            });
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
 
         /// <summary>Change password while logged in: verifies current password, then sets the new one.</summary>

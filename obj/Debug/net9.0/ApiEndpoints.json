@@ -1882,16 +1882,16 @@
   },
   {
     "ContainingType": "CareerCracker.Controllers.UserController",
-    "Method": "UpdateProfileJson",
+    "Method": "UpdateProfileForm",
     "RelativePath": "api/user/profile",
     "HttpMethod": "PUT",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "body",
-        "Type": "System.Text.Json.JsonElement",
-        "IsRequired": true
+        "Name": "form",
+        "Type": "Microsoft.AspNetCore.Http.IFormCollection",
+        "IsRequired": false
       }
     ],
     "ReturnTypes": []
