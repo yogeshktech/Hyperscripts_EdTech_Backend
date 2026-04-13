@@ -1,6 +1,7 @@
 ﻿using CareerCracker.Areas.Identity.Data;
 using CareerCracker.BusinessLayer;
 using CareerCracker.Models;
+using CareerCracker.S3Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Identity;
@@ -23,16 +24,13 @@ namespace CareerCracker.Controllers
 
         private readonly IBusinessLayer _businessLayer;
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly IWebHostEnvironment _env;
 
         public UserController(
             IBusinessLayer businessLayer,
-            UserManager<ApplicationUser> userManager,
-            IWebHostEnvironment env)
+            UserManager<ApplicationUser> userManager)
         {
             _businessLayer = businessLayer;
             _userManager = userManager;
-            _env = env;
         }
 
         private async Task<ApplicationUser?> GetCurrentUserAsync()
@@ -142,22 +140,12 @@ namespace CareerCracker.Controllers
             if (!allowedExt.Contains(ext))
                 return BadRequest(new { success = false, message = "Invalid image type" });
 
-            var uploadRoot = Path.Combine(_env.WebRootPath, "uploads", "users");
-            Directory.CreateDirectory(uploadRoot);
+            await S3StorageHelper.DeleteStoredMediaAsync(user.profile_image);
+            var uploadedUrl = await S3StorageHelper.UploadFileAsync(file, "users");
+            if (string.IsNullOrWhiteSpace(uploadedUrl))
+                return StatusCode(500, new { success = false, message = "Profile image upload failed." });
 
-            if (!string.IsNullOrEmpty(user.profile_image))
-            {
-                var oldPath = Path.Combine(_env.WebRootPath, user.profile_image.TrimStart('/'));
-                if (System.IO.File.Exists(oldPath))
-                    System.IO.File.Delete(oldPath);
-            }
-
-            var fileName = $"{Guid.NewGuid()}{ext}";
-            var filePath = Path.Combine(uploadRoot, fileName);
-            await using (var stream = new FileStream(filePath, FileMode.Create))
-                await file.CopyToAsync(stream);
-
-            user.profile_image = $"/uploads/users/{fileName}";
+            user.profile_image = uploadedUrl;
             return null;
         }
 

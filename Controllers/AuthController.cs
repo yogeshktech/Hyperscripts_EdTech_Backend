@@ -97,24 +97,24 @@ namespace CareerCracker.Controllers
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
             var claims = new List<Claim>
-{
-    new Claim(JwtRegisteredClaimNames.Sub, userInfo.Id),
-    new Claim(ClaimTypes.NameIdentifier, userInfo.Id),
-    new Claim(JwtRegisteredClaimNames.Name, userInfo.FirstName ?? ""),
-    new Claim(JwtRegisteredClaimNames.Email, userInfo.Email ?? ""),
-    new Claim("UserName", userInfo.UserName ?? ""),
-    new Claim("UserEmail", userInfo.Email ?? ""),
-    new Claim("FirstName", userInfo.FirstName ?? ""),
-    new Claim("LastName", userInfo.LastName ?? ""),
-    new Claim("UserOrg", userInfo.OrgId ?? ""),
-    new Claim("AccessKey", userInfo.AccessKey ?? ""),
-    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-    new Claim(
-        JwtRegisteredClaimNames.Iat,
-        ((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds().ToString(),
-        ClaimValueTypes.Integer64
-    )
-};
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, userInfo.Id),
+            new Claim(ClaimTypes.NameIdentifier, userInfo.Id),
+            new Claim(JwtRegisteredClaimNames.Name, userInfo.FirstName ?? ""),
+            new Claim(JwtRegisteredClaimNames.Email, userInfo.Email ?? ""),
+            new Claim("UserName", userInfo.UserName ?? ""),
+            new Claim("UserEmail", userInfo.Email ?? ""),
+            new Claim("FirstName", userInfo.FirstName ?? ""),
+            new Claim("LastName", userInfo.LastName ?? ""),
+            new Claim("UserOrg", userInfo.OrgId ?? ""),
+            new Claim("AccessKey", userInfo.AccessKey ?? ""),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(
+                JwtRegisteredClaimNames.Iat,
+                ((DateTimeOffset)DateTime.Now).ToUnixTimeSeconds().ToString(),
+                ClaimValueTypes.Integer64
+            )
+        };
 
             var userRoles = await _userManager.GetRolesAsync(userInfo);
             foreach (var userRole in userRoles)

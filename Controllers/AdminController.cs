@@ -1,5 +1,6 @@
 ﻿using CareerCracker.Areas.Identity.Data;
 using CareerCracker.BusinessLayer;
+using CareerCracker.S3Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +9,6 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.AspNetCore.Hosting;
 
 
 namespace CareerCracker.Controllers
@@ -21,16 +21,14 @@ namespace CareerCracker.Controllers
         private SignInManager<ApplicationUser> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ILogger<AdminController> _logger;
-        private readonly IWebHostEnvironment _env;
 
-        public AdminController(IBusinessLayer businessLayer, SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ILogger<AdminController> logger, IConfiguration configuration, IWebHostEnvironment env)
+        public AdminController(IBusinessLayer businessLayer, SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ILogger<AdminController> logger, IConfiguration configuration)
         {
             this._businessLayer = businessLayer;
             this._userManager = userManager;
             this._signInManager = signInManager;
             this._roleManager = roleManager;
             _logger = logger;
-            _env = env;
 
         }
 
@@ -246,23 +244,12 @@ namespace CareerCracker.Controllers
                     if (!allowedExt.Contains(ext))
                         return BadRequest(new { success = false, message = "Invalid image type" });
 
-                    string uploadRoot = Path.Combine(_env.WebRootPath, "uploads", "users");
-                    Directory.CreateDirectory(uploadRoot);
+                    await S3StorageHelper.DeleteStoredMediaAsync(user.profile_image);
+                    var uploadedUrl = await S3StorageHelper.UploadFileAsync(image, "users");
+                    if (string.IsNullOrWhiteSpace(uploadedUrl))
+                        return StatusCode(500, new { success = false, message = "Profile image upload failed." });
 
-                    if (!string.IsNullOrEmpty(user.profile_image))
-                    {
-                        string oldPath = Path.Combine(_env.WebRootPath, user.profile_image.TrimStart('/'));
-                        if (System.IO.File.Exists(oldPath))
-                            System.IO.File.Delete(oldPath);
-                    }
-
-                    string fileName = $"{Guid.NewGuid()}{ext}";
-                    string filePath = Path.Combine(uploadRoot, fileName);
-
-                    using var stream = new FileStream(filePath, FileMode.Create);
-                    await image.CopyToAsync(stream);
-
-                    user.profile_image = $"/uploads/users/{fileName}";
+                    user.profile_image = uploadedUrl;
                 }
 
                 // ===============================

@@ -748,5 +748,5 @@ D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\bin\Debug\net
 D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\bin\Debug\net9.0\AWSSDK.S3.dll
 D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\bin\Debug\net9.0\BouncyCastle.Cryptography.dll
 D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\bin\Debug\net9.0\MimeKit.dll
-D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt
 D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\bin\Debug\net9.0\appsettings.Production.json
+D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt

@@ -78,20 +78,13 @@ namespace CareerCracker.S3Services
 
             try
             {
-                await client.UploadStreamAsync(
+                var uploadResult = await client.UploadStreamAsync(
                     stream,
                     key,
                     file.FileName,
                     file.ContentType,
                     file.Length);
-
-                // ✅ FIXED URL
-                var s3 = _config?.GetSection("S3");
-
-                string publicBase = s3?["PublicBaseUrl"] ?? "";
-                string bucket = s3?["BucketName"] ?? "";
-
-                return $"{publicBase.TrimEnd('/')}/{bucket}/{key}";
+                return uploadResult.Url;
             }
             catch (Exception ex) when (LooksLikeConnectionFailure(ex))
             {
@@ -175,7 +168,7 @@ namespace CareerCracker.S3Services
 
         internal static async Task DeleteFileAsync(string oldImage)
         {
-            throw new NotImplementedException();
+            await DeleteStoredMediaAsync(oldImage);
         }
     }
 }
