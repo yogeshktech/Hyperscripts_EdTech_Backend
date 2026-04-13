@@ -43,5 +43,22 @@ namespace CareerCracker.Controllers
                 });
             }
         }
+
+        [HttpGet("dashboard-report")]
+        public async Task<IActionResult> DashboardReport()
+        {
+            try
+            {
+                return await _businessLayer.GetDashboardReport();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
     }
 }

@@ -30,4 +30,6 @@ public class UpdateProfileRequest
     /// <summary>ISO date string; optional.</summary>
     public string? DateOfBirth { get; set; }
     public decimal? Salary { get; set; }
+    public string? ProfileImage { get; set; }
+    public string? profile_image { get; set; }
 }

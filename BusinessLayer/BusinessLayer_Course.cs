@@ -9,9 +9,13 @@ namespace CareerCracker.BusinessLayer
         Task<IActionResult> GetAllCourses();
         Task<IActionResult> GetCoursesWithFilters(
             int? categoryId,
+            List<int>? categoryIds,
             string? categorySlug,
+            List<string>? categorySlugs,
             int? languageId,
+            List<int>? languageIds,
             string? languageSlug,
+            List<string>? languageSlugs,
             decimal? minAverageRating,
             int? minReviewCount,
             string? search,
@@ -41,9 +45,13 @@ namespace CareerCracker.BusinessLayer
 
         public async Task<IActionResult> GetCoursesWithFilters(
             int? categoryId,
+            List<int>? categoryIds,
             string? categorySlug,
+            List<string>? categorySlugs,
             int? languageId,
+            List<int>? languageIds,
             string? languageSlug,
+            List<string>? languageSlugs,
             decimal? minAverageRating,
             int? minReviewCount,
             string? search,
@@ -51,7 +59,7 @@ namespace CareerCracker.BusinessLayer
             int pageSize)
         {
             return await _dataBaseLayer.GetCoursesWithFilters(
-                categoryId, categorySlug, languageId, languageSlug,
+                categoryId, categoryIds, categorySlug, categorySlugs, languageId, languageIds, languageSlug, languageSlugs,
                 minAverageRating, minReviewCount, search, page, pageSize);
         }
 

@@ -8,9 +8,10 @@ namespace CareerCracker.DataBaseLayer
     public interface IDataBaseLayer_AdminOrder
     {
         Task<List<AdminOrderModel>> GetAllAdminOrders();
+        Task<IActionResult> GetDashboardReport();
     }
 
-    public partial interface IBusinessLayer : IBusinessLayer_AdminOrder { }
+    public partial interface IDataBaseLayer : IDataBaseLayer_AdminOrder { }
 
     public partial class DataBaseLayer
     {
@@ -76,6 +77,86 @@ namespace CareerCracker.DataBaseLayer
             }
 
             return list;
+        }
+
+        public async Task<IActionResult> GetDashboardReport()
+        {
+            try
+            {
+                await using var con = new NpgsqlConnection(DbConnection);
+                await con.OpenAsync();
+
+                const string query = @"
+SELECT
+    -- Student stats from USER role
+    COALESCE(SUM(CASE WHEN u.""IsActive"" = TRUE THEN 1 ELSE 0 END), 0) AS active_students,
+    COALESCE(SUM(CASE WHEN u.""IsActive"" = FALSE THEN 1 ELSE 0 END), 0) AS inactive_students,
+    COUNT(u.""Id"") AS total_students,
+
+    -- Orders
+    (SELECT COUNT(*) FROM orders) AS total_orders,
+    (SELECT COUNT(*) FROM orders WHERE order_status = 'CONFIRMED' AND (payment_status = 'PAID' OR payment_status = 'CONFIRMED')) AS total_confirmed_orders,
+
+    -- Categories
+    (SELECT COUNT(*) FROM categories) AS total_categories,
+
+    -- Purchased courses (distinct mapped courses)
+    (SELECT COUNT(DISTINCT course_id) FROM user_courses WHERE is_active = TRUE) AS total_purchased_courses
+FROM ""AspNetUsers"" u
+INNER JOIN ""AspNetUserRoles"" ur ON ur.""UserId"" = u.""Id""
+INNER JOIN ""AspNetRoles"" r ON r.""Id"" = ur.""RoleId""
+WHERE UPPER(r.""Name"") = 'USER';";
+
+                await using var cmd = new NpgsqlCommand(query, con);
+                await using var reader = await cmd.ExecuteReaderAsync();
+                if (!await reader.ReadAsync())
+                {
+                    return new OkObjectResult(new { success = true, report = new { } });
+                }
+
+                var activeStudents = Convert.ToInt32(reader["active_students"]);
+                var inactiveStudents = Convert.ToInt32(reader["inactive_students"]);
+                var totalStudents = Convert.ToInt32(reader["total_students"]);
+                var totalOrders = Convert.ToInt32(reader["total_orders"]);
+                var totalConfirmedOrders = Convert.ToInt32(reader["total_confirmed_orders"]);
+                var totalCategories = Convert.ToInt32(reader["total_categories"]);
+                var totalPurchasedCourses = Convert.ToInt32(reader["total_purchased_courses"]);
+
+                return new OkObjectResult(new
+                {
+                    success = true,
+                    report = new
+                    {
+                        students = new
+                        {
+                            total = totalStudents,
+                            active = activeStudents,
+                            inactive = inactiveStudents
+                        },
+                        orders = new
+                        {
+                            total = totalOrders,
+                            confirmed = totalConfirmedOrders
+                        },
+                        categories = new
+                        {
+                            total = totalCategories
+                        },
+                        purchasedCourses = new
+                        {
+                            total = totalPurchasedCourses
+                        }
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return new BadRequestObjectResult(new
+                {
+                    success = false,
+                    message = $"DB Error in GetDashboardReport: {ex.Message}"
+                });
+            }
         }
     }
 

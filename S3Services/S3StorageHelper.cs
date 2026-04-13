@@ -62,7 +62,7 @@ namespace CareerCracker.S3Services
                    || ex.Message.Contains("Connection refused", StringComparison.OrdinalIgnoreCase);
         }
 
-       
+
 
         public static async Task<string?> UploadFileAsync(IFormFile file, string folderPrefix = "uploads")
         {
@@ -78,19 +78,27 @@ namespace CareerCracker.S3Services
 
             try
             {
-                var uploadResult = await client.UploadStreamAsync(
+                await client.UploadStreamAsync(
                     stream,
                     key,
                     file.FileName,
                     file.ContentType,
                     file.Length);
-                return uploadResult.Url;
+
+                // ✅ ADD BUCKET NAME HERE
+                var s3 = _config?.GetSection("S3");
+
+                string baseUrl = s3?["PublicBaseUrl"]?.TrimEnd('/') ?? "";
+                string bucket = s3?["BucketName"] ?? "";
+
+                return $"{baseUrl}/{bucket}/{key}";
             }
             catch (Exception ex) when (LooksLikeConnectionFailure(ex))
             {
                 throw;
             }
         }
+
 
         public static async Task<bool> DeleteByPathAsync(string? pathOrUrl)
         {

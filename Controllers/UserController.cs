@@ -118,6 +118,11 @@ namespace CareerCracker.Controllers
                 user.Subject = string.IsNullOrWhiteSpace(body.Subject) ? null : body.Subject.Trim();
             if (body.Salary.HasValue)
                 user.Salary = body.Salary;
+            if (body.ProfileImage != null || body.profile_image != null)
+            {
+                var img = body.ProfileImage ?? body.profile_image;
+                user.profile_image = string.IsNullOrWhiteSpace(img) ? null : img.Trim();
+            }
 
             if (body.DateOfBirth != null)
             {

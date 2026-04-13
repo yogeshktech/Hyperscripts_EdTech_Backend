@@ -191,6 +191,16 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "CareerCracker.Controllers.AdminOrderController",
+    "Method": "DashboardReport",
+    "RelativePath": "api/admin/dashboard-report",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "CareerCracker.Controllers.BlogsController",
     "Method": "DeleteBlog",
     "RelativePath": "api/admin/del-blog/{id}",
@@ -1505,7 +1515,17 @@
         "IsRequired": false
       },
       {
+        "Name": "categoryIds",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
         "Name": "categorySlug",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "categorySlugs",
         "Type": "System.String",
         "IsRequired": false
       },
@@ -1515,7 +1535,17 @@
         "IsRequired": false
       },
       {
+        "Name": "languageIds",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
         "Name": "languageSlug",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "languageSlugs",
         "Type": "System.String",
         "IsRequired": false
       },

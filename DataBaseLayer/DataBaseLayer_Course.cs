@@ -12,9 +12,13 @@ namespace CareerCracker.DataBaseLayer
         Task<IActionResult> GetAllCourses();
         Task<IActionResult> GetCoursesWithFilters(
             int? categoryId,
+            List<int>? categoryIds,
             string? categorySlug,
+            List<string>? categorySlugs,
             int? languageId,
+            List<int>? languageIds,
             string? languageSlug,
+            List<string>? languageSlugs,
             decimal? minAverageRating,
             int? minReviewCount,
             string? search,
@@ -505,9 +509,13 @@ ORDER BY c.id DESC";
 
         public async Task<IActionResult> GetCoursesWithFilters(
             int? categoryId,
+            List<int>? categoryIds,
             string? categorySlug,
+            List<string>? categorySlugs,
             int? languageId,
+            List<int>? languageIds,
             string? languageSlug,
+            List<string>? languageSlugs,
             decimal? minAverageRating,
             int? minReviewCount,
             string? search,
@@ -522,10 +530,19 @@ ORDER BY c.id DESC";
 
                 var catSlug = string.IsNullOrWhiteSpace(categorySlug) ? null : categorySlug.Trim();
                 var langSlug = string.IsNullOrWhiteSpace(languageSlug) ? null : languageSlug.Trim();
+                var catIds = categoryIds?.Distinct().ToArray();
+                var langIds = languageIds?.Distinct().ToArray();
+                var catSlugs = categorySlugs?.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+                var langSlugs = languageSlugs?.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+
                 if (categoryId.HasValue)
-                    catSlug = null;
+                    catIds = catIds == null ? new[] { categoryId.Value } : catIds.Append(categoryId.Value).Distinct().ToArray();
                 if (languageId.HasValue)
-                    langSlug = null;
+                    langIds = langIds == null ? new[] { languageId.Value } : langIds.Append(languageId.Value).Distinct().ToArray();
+                if (!string.IsNullOrWhiteSpace(catSlug))
+                    catSlugs = catSlugs == null ? new[] { catSlug } : catSlugs.Append(catSlug).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+                if (!string.IsNullOrWhiteSpace(langSlug))
+                    langSlugs = langSlugs == null ? new[] { langSlug } : langSlugs.Append(langSlug).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
 
                 var searchTrim = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
                 var safeSearch = searchTrim == null ? null : searchTrim.Replace("%", "").Replace("_", "");
@@ -573,10 +590,10 @@ LEFT JOIN (
 ) rev ON rev.course_id = c.id
 
 WHERE c.is_active = TRUE
-  AND (@category_id IS NULL OR c.category_id = @category_id)
-  AND (@category_slug IS NULL OR LOWER(cat.category_slug) = LOWER(@category_slug))
-  AND (@language_id IS NULL OR c.course_language = @language_id)
-  AND (@language_slug IS NULL OR LOWER(lang.language_slug) = LOWER(@language_slug))
+  AND (@category_ids IS NULL OR c.category_id = ANY(@category_ids))
+  AND (@category_slugs IS NULL OR LOWER(cat.category_slug) = ANY(@category_slugs))
+  AND (@language_ids IS NULL OR c.course_language = ANY(@language_ids))
+  AND (@language_slugs IS NULL OR LOWER(lang.language_slug) = ANY(@language_slugs))
   AND (@min_avg_rating IS NULL OR COALESCE(rev.avg_rating, 0) >= @min_avg_rating)
   AND (@min_review_count IS NULL OR COALESCE(rev.review_count, 0) >= @min_review_count)
   AND (
@@ -597,14 +614,14 @@ LIMIT @page_size OFFSET @offset;
 
                 using var cmd = new NpgsqlCommand(query, con);
                 // Typed NULLs — PostgreSQL 42P08 otherwise ("could not determine data type of parameter")
-                cmd.Parameters.Add(new NpgsqlParameter("@category_id", NpgsqlDbType.Integer)
-                { Value = categoryId.HasValue ? categoryId.Value : DBNull.Value });
-                cmd.Parameters.Add(new NpgsqlParameter("@category_slug", NpgsqlDbType.Text)
-                { Value = catSlug ?? (object)DBNull.Value });
-                cmd.Parameters.Add(new NpgsqlParameter("@language_id", NpgsqlDbType.Integer)
-                { Value = languageId.HasValue ? languageId.Value : DBNull.Value });
-                cmd.Parameters.Add(new NpgsqlParameter("@language_slug", NpgsqlDbType.Text)
-                { Value = langSlug ?? (object)DBNull.Value });
+                cmd.Parameters.Add(new NpgsqlParameter("@category_ids", NpgsqlDbType.Array | NpgsqlDbType.Integer)
+                { Value = catIds is { Length: > 0 } ? catIds : DBNull.Value });
+                cmd.Parameters.Add(new NpgsqlParameter("@category_slugs", NpgsqlDbType.Array | NpgsqlDbType.Text)
+                { Value = catSlugs is { Length: > 0 } ? catSlugs.Select(s => s.ToLowerInvariant()).ToArray() : DBNull.Value });
+                cmd.Parameters.Add(new NpgsqlParameter("@language_ids", NpgsqlDbType.Array | NpgsqlDbType.Integer)
+                { Value = langIds is { Length: > 0 } ? langIds : DBNull.Value });
+                cmd.Parameters.Add(new NpgsqlParameter("@language_slugs", NpgsqlDbType.Array | NpgsqlDbType.Text)
+                { Value = langSlugs is { Length: > 0 } ? langSlugs.Select(s => s.ToLowerInvariant()).ToArray() : DBNull.Value });
                 cmd.Parameters.Add(new NpgsqlParameter("@min_avg_rating", NpgsqlDbType.Numeric)
                 { Value = minAverageRating.HasValue ? minAverageRating.Value : DBNull.Value });
                 cmd.Parameters.Add(new NpgsqlParameter("@min_review_count", NpgsqlDbType.Integer)
@@ -682,10 +699,10 @@ LIMIT @page_size OFFSET @offset;
                     totalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
                     filters = new
                     {
-                        categoryId,
-                        categorySlug = catSlug,
-                        languageId,
-                        languageSlug = langSlug,
+                        categoryIds = catIds,
+                        categorySlugs = catSlugs,
+                        languageIds = langIds,
+                        languageSlugs = langSlugs,
                         minAverageRating,
                         minReviewCount,
                         search = searchTrim
