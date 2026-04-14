@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -188,8 +189,20 @@ namespace CareerCracker.Controllers
 
                 if (!string.IsNullOrWhiteSpace(form["Email"]))
                 {
-                    user.Email = form["Email"];
-                    user.UserName = form["Email"]; // keep username same as email
+                    var newEmail = form["Email"].ToString().Trim();
+                    if (newEmail.Length > 256)
+                    {
+                        return BadRequest(new { success = false, message = "Email must be at most 256 characters." });
+                    }
+
+                    var existing = await _userManager.FindByEmailAsync(newEmail);
+                    if (existing != null && !string.Equals(existing.Id, user.Id, StringComparison.Ordinal))
+                    {
+                        return BadRequest(new { success = false, message = "That email is already in use by another account." });
+                    }
+
+                    user.Email = newEmail;
+                    user.UserName = newEmail; // keep username same as email
                 }
 
                 if (!string.IsNullOrWhiteSpace(form["PhoneNumber"]))
@@ -223,10 +236,16 @@ namespace CareerCracker.Controllers
                     user.Salary = salary;
 
                 // ===============================
-                // ✅ DATE OF BIRTH
+                // ✅ DATE OF BIRTH (UTC — required for PostgreSQL timestamptz / Npgsql)
                 // ===============================
-                if (DateTime.TryParse(form["DateOfBirth"], out var dob))
-                    user.DateOfBirth = dob;
+                if (form.ContainsKey("DateOfBirth"))
+                {
+                    var dobRaw = form["DateOfBirth"].ToString();
+                    if (string.IsNullOrWhiteSpace(dobRaw))
+                        user.DateOfBirth = null;
+                    else if (DateTime.TryParse(dobRaw.Trim(), out var dob))
+                        user.DateOfBirth = DateTime.SpecifyKind(dob, DateTimeKind.Utc);
+                }
 
                 // ===============================
                 // ✅ IMAGE UPLOAD (S3)
@@ -290,6 +309,15 @@ namespace CareerCracker.Controllers
                         ResolveProfileImageUrl(refreshed.profile_image),
                         roles
                     )
+                });
+            }
+            catch (DbUpdateException ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message,
+                    detail = ex.InnerException?.Message ?? ex.GetBaseException().Message
                 });
             }
             catch (Exception ex)
@@ -560,6 +588,15 @@ namespace CareerCracker.Controllers
                     success = true,
                     message = "Profile updated",
                     user = MapProfilePayload(user, ResolveProfileImageUrl(user.profile_image), roles)
+                });
+            }
+            catch (DbUpdateException ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message,
+                    detail = ex.InnerException?.Message ?? ex.GetBaseException().Message
                 });
             }
             catch (Exception ex)
