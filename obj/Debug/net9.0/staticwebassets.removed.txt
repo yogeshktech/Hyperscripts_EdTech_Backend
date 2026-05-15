@@ -1,0 +1,14 @@
+D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\uploads\batches\381f527d-41f8-4f50-94e3-243498495f53.png
+D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\uploads\batches\5f455e22-71a9-43bf-b416-2c3701c094b1.png
+D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\uploads\batches\71d74f40-96eb-4f54-aca2-07554f5d76be.png
+D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\uploads\batches\73bffee1-ec77-487b-ad8f-797803047ac0.png
+D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\uploads\batches\855f5809-f731-40fc-bfea-f536f912b6e9.png
+D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\uploads\batches\a6e8f916-77f8-46c8-90af-95db93a371b7.png
+D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\uploads\batches\ade79430-6819-428b-8aa9-0c601a425096.png
+D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\uploads\batches\efcba91d-e1f9-4f99-b52d-41c6841ccee6.png
+D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\uploads\live-classes\2b28249b-c2f4-41b6-bba8-bbd8886ceef7.jpg
+D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\uploads\resumes\3578cd37-34b6-4f5e-b4b5-2d1bb391087a.pdf
+D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\uploads\resumes\5c93b3e1-30c2-48b9-a06f-12966d3897a1.pdf
+D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\uploads\resumes\686c34b0-1ebc-4eaa-adbf-3a2629af5d85.pdf
+D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\uploads\resumes\d2a762e3-42b3-4244-8169-e2f4d9c53141.pdf
+D:\DotNet_Project_HyperScripts\Backend\Hyperscripts_EdTech_Backend\wwwroot\uploads\testimonials\20675282-634d-402c-854e-766a25945cce.png

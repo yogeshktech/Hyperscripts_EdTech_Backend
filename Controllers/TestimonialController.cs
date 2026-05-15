@@ -80,6 +80,7 @@ namespace CareerCracker.Controllers
 
         [Route("get-all-testimonial")]
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> GetAllTestimonials()
         {
             try
@@ -95,6 +96,7 @@ namespace CareerCracker.Controllers
         }
 
         [HttpGet("get-testimonial/{id}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetTestimonialById(int id)
         {
             try
