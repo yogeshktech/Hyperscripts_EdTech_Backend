@@ -5,6 +5,7 @@ namespace CareerCracker.DataBaseLayer
 {
     public interface IDataBaseLayer_User
     {
+        Task<IActionResult> GetUserDashboard(string userEmail);
         Task<IActionResult> MyCourses(string userEmail);
         Task<IActionResult> MyBatch(int courseId, string userEmail);
         Task<IActionResult> DeleteUser(IFormCollection form);
@@ -16,6 +17,91 @@ namespace CareerCracker.DataBaseLayer
 
     public partial class DataBaseLayer
     {
+        public async Task<IActionResult> GetUserDashboard(string userEmail)
+        {
+            using var con = new NpgsqlConnection(DbConnection);
+            await con.OpenAsync();
+
+            try
+            {
+                Guid userId;
+
+                using (var userCmd = new NpgsqlCommand(
+                    @"SELECT ""Id"" FROM ""AspNetUsers"" WHERE ""Email"" = @Email", con))
+                {
+                    userCmd.Parameters.AddWithValue("@Email", userEmail);
+
+                    var result = await userCmd.ExecuteScalarAsync();
+                    if (result == null)
+                    {
+                        return new BadRequestObjectResult(new
+                        {
+                            success = false,
+                            message = "User not found"
+                        });
+                    }
+
+                    userId = Guid.Parse(result.ToString()!);
+                }
+
+                int enrolledCourses;
+                int activeCourses;
+                int completedCourses;
+
+                using (var cmd = new NpgsqlCommand(@"
+            SELECT
+                COUNT(*)::int AS enrolled_courses,
+                COUNT(*) FILTER (
+                    WHERE uc.is_active = TRUE
+                      AND uc.completed_at IS NULL
+                      AND COALESCE(uc.progress_percent, 0) < 100
+                )::int AS active_courses,
+                COUNT(*) FILTER (
+                    WHERE uc.completed_at IS NOT NULL
+                       OR COALESCE(uc.progress_percent, 0) >= 100
+                )::int AS completed_courses
+            FROM user_courses uc
+            WHERE uc.user_id = @userId
+        ", con))
+                {
+                    cmd.Parameters.AddWithValue("@userId", userId);
+
+                    using var reader = await cmd.ExecuteReaderAsync();
+                    if (!await reader.ReadAsync())
+                    {
+                        enrolledCourses = 0;
+                        activeCourses = 0;
+                        completedCourses = 0;
+                    }
+                    else
+                    {
+                        enrolledCourses = reader.GetInt32(reader.GetOrdinal("enrolled_courses"));
+                        activeCourses = reader.GetInt32(reader.GetOrdinal("active_courses"));
+                        completedCourses = reader.GetInt32(reader.GetOrdinal("completed_courses"));
+                    }
+                }
+
+                return new OkObjectResult(new
+                {
+                    success = true,
+                    stats = new
+                    {
+                        enrolledCourses,
+                        activeCourses,
+                        completedCourses
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return new BadRequestObjectResult(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
         public async Task<IActionResult> MyCourses(string userEmail)
         {
             using var con = new NpgsqlConnection(DbConnection);

@@ -1788,6 +1788,16 @@
   },
   {
     "ContainingType": "CareerCracker.Controllers.UserController",
+    "Method": "GetDashboard",
+    "RelativePath": "api/user/dashboard",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "CareerCracker.Controllers.UserController",
     "Method": "GetLiveClassesByBatch",
     "RelativePath": "api/user/get-all-live-class/{batchId}",
     "HttpMethod": "GET",

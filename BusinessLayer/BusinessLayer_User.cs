@@ -4,6 +4,7 @@ namespace CareerCracker.BusinessLayer
 {
     public interface IBusinessLayer_User
     {
+        Task<IActionResult> GetUserDashboard(string userEmail);
         Task<IActionResult> MyCourses(string userEmail);
         Task<IActionResult> MyBatch(int courseId,string userEmail);
         Task<IActionResult> DeleteUser(IFormCollection form);
@@ -15,6 +16,11 @@ namespace CareerCracker.BusinessLayer
 
     public partial class BusinessLayer
     {
+        public async Task<IActionResult> GetUserDashboard(string userEmail)
+        {
+            return await _dataBaseLayer.GetUserDashboard(userEmail);
+        }
+
         public async Task<IActionResult> MyCourses(string userEmail)
         {
             return await _dataBaseLayer.MyCourses(userEmail);

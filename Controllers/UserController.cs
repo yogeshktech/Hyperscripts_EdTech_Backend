@@ -372,6 +372,49 @@ namespace CareerCracker.Controllers
             return Ok(new { success = true, message = "Password changed successfully" });
         }
 
+        /// <summary>Dashboard summary: user greeting info and course stats (enrolled, active, completed).</summary>
+        [HttpGet("dashboard")]
+        public async Task<IActionResult> GetDashboard()
+        {
+            try
+            {
+                var user = await GetCurrentUserAsync();
+                if (user == null)
+                    return Unauthorized(new { success = false, message = "User not found in token" });
+
+                var userEmail = user.Email ?? user.UserName;
+                if (string.IsNullOrEmpty(userEmail))
+                    return Unauthorized(new { success = false, message = "Email claim not found in token" });
+
+                var statsResult = await _businessLayer.GetUserDashboard(userEmail);
+                if (statsResult is not OkObjectResult ok || ok.Value == null)
+                    return statsResult;
+
+                using var doc = JsonSerializer.SerializeToDocument(ok.Value, ProfileJsonOptions);
+                if (!doc.RootElement.TryGetProperty("stats", out var statsElement))
+                    return statsResult;
+
+                return Ok(new
+                {
+                    success = true,
+                    dashboard = new
+                    {
+                        displayName = BuildDisplayName(user),
+                        profileImageUrl = ResolveProfileImageUrl(user.profile_image),
+                        stats = JsonSerializer.Deserialize<object>(statsElement.GetRawText(), ProfileJsonOptions)
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
         /// <summary>Paid, confirmed orders for the logged-in user (purchase history).</summary>
         [HttpGet("purchase-history")]
         public async Task<IActionResult> PurchaseHistory()
