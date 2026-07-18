@@ -439,7 +439,8 @@ SELECT
 
 FROM courses c
 LEFT JOIN categories cat ON c.category_id = cat.id
-LEFT JOIN languages lang ON c.course_language = lang.id
+LEFT JOIN languages lang
+ON c.course_language::INTEGER = lang.id
 ORDER BY c.id DESC";
 
                     using (var cmd = new NpgsqlCommand(query, con))
