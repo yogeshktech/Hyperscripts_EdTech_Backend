@@ -85,25 +85,100 @@ namespace CareerCracker.S3Services
                     file.ContentType,
                     file.Length);
 
-                // ✅ ADD BUCKET NAME HERE
+                // ✅ Build public HTTPS/CDN URL (never expose MinIO ServiceUrl / IP:9000 to clients)
                 var s3 = _config?.GetSection("S3");
 
                 string baseUrl = s3?["PublicBaseUrl"]?.TrimEnd('/') ?? "";
                 string bucket = s3?["BucketName"] ?? "";
                 if (string.IsNullOrWhiteSpace(baseUrl))
-                    return $"{bucket}/{key}";
+                    return ToPublicUrl($"{bucket}/{key}");
 
                 // Avoid duplicate bucket in URL when PublicBaseUrl already contains "/{bucket}"
                 if (!string.IsNullOrWhiteSpace(bucket) &&
                     baseUrl.EndsWith("/" + bucket, StringComparison.OrdinalIgnoreCase))
-                    return $"{baseUrl}/{key}";
+                    return ToPublicUrl($"{baseUrl}/{key}");
 
-                return $"{baseUrl}/{bucket}/{key}";
+                return ToPublicUrl($"{baseUrl}/{bucket}/{key}");
             }
             catch (Exception ex) when (LooksLikeConnectionFailure(ex))
             {
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Rewrites MinIO/ServiceUrl (IP:9000 / http) URLs to the configured PublicBaseUrl (e.g. https://edtech.colaborazia.com/...).
+        /// Use when returning stored image paths from the DB so live HTTPS sites do not get mixed-content / IP URLs.
+        /// </summary>
+        public static string? ToPublicUrl(string? pathOrUrl)
+        {
+            if (string.IsNullOrWhiteSpace(pathOrUrl))
+                return pathOrUrl;
+
+            var s = pathOrUrl.Trim();
+            var s3 = _config?.GetSection("S3");
+            var publicBase = s3?["PublicBaseUrl"]?.TrimEnd('/');
+            var serviceUrl = s3?["ServiceUrl"]?.TrimEnd('/');
+            var bucket = s3?["BucketName"]?.Trim();
+
+            if (string.IsNullOrWhiteSpace(publicBase))
+                return s;
+
+            // Already on public base
+            if (s.StartsWith(publicBase, StringComparison.OrdinalIgnoreCase))
+                return s;
+
+            // Relative key → public URL
+            if (!s.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+                !s.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                var key = s.TrimStart('/');
+                if (!string.IsNullOrWhiteSpace(bucket) &&
+                    publicBase.EndsWith("/" + bucket, StringComparison.OrdinalIgnoreCase))
+                    return $"{publicBase}/{key}";
+
+                if (!string.IsNullOrWhiteSpace(bucket) &&
+                    key.StartsWith(bucket + "/", StringComparison.OrdinalIgnoreCase))
+                    return $"{publicBase}/{key}";
+
+                if (!string.IsNullOrWhiteSpace(bucket))
+                    return $"{publicBase}/{bucket}/{key}";
+
+                return $"{publicBase}/{key}";
+            }
+
+            // Replace ServiceUrl host (http or https) with PublicBaseUrl
+            if (!string.IsNullOrWhiteSpace(serviceUrl) &&
+                Uri.TryCreate(serviceUrl, UriKind.Absolute, out var serviceUri) &&
+                Uri.TryCreate(s, UriKind.Absolute, out var storedUri))
+            {
+                var sameHost =
+                    string.Equals(storedUri.Host, serviceUri.Host, StringComparison.OrdinalIgnoreCase) &&
+                    storedUri.Port == serviceUri.Port;
+
+                // Also match when DB has https://IP:9000 but ServiceUrl is http://IP:9000
+                var sameHostIgnoreScheme =
+                    string.Equals(storedUri.Host, serviceUri.Host, StringComparison.OrdinalIgnoreCase) &&
+                    (storedUri.Port == serviceUri.Port ||
+                     storedUri.Port == 9000 && serviceUri.Port == 9000);
+
+                if (sameHost || sameHostIgnoreScheme)
+                {
+                    var path = storedUri.AbsolutePath.TrimStart('/');
+                    return $"{publicBase}/{path}";
+                }
+            }
+
+            // Fallback: known MinIO IP:9000 left in older rows
+            const string legacyHost = "116.203.133.249:9000";
+            if (s.Contains(legacyHost, StringComparison.OrdinalIgnoreCase))
+            {
+                var idx = s.IndexOf(legacyHost, StringComparison.OrdinalIgnoreCase);
+                var after = s[(idx + legacyHost.Length)..].TrimStart('/');
+                return $"{publicBase}/{after}";
+            }
+
+            return s;
         }
 
 
@@ -169,15 +244,31 @@ namespace CareerCracker.S3Services
                 return remainder;
             }
 
-            // Match ServiceUrl (MinIO style)
+            // Match ServiceUrl (MinIO style) — http or https on same host:port
             if (!string.IsNullOrWhiteSpace(serviceUrl) &&
-                urlOrPath.StartsWith(serviceUrl.TrimEnd('/'), StringComparison.OrdinalIgnoreCase))
+                Uri.TryCreate(serviceUrl, UriKind.Absolute, out var serviceUri) &&
+                Uri.TryCreate(urlOrPath, UriKind.Absolute, out var storedUri) &&
+                string.Equals(storedUri.Host, serviceUri.Host, StringComparison.OrdinalIgnoreCase) &&
+                storedUri.Port == serviceUri.Port)
             {
-                var baseUrl = serviceUrl.TrimEnd('/');
-                var remainder = urlOrPath.Substring(baseUrl.Length).TrimStart('/');
+                var remainder = storedUri.AbsolutePath.TrimStart('/');
 
                 if (forcePathStyle && !string.IsNullOrWhiteSpace(bucket) &&
-                    remainder.StartsWith(bucket + "/"))
+                    remainder.StartsWith(bucket + "/", StringComparison.OrdinalIgnoreCase))
+                {
+                    return remainder.Substring(bucket.Length + 1);
+                }
+                return remainder;
+            }
+
+            // Legacy MinIO IP URLs saved before PublicBaseUrl was set
+            const string legacyHost = "116.203.133.249:9000";
+            if (urlOrPath.Contains(legacyHost, StringComparison.OrdinalIgnoreCase))
+            {
+                var idx = urlOrPath.IndexOf(legacyHost, StringComparison.OrdinalIgnoreCase);
+                var remainder = urlOrPath[(idx + legacyHost.Length)..].TrimStart('/');
+                if (forcePathStyle && !string.IsNullOrWhiteSpace(bucket) &&
+                    remainder.StartsWith(bucket + "/", StringComparison.OrdinalIgnoreCase))
                 {
                     return remainder.Substring(bucket.Length + 1);
                 }

@@ -55,10 +55,17 @@ namespace CareerCracker.Controllers
         {
             if (string.IsNullOrWhiteSpace(stored))
                 return null;
+
+            var rewritten = S3StorageHelper.ToPublicUrl(stored);
+            if (!string.IsNullOrWhiteSpace(rewritten) &&
+                (rewritten.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                 rewritten.StartsWith("https://", StringComparison.OrdinalIgnoreCase)))
+                return rewritten;
+
             var s = stored.Trim();
             if (s.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
                 s.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-                return s;
+                return rewritten ?? s;
             if (s.StartsWith('/'))
                 return $"{Request.Scheme}://{Request.Host.Value}{s}";
             return $"{Request.Scheme}://{Request.Host.Value}/{s.TrimStart('/')}";

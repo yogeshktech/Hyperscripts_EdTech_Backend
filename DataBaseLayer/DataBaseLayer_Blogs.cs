@@ -211,7 +211,7 @@ namespace CareerCracker.DataBaseLayer
                         name = name,
                         description = blogDescription,
                         slug = slug,
-                        image = savedImageUrl ?? "",           // Full MinIO URL
+                        image = S3StorageHelper.ToPublicUrl(savedImageUrl) ?? "",
                         isActive = isActive,
                         updatedAt = DateTime.UtcNow
                     }
@@ -325,7 +325,7 @@ namespace CareerCracker.DataBaseLayer
                             success = true,
                             message = "Blog updated successfully",
                             id = id,
-                            image = newImageUrl ?? oldImageUrl
+                            image = S3StorageHelper.ToPublicUrl(newImageUrl ?? oldImageUrl)
                         });
                     }
                 }
@@ -362,7 +362,7 @@ namespace CareerCracker.DataBaseLayer
                                 name = reader.GetString(1),
                                 description = reader.IsDBNull(2) ? null : reader.GetString(2),
                                 slug = reader.GetString(3),
-                                image = reader.IsDBNull(4) ? null : reader.GetString(4),
+                                image = reader.IsDBNull(4) ? null : S3StorageHelper.ToPublicUrl(reader.GetString(4)),
                                 isActive = reader.GetBoolean(5),
                                 updatedAt = reader.GetDateTime(6)
                             });
@@ -408,7 +408,7 @@ namespace CareerCracker.DataBaseLayer
                                 name = reader.GetString(1),
                                 description = reader.IsDBNull(2) ? null : reader.GetString(2),
                                 slug = reader.GetString(3),
-                                image = reader.IsDBNull(4) ? null : reader.GetString(4),
+                                image = reader.IsDBNull(4) ? null : S3StorageHelper.ToPublicUrl(reader.GetString(4)),
                                 isActive = reader.GetBoolean(5),
                                 updatedAt = reader.GetDateTime(6)
                             };
