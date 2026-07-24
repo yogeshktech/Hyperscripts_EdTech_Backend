@@ -123,6 +123,7 @@ SELECT
     -- Masters
     (SELECT COUNT(*)::int FROM categories) AS total_categories,
     (SELECT COUNT(*)::int FROM languages) AS total_languages,
+    (SELECT COUNT(*)::int FROM courses) AS total_courses,
 
     -- Faculties (ADMIN role + IsActive)
     (SELECT COUNT(*)::int
@@ -159,6 +160,7 @@ SELECT
                     },
                     categories = new { total = Convert.ToInt32(reader["total_categories"]) },
                     languages = new { total = Convert.ToInt32(reader["total_languages"]) },
+                    courses = new { total = Convert.ToInt32(reader["total_courses"]) },
                     faculties = new { total = Convert.ToInt32(reader["total_faculties"]) },
                     batches = new { total = Convert.ToInt32(reader["total_batches"]) },
                     liveClasses = new { total = Convert.ToInt32(reader["total_live_classes"]) },
