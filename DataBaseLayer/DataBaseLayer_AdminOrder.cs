@@ -124,13 +124,13 @@ SELECT
     (SELECT COUNT(*)::int FROM categories) AS total_categories,
     (SELECT COUNT(*)::int FROM languages) AS total_languages,
 
-    -- Faculties (same rule as faculty list: ADMIN role + status)
+    -- Faculties (ADMIN role + IsActive)
     (SELECT COUNT(*)::int
      FROM ""AspNetUsers"" u2
      INNER JOIN ""AspNetUserRoles"" ur2 ON ur2.""UserId"" = u2.""Id""
      INNER JOIN ""AspNetRoles"" r2 ON r2.""Id"" = ur2.""RoleId""
      WHERE r2.""NormalizedName"" = 'ADMIN'
-       AND COALESCE(u2.status, TRUE) = TRUE
+       AND COALESCE(u2.""IsActive"", FALSE) = TRUE
     ) AS total_faculties,
 
     (SELECT COUNT(*)::int FROM batches) AS total_batches,
