@@ -88,52 +88,61 @@ namespace CareerCracker.DataBaseLayer
 
                 // =========================================
                 // 1️⃣ MAIN DASHBOARD STATS
+                // Always returns one row (even when there are 0 students).
                 // =========================================
                 const string query = @"
 SELECT
-    -- Students
-    COALESCE(SUM(CASE WHEN u.""IsActive"" = TRUE THEN 1 ELSE 0 END), 0) AS active_students,
-    COALESCE(SUM(CASE WHEN u.""IsActive"" = FALSE THEN 1 ELSE 0 END), 0) AS inactive_students,
-    COUNT(u.""Id"") AS total_students,
+    -- Students (role USER)
+    (SELECT COUNT(*)::int
+     FROM ""AspNetUsers"" u
+     INNER JOIN ""AspNetUserRoles"" ur ON ur.""UserId"" = u.""Id""
+     INNER JOIN ""AspNetRoles"" r ON r.""Id"" = ur.""RoleId""
+     WHERE r.""NormalizedName"" = 'USER') AS total_students,
+
+    (SELECT COUNT(*)::int
+     FROM ""AspNetUsers"" u
+     INNER JOIN ""AspNetUserRoles"" ur ON ur.""UserId"" = u.""Id""
+     INNER JOIN ""AspNetRoles"" r ON r.""Id"" = ur.""RoleId""
+     WHERE r.""NormalizedName"" = 'USER'
+       AND COALESCE(u.""IsActive"", FALSE) = TRUE) AS active_students,
+
+    (SELECT COUNT(*)::int
+     FROM ""AspNetUsers"" u
+     INNER JOIN ""AspNetUserRoles"" ur ON ur.""UserId"" = u.""Id""
+     INNER JOIN ""AspNetRoles"" r ON r.""Id"" = ur.""RoleId""
+     WHERE r.""NormalizedName"" = 'USER'
+       AND COALESCE(u.""IsActive"", FALSE) = FALSE) AS inactive_students,
 
     -- Orders
-    (SELECT COUNT(*) FROM orders) AS total_orders,
-    (SELECT COUNT(*) FROM orders 
-        WHERE order_status = 'CONFIRMED' 
-        AND (payment_status = 'PAID' OR payment_status = 'CONFIRMED')
+    (SELECT COUNT(*)::int FROM orders) AS total_orders,
+    (SELECT COUNT(*)::int FROM orders
+        WHERE UPPER(COALESCE(order_status, '')) = 'CONFIRMED'
+          AND UPPER(COALESCE(payment_status, '')) IN ('PAID', 'CONFIRMED')
     ) AS total_confirmed_orders,
 
     -- Masters
-    (SELECT COUNT(*) FROM categories) AS total_categories,
-    (SELECT COUNT(*) FROM languages) AS total_languages,
+    (SELECT COUNT(*)::int FROM categories) AS total_categories,
+    (SELECT COUNT(*)::int FROM languages) AS total_languages,
 
-    -- ✅ FIXED FACULTY COUNT (USING ADMIN ROLE)
-    (SELECT COUNT(*) 
+    -- Faculties (same rule as faculty list: ADMIN role + status)
+    (SELECT COUNT(*)::int
      FROM ""AspNetUsers"" u2
      INNER JOIN ""AspNetUserRoles"" ur2 ON ur2.""UserId"" = u2.""Id""
      INNER JOIN ""AspNetRoles"" r2 ON r2.""Id"" = ur2.""RoleId""
-     WHERE u2.status = TRUE
-       AND r2.""NormalizedName"" = 'ADMIN'
+     WHERE r2.""NormalizedName"" = 'ADMIN'
+       AND COALESCE(u2.status, TRUE) = TRUE
     ) AS total_faculties,
 
-    (SELECT COUNT(*) FROM batches) AS total_batches,
-    (SELECT COUNT(*) FROM live_classes) AS total_live_classes,
+    (SELECT COUNT(*)::int FROM batches) AS total_batches,
+    (SELECT COUNT(*)::int FROM live_classes) AS total_live_classes,
 
-    (SELECT COUNT(DISTINCT course_id) 
-     FROM user_courses WHERE is_active = TRUE) AS total_purchased_courses
-
-FROM ""AspNetUsers"" u
-INNER JOIN ""AspNetUserRoles"" ur ON ur.""UserId"" = u.""Id""
-INNER JOIN ""AspNetRoles"" r ON r.""Id"" = ur.""RoleId""
-WHERE r.""NormalizedName"" = 'USER';";
+    (SELECT COUNT(DISTINCT course_id)::int
+     FROM user_courses WHERE is_active = TRUE) AS total_purchased_courses;";
 
                 await using var cmd = new NpgsqlCommand(query, con);
                 await using var reader = await cmd.ExecuteReaderAsync();
 
-                if (!await reader.ReadAsync())
-                {
-                    return Ok(new { success = true, report = new { } });
-                }
+                await reader.ReadAsync();
 
                 var report = new
                 {
